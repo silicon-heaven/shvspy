@@ -243,9 +243,19 @@ void MainWindow::on_actRemoveServer_triggered()
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(brnd) {
-		if(QMessageBox::question(this, tr("Question"), tr("Realy drop server definition for '%1'").arg(nd->objectName())) == QMessageBox::Yes) {
-			TheApp::instance()->serverTreeModel()->invisibleRootItem()->deleteChild(ix.row());
-		}
+		auto *box = new QMessageBox(
+					QMessageBox::Question,
+					tr("Question"),
+					tr("Realy drop server definition for '%1'").arg(nd->objectName())
+					, QMessageBox::Yes | QMessageBox::No
+					, this);
+		connect(box, &QMessageBox::buttonClicked, this, [=](QAbstractButton *button) {
+			if(button == box->button(QMessageBox::Yes))
+				TheApp::instance()->serverTreeModel()->invisibleRootItem()->deleteChild(ix.row());
+			box->deleteLater();
+		});
+		box->show();
+		box->adjustSize();
 	}
 }
 
@@ -404,18 +414,22 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 
 	QString path = TheApp::instance()->attributesModel()->path();
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
-	MethodParametersDialog dlg(path, method, rv, this);
-	dlg.setWindowTitle(tr("Parameters"));
-	if (dlg.exec() == QDialog::Accepted) {
-		cp::RpcValue val = dlg.value();
-		if (val.isValid()) {
-			std::string cpon = dlg.value().toCpon();
-			ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
+	auto *dlg = new MethodParametersDialog(path, method, rv, this);
+	dlg->setWindowTitle(tr("Parameters"));
+	connect(dlg, &QDialog::finished, this, [=](int result) {
+		if (result == QDialog::Accepted) {
+			cp::RpcValue val = dlg->value();
+			if (val.isValid()) {
+				std::string cpon = dlg->value().toCpon();
+				ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
+			}
+			else {
+				ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
+			}
 		}
-		else {
-			ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
-		}
-	}
+		dlg->deleteLater();
+	});
+	dlg->show();
 }
 
 void MainWindow::editStringParameter(const QModelIndex &ix)
@@ -423,15 +437,19 @@ void MainWindow::editStringParameter(const QModelIndex &ix)
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 	QString cpon = QString::fromStdString(rv.asString());
-	TextEditDialog dlg(this);
-	dlg.setWindowTitle(tr("Parameters"));
-	dlg.setReadOnly(false);
-	dlg.setText(cpon);
-	if(dlg.exec()) {
-		rv = cp::RpcValue(dlg.text().toStdString());
-		cpon =  QString::fromStdString(rv.toCpon());
-		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
-	}
+	auto *dlg = new TextEditDialog(this);
+	dlg->setWindowTitle(tr("Parameters"));
+	dlg->setReadOnly(false);
+	dlg->setText(cpon);
+	connect(dlg, &QDialog::finished, this, [=](int result) {
+		if (result == QDialog::Accepted) {
+			auto rv = cp::RpcValue(dlg->text().toStdString());
+			auto cpon =  QString::fromStdString(rv.toCpon());
+			ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
+		}
+		dlg->deleteLater();
+	});
+	dlg->show();
 }
 
 void MainWindow::editCponParameters(const QModelIndex &ix)
@@ -439,15 +457,19 @@ void MainWindow::editCponParameters(const QModelIndex &ix)
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 	QString cpon = rv.isValid()? QString::fromStdString(rv.toCpon("  ")): QString();
-	CponEditDialog dlg(this);
-	dlg.setWindowTitle(tr("Parameters"));
-	dlg.setReadOnly(false);
-	dlg.setValidateContent(true);
-	dlg.setText(cpon);
-	if(dlg.exec()) {
-		cpon = dlg.text();
-		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
-	}
+	auto *dlg = new CponEditDialog(this);
+	dlg->setWindowTitle(tr("Parameters"));
+	dlg->setReadOnly(false);
+	dlg->setValidateContent(true);
+	dlg->setText(cpon);
+	connect(dlg, &QDialog::finished, this, [=](int result) {
+		if (result == QDialog::Accepted) {
+			auto cpon = dlg->text();
+			ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
+		}
+		dlg->deleteLater();
+	});
+	dlg->show();
 }
 
 void MainWindow::onAttributesTableContextMenu(const QPoint &point)
@@ -576,10 +598,6 @@ void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 		dlg->deleteLater();
 	});
 	dlg->show();
-//#ifdef Q_OS_WASM
-//#else
-//	int ret = dlg->exec();
-//#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent *ev)

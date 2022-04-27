@@ -195,7 +195,7 @@ void ServerTreeModel::loadSettings(const shv::chainpack::RpcValue &settings)
 {
 	for(const auto &rv : settings.asList()) {
 		QVariantMap m = shv::coreqt::Utils::rpcValueToQVariant(rv).toMap();
-		//m["password"] = QString::fromStdString(TheApp::instance()->crypt().decrypt(m.value("password").toString().toStdString()));
+		m["password"] = QString::fromStdString(TheApp::instance()->crypt().decrypt(m.value("password").toString().toStdString()));
 		createConnection(m);
 	}
 }
