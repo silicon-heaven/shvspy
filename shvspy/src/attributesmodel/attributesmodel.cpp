@@ -171,6 +171,7 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 				}
 				m_shvTreeNodeItem->setMethodParams(ix.row(), params);
 				loadRow(ix.row());
+				emit dataChanged(ix, ix);
 				return true;
 			}
 		}
