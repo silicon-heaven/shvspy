@@ -9,7 +9,7 @@
         "host":"pisa-virt.felk.cvut.cz",
         "muteHeartBeats":false,
         "name":"test",
-        "password":"8m5E0z5V8d7B2f0t8w5J1Y8dE8o9R8v",
+        "password":"6cK0z8s5E3Z2r2gV3RQ9P7O9M6o5N7C",
         "peerVerify":false,
         "port":3778,
         "rpc.defaultRpcTimeout":5,
@@ -19,7 +19,7 @@
         "securityType":"none",
         "shvRoot":"",
         "subscriptions":[],
-        "user":"admin"
+        "user":"guest"
       }
     ]
   },
