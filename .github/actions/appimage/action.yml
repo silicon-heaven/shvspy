@@ -1,0 +1,52 @@
+name: Create and upload AppImage
+description: "Create and upload AppImage as a Github Actions artifact."
+inputs:
+  use_qt6:
+    description: "Specify whether we're using Qt 5 or Qt 6"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build
+      run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
+      shell: bash
+
+    - name: Install
+      run: cmake --install '${{github.workspace}}/build'
+      shell: bash
+
+    - name: Get app version
+      run: |
+        if [[ "${{ inputs.use_qt6 }}" = "ON" ]]; then
+          VERSION=qt6-
+        else
+          VERSION=qt5-
+        fi
+        VERSION+="$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)"
+        echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      shell: bash
+
+    - name: Get linuxdeploy and linuxdeploy-plugin-qt
+      run: |
+        curl -JOL "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+        curl -JOL "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
+        chmod +x ./*AppImage
+      shell: bash
+
+    - name: Create AppImage
+      run: |
+        LD_LIBRARY_PATH="${{ github.workspace }}/install/usr/lib:$LD_LIBRARY_PATH" \
+        ./linuxdeploy-x86_64.AppImage \
+        --appdir '${{ github.workspace }}/install' \
+        --desktop-file '${{ github.workspace }}/distro/shvspy.AppDir/shvspy.desktop' \
+        --icon-file '${{ github.workspace }}/distro/shvspy.AppDir/shvspy.svg' \
+        --plugin qt \
+        --output appimage
+      shell: bash
+
+    - name: Upload AppImage
+      uses: actions/upload-artifact@v3
+      with:
+        name: shvspy-${{ env.VERSION }}-x86_64.Appimage
+        path: shvspy-*-x86_64.AppImage

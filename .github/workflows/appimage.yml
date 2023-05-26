@@ -1,0 +1,54 @@
+name: AppImage
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  ubuntu-qt6:
+    name: Qt 6.5.0 / Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          qt_version: 6.5.0
+          use_qt6: ON
+          modules: qtserialport qtwebsockets
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+
+      - name: Create AppImage
+        uses: ./.github/actions/appimage
+        with:
+          use_qt6: ON
+
+  ubuntu-qt5:
+    name: Qt 5.15.2 / Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    env:
+      CXXFLAGS: -Wno-stringop-overflow
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          qt_version: 5.15.2
+          use_qt6: OFF
+          modules: ""
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+
+      - name: Create AppImage
+        uses: ./.github/actions/appimage
+        with:
+          use_qt6: OFF
