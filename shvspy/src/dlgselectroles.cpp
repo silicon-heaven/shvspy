@@ -24,7 +24,7 @@ void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 	m_userRoles = roles;
 
     connect(ui->tvRoles, &QTreeView::customContextMenuRequested, this, &DlgSelectRoles::contextMenu);
-    connect(ui->tvRoles->selectionModel(), &QItemSelectionModel::currentChanged, [this]() {
+    connect(ui->tvRoles->selectionModel(), &QItemSelectionModel::currentChanged, this, [this]() {
         ui->editRoleButton->setEnabled(ui->tvRoles->currentIndex().isValid());
     });
     connect(ui->editRoleButton, &QPushButton::clicked, this, &DlgSelectRoles::editRole);

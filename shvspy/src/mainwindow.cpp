@@ -91,7 +91,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(attr_model, &AttributesModel::reloaded, [this]() {
+	connect(attr_model, &AttributesModel::reloaded, this, [this]() {
 		ui->btLogInspector->setEnabled(false);
 		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 		if(nd) {
@@ -111,7 +111,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	});
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::onAttributesTableContextMenu);
 
-	connect(ui->tblAttributes, &QTableView::activated, [this](const QModelIndex &ix) {
+	connect(ui->tblAttributes, &QTableView::activated, this, [this](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun) {
 			try {
 				TheApp::instance()->attributesModel()->callMethod(ix.row(), shv::core::Exception::Throw);
