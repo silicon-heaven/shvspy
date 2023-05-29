@@ -750,17 +750,27 @@ void MainWindow::gotoShvPath()
 
 void MainWindow::onActHelpAbout_triggered()
 {
-	QMessageBox::about(this
-					   , QCoreApplication::applicationName()
-					   , "<p><b>" + QCoreApplication::applicationName() + "</b></p>"
-						 "<p>ver. " + QCoreApplication::applicationVersion() + "</p>"
-				   #ifdef GIT_COMMIT
-						 "<p>git commit: " + SHV_EXPAND_AND_QUOTE(GIT_COMMIT) + "</p>"
-				   #endif
-						 "<p>Silicon Heaven Swiss Knife</p>"
-						 "<p>2019 Elektroline a.s.</p>"
-						 "<p><a href=\"https://github.com/silicon-heaven\">github.com/silicon-heaven</a></p>"
-					   );
+	auto title = QCoreApplication::applicationName();
+	auto text = "<p><b>" + QCoreApplication::applicationName() + "</b></p>"
+		"<p>ver. " + QCoreApplication::applicationVersion() + "</p>"
+#ifdef GIT_COMMIT
+		"<p>git commit: " + SHV_EXPAND_AND_QUOTE(GIT_COMMIT) + "</p>"
+#endif
+		"<p>Silicon Heaven Swiss Knife</p>"
+		"<p>2019 Elektroline a.s.</p>"
+		"<p><a href=\"https://github.com/silicon-heaven\">github.com/silicon-heaven</a></p>";
+
+#ifdef Q_OS_WASM
+	// Can't use QMessageBox::about here, because of it uses exec().
+	auto* msgBox = new QMessageBox(QMessageBox::Information, title, text, QMessageBox::NoButton, this);
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    QIcon icon = msgBox->windowIcon();
+    QSize size = icon.actualSize(QSize(64, 64));
+    msgBox->setIconPixmap(icon.pixmap(size));
+	msgBox->open();
+#else
+	QMessageBox::about(this, title, text);
+#endif
 }
 
 #include "mainwindow.moc"
