@@ -43,7 +43,7 @@ add_subdirectory(3rdparty/libshv)
 
 if(USE_QT6)
     if(EMSCRIPTEN)
-        find_package(Qt6 COMPONENTS Core Widgets Gui Network Svg)
+        find_package(Qt6 COMPONENTS Core Widgets Gui Network Svg WebSockets)
     else()
         find_package(Qt6 COMPONENTS Core Widgets Gui Network Svg SerialPort WebSockets)
     endif()
