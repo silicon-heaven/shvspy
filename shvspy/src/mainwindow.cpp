@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		Q_UNUSED(roles)
 		if(tl == br) {
 			ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
-			ShvBrokerNodeItem *brit = qobject_cast<ShvBrokerNodeItem*>(tree_model->itemFromIndex(tl));
+			auto *brit = qobject_cast<ShvBrokerNodeItem*>(tree_model->itemFromIndex(tl));
 			if(brit) {
 				if(tree_model->hasChildren(tl)) {
 					ui->treeServers->expand(tl);
@@ -238,7 +238,7 @@ void MainWindow::on_actEditServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	auto *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(brnd) {
 		editServer(brnd, false);
 	}
@@ -248,7 +248,7 @@ void MainWindow::on_actCopyServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	auto *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(brnd) {
 		editServer(brnd, true);
 	}
@@ -258,7 +258,7 @@ void MainWindow::on_actRemoveServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	auto *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(brnd) {
 		auto *box = new QMessageBox(
 					QMessageBox::Question,
@@ -280,14 +280,14 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 {
 	QModelIndex ix = ui->treeServers->indexAt(pos);
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
-	QMenu *m = new QMenu();
-	QAction *a_reloadNode = new QAction(tr("Reload"), m);
-	QAction *a_subscribeNode = new QAction(tr("Subscribe"), m);
-	QAction *a_callShvMethod = new QAction(tr("Call shv method"), m);
-	QAction *a_usersEditor = new QAction(tr("Users editor"), m);
-	QAction *a_rolesEditor = new QAction(tr("Roles editor"), m);
-	QAction *a_mountsEditor = new QAction(tr("Mounts editor"), m);
+	auto *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	auto *m = new QMenu();
+	auto *a_reloadNode = new QAction(tr("Reload"), m);
+	auto *a_subscribeNode = new QAction(tr("Subscribe"), m);
+	auto *a_callShvMethod = new QAction(tr("Call shv method"), m);
+	auto *a_usersEditor = new QAction(tr("Users editor"), m);
+	auto *a_rolesEditor = new QAction(tr("Roles editor"), m);
+	auto *a_mountsEditor = new QAction(tr("Mounts editor"), m);
 
 	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
@@ -384,7 +384,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 void MainWindow::openNode(const QModelIndex &ix)
 {
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	auto *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(bnd) {
 		AttributesModel *m = TheApp::instance()->attributesModel();
 		if(bnd->openStatus() == ShvBrokerNodeItem::OpenStatus::Disconnected) {
@@ -399,14 +399,14 @@ void MainWindow::openNode(const QModelIndex &ix)
 
 void MainWindow::displayResult(const QModelIndex &ix)
 {
-	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(ix.data(AttributesModel::RpcValueRole));
+	auto rv = qvariant_cast<cp::RpcValue>(ix.data(AttributesModel::RpcValueRole));
 	displayValue(rv);
 }
 
 void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 {
 	if(rv.isString() || rv.isBlob()) {
-		TextEditDialog *view = new TextEditDialog(this);
+		auto *view = new TextEditDialog(this);
 		view->setModal(false);
 		view->setAttribute(Qt::WA_DeleteOnClose);
 		view->setWindowIconText(tr("Result"));
@@ -416,7 +416,7 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 		view->show();
 	}
 	else {
-		CponEditDialog *view = new CponEditDialog(this);
+		auto *view = new CponEditDialog(this);
 		view->setModal(false);
 		view->setAttribute(Qt::WA_DeleteOnClose);
 		view->setWindowIconText(tr("Result"));
@@ -431,7 +431,7 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 void MainWindow::editMethodParameters(const QModelIndex &ix)
 {
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
-	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	auto rv = qvariant_cast<cp::RpcValue>(v);
 
 	QString path = TheApp::instance()->attributesModel()->path();
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
@@ -456,7 +456,7 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 void MainWindow::editStringParameter(const QModelIndex &ix)
 {
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
-	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	auto rv = qvariant_cast<cp::RpcValue>(v);
 	QString cpon = QString::fromStdString(rv.asString());
 	auto *dlg = new TextEditDialog(this);
 	dlg->setWindowTitle(tr("Parameters"));
@@ -476,7 +476,7 @@ void MainWindow::editStringParameter(const QModelIndex &ix)
 void MainWindow::editCponParameters(const QModelIndex &ix)
 {
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
-	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	auto rv = qvariant_cast<cp::RpcValue>(v);
 	QString cpon = rv.isValid()? QString::fromStdString(rv.toCpon("  ")): QString();
 	auto *dlg = new CponEditDialog(this);
 	dlg->setWindowTitle(tr("Parameters"));
@@ -503,7 +503,7 @@ void MainWindow::onAttributesTableContextMenu(const QPoint &point)
 			QString s = index.data(Qt::ToolTipRole).toString();
 			if(s.isEmpty())
 				s = tr("Method description no available.");
-			TextEditDialog *view = new TextEditDialog(this);
+			auto *view = new TextEditDialog(this);
 			view->setModal(true);
 			view->setAttribute(Qt::WA_DeleteOnClose);
 			view->setWindowIconText(tr("Method description"));
@@ -537,7 +537,7 @@ void MainWindow::onAttributesTableContextMenu(const QPoint &point)
 		};
 		if (a == a_save_result_binary) {
 			QVariant v = index.data(AttributesModel::RpcValueRole);
-			const cp::RpcValue rpc_val = qvariant_cast<cp::RpcValue>(v);
+			const auto rpc_val = qvariant_cast<cp::RpcValue>(v);
 			const std::string &s = rpc_val.toString();
 			const std::string file_name = rpc_val.metaValue("fileName").toStdString();
 			save_file(QString(), s, file_name);
@@ -545,7 +545,7 @@ void MainWindow::onAttributesTableContextMenu(const QPoint &point)
 		}
 		if (a == a_save_result_chainpack) {
 			QVariant v = index.data(AttributesModel::RpcValueRole);
-			const cp::RpcValue rpc_val = qvariant_cast<cp::RpcValue>(v);
+			const auto rpc_val = qvariant_cast<cp::RpcValue>(v);
 			const std::string s = rpc_val.toChainPack();
 			const std::string file_name = rpc_val.metaValue("fileName").toStdString();
 			save_file(tr("ChainPack files (*.chpk)"), s, file_name + ".chpk");
@@ -553,7 +553,7 @@ void MainWindow::onAttributesTableContextMenu(const QPoint &point)
 		}
 		if (a == a_save_result_cpon) {
 			QVariant v = index.data(AttributesModel::RpcValueRole);
-			const cp::RpcValue rpc_val = qvariant_cast<cp::RpcValue>(v);
+			const auto rpc_val = qvariant_cast<cp::RpcValue>(v);
 			const std::string s = rpc_val.toCpon();
 			const std::string file_name = rpc_val.metaValue("fileName").toStdString();
 			save_file(tr("Cpon files (*.cpon)"), s, file_name + ".cpon");
@@ -594,7 +594,7 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 	if(nd) {
 		AttributesModel *m = TheApp::instance()->attributesModel();
 		ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
-		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+		auto *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		if(bnd) {
 			// hide attributes for server nodes
 			//ui->edAttributesShvPath->setText(QString());
@@ -614,7 +614,7 @@ void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 	if(srv) {
 		broker_props = srv->brokerProperties();
 	}
-	DlgBrokerProperties *dlg = new DlgBrokerProperties(this);
+	auto *dlg = new DlgBrokerProperties(this);
 	dlg->setServerProperties(broker_props);
 	connect(dlg, &QDialog::finished, this, [=, this](int result) {
 		if(result == QDialog::Accepted) {

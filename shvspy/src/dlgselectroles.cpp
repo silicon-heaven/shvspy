@@ -66,7 +66,7 @@ void DlgSelectRoles::setUserRoles(const std::vector<std::string> &roles)
 void DlgSelectRoles::contextMenu(const QPoint &glob_pos)
 {
     QMenu menu(this);
-    QAction *edit_role = new QAction(tr("&Edit role"), &menu);
+    auto *edit_role = new QAction(tr("&Edit role"), &menu);
     connect(edit_role, &QAction::triggered, this, &DlgSelectRoles::editRole);
     edit_role->setEnabled(ui->tvRoles->currentIndex().isValid());
     menu.addAction(edit_role);

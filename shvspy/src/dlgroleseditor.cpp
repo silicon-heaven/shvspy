@@ -96,7 +96,7 @@ void DlgRolesEditor::onDeleteRoleClicked()
 
 	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete data and associated access pahts for role") + " " + QString::fromStdString(role) + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
-		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+		auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 		cb->start(this, [this, role](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
@@ -156,7 +156,7 @@ void DlgRolesEditor::listRoles()
 	m_dataModel->removeRows(0, m_dataModel->rowCount());
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -169,7 +169,7 @@ void DlgRolesEditor::listRoles()
 					const auto &res = result.asList();
 					m_dataModel->setRowCount(static_cast<int>(res.size()));
 					for (size_t i = 0; i < res.size(); i++){
-						QStandardItem *item = new QStandardItem(QString::fromStdString(res.at(i).toStdString()));
+						auto *item = new QStandardItem(QString::fromStdString(res.at(i).toStdString()));
 						item->setFlags(item->flags() & ~Qt::ItemIsEditable);
 						m_dataModel->setItem(static_cast<int>(i), 0, item);
 					}
@@ -193,7 +193,7 @@ void DlgRolesEditor::callDeleteAccessForRole(const std::string &role)
 	setStatusText(tr("Deleting access paths for role:") + " " + QString::fromStdString(role));
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
