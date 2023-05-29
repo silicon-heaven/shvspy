@@ -330,7 +330,7 @@ void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)
 {
 	QStringList roles_list;
 
-	for (shv::chainpack::RpcValue role : roles){
+	for (const auto& role : roles){
 		if (role.isString()){
 			roles_list.append(QString::fromStdString(role.asString()));
 		}
