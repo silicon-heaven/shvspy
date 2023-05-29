@@ -139,6 +139,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	connect(ui->edAttributesShvPath, &QLineEdit::returnPressed, ui->btGotoShvPath, &QPushButton::click);
 	connect(ui->btGotoShvPath, &QPushButton::clicked, this, &MainWindow::gotoShvPath);
+	connect(ui->actAddServer, &QAction::triggered, this, &MainWindow::onActAddServer_triggered);
+	connect(ui->actEditServer, &QAction::triggered, this, &MainWindow::onActEditServer_triggered);
+	connect(ui->actCopyServer, &QAction::triggered, this, &MainWindow::onActCopyServer_triggered);
+	connect(ui->actRemoveServer, &QAction::triggered, this, &MainWindow::onActRemoveServer_triggered);
+	connect(ui->actHelpAbout, &QAction::triggered, this, &MainWindow::onActHelpAbout_triggered);
+
+	connect(ui->treeServers, &ServerTreeView::doubleClicked, this, &MainWindow::onTreeServers_doubleClicked);
+	connect(ui->treeServers, &ServerTreeView::enterKeyPressed, this, &MainWindow::onTreeServers_enterKeyPressed);
+	connect(ui->treeServers, &ServerTreeView::customContextMenuRequested, this, &MainWindow::onTreeServers_customContextMenuRequested);
 }
 
 MainWindow::~MainWindow()
@@ -229,12 +238,12 @@ void MainWindow::resizeAttributesViewSectionsToFit()
 	}
 }
 
-void MainWindow::on_actAddServer_triggered()
+void MainWindow::onActAddServer_triggered()
 {
 	editServer(nullptr, false);
 }
 
-void MainWindow::on_actEditServer_triggered()
+void MainWindow::onActEditServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
@@ -244,7 +253,7 @@ void MainWindow::on_actEditServer_triggered()
 	}
 }
 
-void MainWindow::on_actCopyServer_triggered()
+void MainWindow::onActCopyServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
@@ -254,7 +263,7 @@ void MainWindow::on_actCopyServer_triggered()
 	}
 }
 
-void MainWindow::on_actRemoveServer_triggered()
+void MainWindow::onActRemoveServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
@@ -276,7 +285,7 @@ void MainWindow::on_actRemoveServer_triggered()
 	}
 }
 
-void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
+void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 {
 	QModelIndex ix = ui->treeServers->indexAt(pos);
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
@@ -739,7 +748,7 @@ void MainWindow::gotoShvPath()
 	}
 }
 
-void MainWindow::on_actHelpAbout_triggered()
+void MainWindow::onActHelpAbout_triggered()
 {
 	QMessageBox::about(this
 					   , QCoreApplication::applicationName()

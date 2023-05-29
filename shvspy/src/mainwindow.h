@@ -23,15 +23,15 @@ public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow() override;
 protected:
-	Q_SLOT void on_actAddServer_triggered();
-	Q_SLOT void on_actEditServer_triggered();
-	Q_SLOT void on_actCopyServer_triggered();
-	Q_SLOT void on_actRemoveServer_triggered();
-	Q_SLOT void on_actHelpAbout_triggered();
+	Q_SLOT void onActAddServer_triggered();
+	Q_SLOT void onActEditServer_triggered();
+	Q_SLOT void onActCopyServer_triggered();
+	Q_SLOT void onActRemoveServer_triggered();
+	Q_SLOT void onActHelpAbout_triggered();
 
-	Q_SLOT void on_treeServers_doubleClicked(const QModelIndex &ix) {openNode(ix);}
-	Q_SLOT void on_treeServers_enterKeyPressed(const QModelIndex &ix) {openNode(ix);}
-	Q_SLOT void on_treeServers_customContextMenuRequested(const QPoint &pos);
+	Q_SLOT void onTreeServers_doubleClicked(const QModelIndex &ix) {openNode(ix);}
+	Q_SLOT void onTreeServers_enterKeyPressed(const QModelIndex &ix) {openNode(ix);}
+	Q_SLOT void onTreeServers_customContextMenuRequested(const QPoint &pos);
 	Q_SLOT void onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix);
 
 	void openLogInspector();
