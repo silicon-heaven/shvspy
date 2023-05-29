@@ -337,9 +337,10 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					DlgCallShvMethod dlg(cc, this);
-					dlg.setShvPath(nd->shvPath());
-					dlg.exec();
+					auto dlg = new DlgCallShvMethod(cc, this);
+					dlg->setShvPath(nd->shvPath());
+					dlg->open();
+					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}
 			}
 			else if(a == a_usersEditor) {
@@ -347,9 +348,10 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					DlgUsersEditor dlg(this, cc);
-					dlg.init(nd->shvPath() + "/etc/acl");
-					dlg.exec();
+					auto dlg = new DlgUsersEditor(this, cc);
+					dlg->init(nd->shvPath() + "/etc/acl");
+					dlg->open();
+					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}
 			}
 			else if(a == a_rolesEditor) {
@@ -357,9 +359,10 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					DlgRolesEditor dlg(this, cc);
-					dlg.init(nd->shvPath() + "/etc/acl");
-					dlg.exec();
+					auto dlg = new DlgRolesEditor (this, cc);
+					dlg->init(nd->shvPath() + "/etc/acl");
+					dlg->open();
+					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}
 			}
 			else if(a == a_mountsEditor) {
@@ -367,9 +370,10 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					DlgMountsEditor dlg(this, cc);
-					dlg.init(nd->shvPath() + "/etc/acl");
-					dlg.exec();
+					auto dlg = new DlgMountsEditor(this, cc);
+					dlg->init(nd->shvPath() + "/etc/acl");
+					dlg->open();
+					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}
 			}
 			m->deleteLater();
@@ -446,7 +450,7 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 		}
 		dlg->deleteLater();
 	});
-	dlg->show();
+	dlg->open();
 }
 
 void MainWindow::editStringParameter(const QModelIndex &ix)
@@ -623,7 +627,7 @@ void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 		}
 		dlg->deleteLater();
 	});
-	dlg->show();
+	dlg->open();
 }
 
 void MainWindow::closeEvent(QCloseEvent *ev)
@@ -647,9 +651,10 @@ void MainWindow::openLogInspector()
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 	if(nd) {
 		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
-		shv::visu::logview::DlgLogInspector dlg(ui->edAttributesShvPath->text(), this);
-		dlg.setRpcConnection(cc);
-		dlg.exec();
+		auto dlg = new shv::visu::logview::DlgLogInspector(ui->edAttributesShvPath->text(), this);
+		connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
+		dlg->setRpcConnection(cc);
+		dlg->open();
 	}
 }
 

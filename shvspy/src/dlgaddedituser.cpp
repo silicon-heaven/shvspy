@@ -176,12 +176,16 @@ void DlgAddEditUser::onSelectRolesClicked()
 
 void DlgAddEditUser::execSelectRolesDialog()
 {
-	DlgSelectRoles dlg(this);
-	dlg.init(m_rpcConnection, m_aclEtcNodePath, roles());
+	auto dlg = new DlgSelectRoles(this);
+	dlg->init(m_rpcConnection, m_aclEtcNodePath, roles());
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			setRoles(dlg->selectedRoles());
+		}
 
-	if (dlg.exec() == QDialog::Accepted){
-		setRoles(dlg.selectedRoles());
-	}
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgAddEditUser::callCreateRole(const std::string &role_name, std::function<void()> callback)

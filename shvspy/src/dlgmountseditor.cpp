@@ -76,10 +76,15 @@ QString DlgMountsEditor::selectedMount()
 
 void DlgMountsEditor::onAddMountClicked()
 {
-	DlgAddEditMount dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Add);
-	if (dlg.exec() == QDialog::Accepted){
-		listMounts();
-	}
+	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Add);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listMounts();
+		}
+
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgMountsEditor::onDeleteMountClicked()
@@ -127,12 +132,16 @@ void DlgMountsEditor::onEditMountClicked()
 
 	setStatusText(QString());
 
-	DlgAddEditMount dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Edit);
-	dlg.init(mount);
+	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Edit);
+	dlg->init(mount);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listMounts();
+		}
 
-	if (dlg.exec() == QDialog::Accepted){
-		listMounts();
-	}
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgMountsEditor::onTableMountDoubleClicked(QModelIndex ix)

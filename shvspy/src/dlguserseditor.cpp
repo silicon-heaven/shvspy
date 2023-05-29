@@ -104,10 +104,15 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Add);
-	if (dlg.exec() == QDialog::Accepted){
-		listUsers();
-	}
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Add);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listUsers();
+		}
+
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgUsersEditor::onDelUserClicked()
@@ -155,12 +160,17 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Edit);
-	dlg.setUser(user);
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Edit);
+	dlg->setUser(user);
 
-	if (dlg.exec() == QDialog::Accepted){
-		listUsers();
-	}
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listUsers();
+		}
+
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgUsersEditor::onTableUsersDoubleClicked(QModelIndex ix)

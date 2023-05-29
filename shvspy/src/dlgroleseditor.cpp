@@ -72,10 +72,15 @@ QString DlgRolesEditor::selectedRole()
 
 void DlgRolesEditor::onAddRoleClicked()
 {
-	DlgAddEditRole dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Add);
-	if (dlg.exec() == QDialog::Accepted){
-		listRoles();
-	}
+	auto dlg = new DlgAddEditRole(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Add);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listRoles();
+		}
+
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgRolesEditor::onDeleteRoleClicked()
@@ -125,12 +130,16 @@ void DlgRolesEditor::onEditRoleClicked()
 
 	setStatusText(QString());
 
-	DlgAddEditRole dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Edit);
-	dlg.init(role);
+	auto dlg = new DlgAddEditRole(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Edit);
+	dlg->init(role);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listRoles();
+		}
 
-	if (dlg.exec() == QDialog::Accepted){
-		listRoles();
-	}
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgRolesEditor::onTableRoleDoubleClicked(QModelIndex ix)
