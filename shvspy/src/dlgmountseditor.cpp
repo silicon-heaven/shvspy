@@ -69,9 +69,8 @@ QString DlgMountsEditor::selectedMount()
 	if (current_index.isValid()) {
 		return m_modelProxy->index(current_index.row(), 0).data().toString();
 	}
-	else {
-		return QString();
-	}
+
+	return QString();
 }
 
 void DlgMountsEditor::onAddMountClicked()
