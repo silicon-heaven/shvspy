@@ -611,10 +611,10 @@ void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 		broker_props = srv->brokerProperties();
 	}
 	DlgBrokerProperties *dlg = new DlgBrokerProperties(this);
-	dlg->setServerProperties(broker_props);
+	dlg->setBrokerProperties(broker_props);
 	connect(dlg, &QDialog::finished, this, [=, this](int result) {
 		if(result == QDialog::Accepted) {
-			QVariantMap broker_props = dlg->serverProperties();
+			QVariantMap broker_props = dlg->brokerProperties();
 			if(!srv || copy_server)
 				TheApp::instance()->serverTreeModel()->createConnection(broker_props);
 			else
