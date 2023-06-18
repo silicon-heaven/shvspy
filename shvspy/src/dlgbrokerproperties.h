@@ -17,8 +17,8 @@ public:
 	explicit DlgBrokerProperties(QWidget *parent = nullptr);
 	~DlgBrokerProperties() Q_DECL_OVERRIDE;
 
-	QVariantMap serverProperties() const;
-	void setServerProperties(const QVariantMap &props);
+	QVariantMap brokerProperties() const;
+	void setBrokerProperties(const QVariantMap &props);
 
 	void done(int res) Q_DECL_OVERRIDE;
 

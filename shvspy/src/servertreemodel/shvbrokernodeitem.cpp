@@ -1,8 +1,11 @@
 #include "shvbrokernodeitem.h"
 #include "servertreemodel.h"
+#include "../brokerproperty.h"
 #include "../theapp.h"
+#include "../appclioptions.h"
 #include "../log/rpcnotificationsmodel.h"
 #include "../attributesmodel/attributesmodel.h"
+#include "src/brokerproperty.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -101,7 +104,7 @@ QVariantMap ShvBrokerNodeItem::brokerProperties() const
 
 void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 {
-	m_brokerPropeties[SUBSCRIPTIONS] = subs;
+	m_brokerPropeties[brokerProperty::SUBSCRIPTIONS] = subs;
 }
 
 
@@ -137,8 +140,8 @@ void ShvBrokerNodeItem::setBrokerProperties(const QVariantMap &props)
 		m_rpcConnection = nullptr;
 	}
 	m_brokerPropeties = props;
-	setNodeId(m_brokerPropeties.value("name").toString().toStdString());
-	m_shvRoot = m_brokerPropeties.value("shvRoot").toString().toStdString();
+	setNodeId(m_brokerPropeties.value(brokerProperty::NAME).toString().toStdString());
+	m_shvRoot = m_brokerPropeties.value(brokerProperty::SHVROOT).toString().toStdString();
 }
 
 const std::string& ShvBrokerNodeItem::shvRoot() const
@@ -154,14 +157,14 @@ void ShvBrokerNodeItem::open()
 	shv::iotqt::rpc::ClientConnection *cli = clientConnection();
 	//cli->setServerName(props.value("name").toString());
 	//cli->setScheme(m_serverPropeties.value("scheme").toString().toStdString());
-	auto scheme = m_brokerPropeties.value("scheme").toString().toStdString();
+	auto scheme = m_brokerPropeties.value(brokerProperty::SCHEME).toString().toStdString();
 	auto scheme_enum = shv::iotqt::rpc::Socket::schemeFromString(scheme);
-	if(scheme_enum == shv::iotqt::rpc::Socket::Scheme::Tcp && m_brokerPropeties.value("securityType").toString() == "SSL")
+	if(scheme_enum == shv::iotqt::rpc::Socket::Scheme::Tcp && m_brokerPropeties.value(brokerProperty::SECURITYTYPE).toString() == "SSL")
 		scheme_enum = shv::iotqt::rpc::Socket::Scheme::Ssl;
 	scheme = shv::iotqt::rpc::Socket::schemeToString(scheme_enum);
-	auto host = m_brokerPropeties.value("host").toString().toStdString();
-	auto port = m_brokerPropeties.value("port").toInt();
-	std::string pwd = m_brokerPropeties.value("password").toString().toStdString();
+	auto host = m_brokerPropeties.value(brokerProperty::HOST).toString().toStdString();
+	auto port = m_brokerPropeties.value(brokerProperty::PORT).toInt();
+	std::string pwd = m_brokerPropeties.value(brokerProperty::PASSWORD).toString().toStdString();
 	if(scheme_enum == shv::iotqt::rpc::Socket::Scheme::LocalSocket || scheme_enum == shv::iotqt::rpc::Socket::Scheme::SerialPort) {
 		host = scheme + ":" + host;
 		cli->setLoginType(shv::iotqt::rpc::ClientConnection::LoginType::None);
@@ -184,8 +187,8 @@ void ShvBrokerNodeItem::open()
 	cli->setHost(host);
 	//cli->setPort(m_serverPropeties.value("port").toInt());
 	//cli->setSecurityType(m_serverPropeties.value("securityType").toString().toStdString());
-	cli->setPeerVerify(m_brokerPropeties.value("peerVerify").toBool());
-	cli->setUser(m_brokerPropeties.value("user").toString().toStdString());
+	cli->setPeerVerify(m_brokerPropeties.value(brokerProperty::PEERVERIFY).toBool());
+	cli->setUser(m_brokerPropeties.value(brokerProperty::USER).toString().toStdString());
 	cli->setPassword(pwd);
 	//cli->setSkipLoginPhase(m_brokerPropeties.value("skipLoginPhase").toBool());
 	cli->open();
@@ -206,11 +209,11 @@ void ShvBrokerNodeItem::close()
 shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
 	if(!m_rpcConnection) {
-		QString conn_type = m_brokerPropeties.value("connectionType").toString();
+		QString conn_type = m_brokerPropeties.value(brokerProperty::CONNECTIONTYPE).toString();
 
 		shv::iotqt::rpc::DeviceAppCliOptions opts;
 		{
-			int proto_type = m_brokerPropeties.value("rpc.protocolType").toInt();
+			int proto_type = m_brokerPropeties.value(brokerProperty::RPC_PROTOCOLTYPE).toInt();
 			if(proto_type == static_cast<int>(cp::Rpc::ProtocolType::JsonRpc))
 				opts.setProtocolType("jsonrpc");
 			else if(proto_type == static_cast<int>(cp::Rpc::ProtocolType::Cpon))
@@ -219,33 +222,27 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 				opts.setProtocolType("chainpack");
 		}
 		{
-			QVariant v = m_brokerPropeties.value("rpc.reconnectInterval");
+			QVariant v = m_brokerPropeties.value(brokerProperty::RPC_RECONNECTINTERVAL);
 			if(v.isValid())
 				opts.setReconnectInterval(v.toInt());
 		}
 		{
-			QVariant v = m_brokerPropeties.value("rpc.heartbeatInterval");
+			QVariant v = m_brokerPropeties.value(brokerProperty::RPC_HEARTBEATINTERVAL);
 			if(v.isValid())
 				opts.setHeartBeatInterval(v.toInt());
 		}
 		{
-			// obsolete otion
-			QVariant v = m_brokerPropeties.value("rpc.defaultRpcTimeout");
+			QVariant v = m_brokerPropeties.value(brokerProperty::RPC_RPCTIMEOUT);
 			if(v.isValid())
 				opts.setRpcTimeout(v.toInt());
 		}
 		{
-			QVariant v = m_brokerPropeties.value("rpc.rpcTimeout");
-			if(v.isValid())
-				opts.setRpcTimeout(v.toInt());
-		}
-		{
-			QString dev_id = m_brokerPropeties.value("device.id").toString();
+			QString dev_id = m_brokerPropeties.value(brokerProperty::DEVICE_ID).toString();
 			if(!dev_id.isEmpty())
 				opts.setDeviceId(dev_id.toStdString());
 		}
 		{
-			QString mount_point = m_brokerPropeties.value("device.mountPoint").toString();
+			QString mount_point = m_brokerPropeties.value(brokerProperty::DEVICE_MOUNTPOINT).toString();
 			if(!mount_point.isEmpty())
 				opts.setMountPoint(mount_point.toStdString());
 		}
@@ -258,6 +255,10 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 			m_rpcConnection = new shv::iotqt::rpc::ClientConnection(nullptr);
 			m_rpcConnection->setCliOptions(&opts);
 		}
+		if(brokerProperties().value(brokerProperty::MUTEHEARTBEATS).toBool()) {
+			m_rpcConnection->muteShvPathInLog(shv::chainpack::Rpc::DIR_BROKER_APP, shv::chainpack::Rpc::METH_PING);
+		}
+		m_rpcConnection->setRawRpcMessageLog(TheApp::instance()->cliOptions()->isRawRpcMessageLog());
 		//m_rpcConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::onBrokerConnectedChanged);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
@@ -418,7 +419,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 	}
 	else if(msg.isSignal()) {
 		shvDebug() << msg.toCpon();
-		if(brokerProperties().value(QStringLiteral("muteHeartBeats")).toBool()) {
+		if(brokerProperties().value(brokerProperty::MUTEHEARTBEATS).toBool()) {
 			if(msg.method().asString() == "appserver.heartBeat")
 				return;
 		}

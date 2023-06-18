@@ -1,5 +1,6 @@
 #include "dlgbrokerproperties.h"
 #include "ui_dlgbrokerproperties.h"
+#include "brokerproperty.h"
 
 #include <shv/chainpack/irpcconnection.h>
 #include <shv/iotqt/rpc/clientconnection.h>
@@ -67,77 +68,74 @@ DlgBrokerProperties::~DlgBrokerProperties()
 	delete ui;
 }
 
-QVariantMap DlgBrokerProperties::serverProperties() const
+QVariantMap DlgBrokerProperties::brokerProperties() const
 {
+	using namespace brokerProperty;
 	QVariantMap ret;
-	ret["scheme"] = ui->cbxScheme->currentText();
-	ret["name"] = ui->edName->text();
-	ret["host"] = ui->edHost->text();
-	ret["port"] = ui->edPort->value();
-	ret["user"] = ui->edUser->text();
-	ret["password"] = ui->edPassword->text();
-	ret["skipLoginPhase"] = !ui->grpLogin->isChecked();
-	ret["securityType"] = ui->lstSecurityType->currentText();
-	ret["peerVerify"] = ui->chkPeerVerify->isChecked();
-	ret["connectionType"] = ui->cbxConnectionType->currentData().toString();
-	ret["rpc.protocolType"] = ui->rpc_protocolType->currentData().toInt();
-	ret["rpc.reconnectInterval"] = ui->rpc_reconnectInterval->value();
-	ret["rpc.heartbeatInterval"] = ui->rpc_heartbeatInterval->value();
-	ret["rpc.rpcTimeout"] = ui->rpc_timeout->value();
-	ret["device.id"] = ui->device_id->text().trimmed();
-	ret["device.mountPoint"] = ui->device_mountPoint->text().trimmed();
-	ret["subscriptions"] = m_subscriptions;
-	ret["muteHeartBeats"] = ui->chkMuteHeartBeats->isChecked();
-	ret["shvRoot"] = ui->shvRoot->text();
+	ret[SCHEME] = ui->cbxScheme->currentText();
+	ret[NAME] = ui->edName->text();
+	ret[HOST] = ui->edHost->text();
+	ret[PORT] = ui->edPort->value();
+	ret[USER] = ui->edUser->text();
+	ret[PASSWORD] = ui->edPassword->text();
+	ret[SKIPLOGINPHASE] = !ui->grpLogin->isChecked();
+	ret[SECURITYTYPE] = ui->lstSecurityType->currentText();
+	ret[PEERVERIFY] = ui->chkPeerVerify->isChecked();
+	ret[CONNECTIONTYPE] = ui->cbxConnectionType->currentData().toString();
+	ret[RPC_PROTOCOLTYPE] = ui->rpc_protocolType->currentData().toInt();
+	ret[RPC_RECONNECTINTERVAL] = ui->rpc_reconnectInterval->value();
+	ret[RPC_HEARTBEATINTERVAL] = ui->rpc_heartbeatInterval->value();
+	ret[RPC_RPCTIMEOUT] = ui->rpc_timeout->value();
+	ret[DEVICE_ID] = ui->device_id->text().trimmed();
+	ret[DEVICE_MOUNTPOINT] = ui->device_mountPoint->text().trimmed();
+	ret[SUBSCRIPTIONS] = m_subscriptions;
+	ret[MUTEHEARTBEATS] = ui->chkMuteHeartBeats->isChecked();
+	ret[SHVROOT] = ui->shvRoot->text();
 	return ret;
 }
 
-void DlgBrokerProperties::setServerProperties(const QVariantMap &props)
+void DlgBrokerProperties::setBrokerProperties(const QVariantMap &props)
 {
-	m_subscriptions = props.value(QStringLiteral("subscriptions")).toList();
+	using namespace brokerProperty;
 
-	ui->cbxScheme->setCurrentText(props.value("scheme").toString());
+	m_subscriptions = props.value(SUBSCRIPTIONS).toList();
+
+	ui->cbxScheme->setCurrentText(props.value(SCHEME).toString());
 	if(ui->cbxScheme->currentIndex() < 0)
 		ui->cbxScheme->setCurrentIndex(0);
-	ui->edName->setText(props.value("name").toString());
-	ui->grpLogin->setChecked(!props.value("skipLoginPhase").toBool());
-	ui->edHost->setText(props.value("host").toString());
-	ui->edPort->setValue(props.value("port", shv::chainpack::IRpcConnection::DEFAULT_RPC_BROKER_PORT_NONSECURED).toInt());
-	ui->edUser->setText(props.value("user").toString());
-	ui->edPassword->setText(props.value("password").toString());
+	ui->edName->setText(props.value(NAME).toString());
+	ui->grpLogin->setChecked(!props.value(SKIPLOGINPHASE).toBool());
+	ui->edHost->setText(props.value(HOST).toString());
+	ui->edPort->setValue(props.value(PORT, shv::chainpack::IRpcConnection::DEFAULT_RPC_BROKER_PORT_NONSECURED).toInt());
+	ui->edUser->setText(props.value(USER).toString());
+	ui->edPassword->setText(props.value(PASSWORD).toString());
 	{
-		QVariant v = props.value("rpc.reconnectInterval");
+		QVariant v = props.value(RPC_RECONNECTINTERVAL);
 		if(v.isValid())
 			ui->rpc_reconnectInterval->setValue(v.toInt());
 	}
 	{
-		QVariant v = props.value("rpc.heartbeatInterval");
+		QVariant v = props.value(RPC_HEARTBEATINTERVAL);
 		if(v.isValid())
 			ui->rpc_heartbeatInterval->setValue(v.toInt());
 	}
 	{
-		// obsolete option
-		QVariant v = props.value("rpc.defaultRpcTimeout");
+		QVariant v = props.value(RPC_RPCTIMEOUT);
 		if(v.isValid())
 			ui->rpc_timeout->setValue(v.toInt());
 	}
 	{
-		QVariant v = props.value("rpc.rpcTimeout");
-		if(v.isValid())
-			ui->rpc_timeout->setValue(v.toInt());
-	}
-	{
-		QVariant v = props.value("device.id");
+		QVariant v = props.value(DEVICE_ID);
 		if(v.isValid())
 			ui->device_id->setText(v.toString());
 	}
 	{
-		QVariant v = props.value("device.mountPoint");
+		QVariant v = props.value(DEVICE_MOUNTPOINT);
 		if(v.isValid())
 			ui->device_mountPoint->setText(v.toString());
 	}
 
-	QString security_type = props.value("securityType").toString();
+	QString security_type = props.value(SECURITYTYPE).toString();
 	for (int i = 0; i < ui->lstSecurityType->count(); ++i) {
 		if (ui->lstSecurityType->itemText(i) == security_type) {
 			ui->lstSecurityType->setCurrentIndex(i);
@@ -145,9 +143,9 @@ void DlgBrokerProperties::setServerProperties(const QVariantMap &props)
 		}
 	}
 
-	ui->chkPeerVerify->setChecked(props.value("peerVerify").toBool());
+	ui->chkPeerVerify->setChecked(props.value(PEERVERIFY).toBool());
 
-	QString conn_type = props.value("connectionType").toString();
+	QString conn_type = props.value(CONNECTIONTYPE).toString();
 	ui->cbxConnectionType->setCurrentIndex(0);
 	for (int i = 0; i < ui->cbxConnectionType->count(); ++i) {
 		if(ui->cbxConnectionType->itemData(i).toString() == conn_type) {
@@ -156,7 +154,7 @@ void DlgBrokerProperties::setServerProperties(const QVariantMap &props)
 		}
 	}
 
-	int proto_type = props.value("rpc.protocolType").toInt();
+	int proto_type = props.value(RPC_PROTOCOLTYPE).toInt();
 	ui->rpc_protocolType->setCurrentIndex(0);
 	for (int i = 0; i < ui->rpc_protocolType->count(); ++i) {
 		if(ui->rpc_protocolType->itemData(i).toInt() == proto_type) {
@@ -164,8 +162,8 @@ void DlgBrokerProperties::setServerProperties(const QVariantMap &props)
 			break;
 		}
 	}
-	ui->chkMuteHeartBeats->setChecked(props.value("muteHeartBeats").toBool());
-	ui->shvRoot->setText(props.value("shvRoot").toString());
+	ui->chkMuteHeartBeats->setChecked(props.value(MUTEHEARTBEATS).toBool());
+	ui->shvRoot->setText(props.value(SHVROOT).toString());
 }
 
 void DlgBrokerProperties::done(int res)
