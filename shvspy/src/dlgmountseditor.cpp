@@ -69,17 +69,21 @@ QString DlgMountsEditor::selectedMount()
 	if (current_index.isValid()) {
 		return m_modelProxy->index(current_index.row(), 0).data().toString();
 	}
-	else {
-		return QString();
-	}
+
+	return QString();
 }
 
 void DlgMountsEditor::onAddMountClicked()
 {
-	DlgAddEditMount dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Add);
-	if (dlg.exec() == QDialog::Accepted){
-		listMounts();
-	}
+	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Add);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listMounts();
+		}
+
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgMountsEditor::onDeleteMountClicked()
@@ -95,7 +99,7 @@ void DlgMountsEditor::onDeleteMountClicked()
 
 	if (QMessageBox::question(this, tr("Delete mount"), tr("Do you really want to delete mount definition") + " " + QString::fromStdString(mount) + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
-		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+		auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 		cb->start(this, [this, mount](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
@@ -127,12 +131,16 @@ void DlgMountsEditor::onEditMountClicked()
 
 	setStatusText(QString());
 
-	DlgAddEditMount dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Edit);
-	dlg.init(mount);
+	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Edit);
+	dlg->init(mount);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listMounts();
+		}
 
-	if (dlg.exec() == QDialog::Accepted){
-		listMounts();
-	}
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgMountsEditor::onTableMountDoubleClicked(QModelIndex ix)
@@ -151,16 +159,16 @@ void DlgMountsEditor::onRpcCallsFinished()
 
 	m_dataModel->setRowCount(static_cast<int>(m_mountPoints.count()));
 	int i = 0;
-	for (const MountPointInfo &info : m_mountPoints) {
-		QStandardItem *id_item = new QStandardItem(info.id);
+	for (const MountPointInfo &info : qAsConst(m_mountPoints)) {
+		auto *id_item = new QStandardItem(info.id);
 		id_item->setFlags(id_item->flags() & ~Qt::ItemIsEditable);
 		m_dataModel->setItem(i, 0, id_item);
 
-		QStandardItem *mountpoint_item = new QStandardItem(info.mountPoint);
+		auto *mountpoint_item = new QStandardItem(info.mountPoint);
 		mountpoint_item->setFlags(mountpoint_item->flags() & ~Qt::ItemIsEditable);
 		m_dataModel->setItem(i, 1, mountpoint_item);
 
-		QStandardItem *description_item = new QStandardItem(info.description);
+		auto *description_item = new QStandardItem(info.description);
 		description_item->setFlags(description_item->flags() & ~Qt::ItemIsEditable);
 		m_dataModel->setItem(i, 2, description_item);
 
@@ -194,7 +202,7 @@ void DlgMountsEditor::listMounts()
 	setStatusText(tr("Loading..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isSuccess()){
@@ -223,7 +231,7 @@ void DlgMountsEditor::getMountPointDefinition(const QString &id)
 		return;
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this, id](const shv::chainpack::RpcResponse &response) {
 		if (response.isSuccess()) {
@@ -246,7 +254,7 @@ void DlgMountsEditor::getMountPointDefinition(const QString &id)
 
 void DlgMountsEditor::checkRpcCallsFinished()
 {
-	for (const auto &mount_point : m_mountPoints) {
+	for (const auto &mount_point : qAsConst(m_mountPoints)) {
 		if (mount_point.status != Ok) {
 			return;
 		}

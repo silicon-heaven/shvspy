@@ -69,7 +69,7 @@ void DlgUsersEditor::listUsers()
 	m_dataModel->removeRows(0, m_dataModel->rowCount());
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -82,7 +82,7 @@ void DlgUsersEditor::listUsers()
 					const auto &res = result.asList();
 					m_dataModel->setRowCount(static_cast<int>(res.size()));
 					for (size_t i = 0; i < res.size(); i++){
-						QStandardItem *item = new QStandardItem(QString::fromStdString(res.at(i).toStdString()));
+						auto *item = new QStandardItem(QString::fromStdString(res.at(i).toStdString()));
 						item->setFlags(item->flags() & ~Qt::ItemIsEditable);
 						m_dataModel->setItem(static_cast<int>(i), 0, item);
 					}
@@ -104,10 +104,15 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Add);
-	if (dlg.exec() == QDialog::Accepted){
-		listUsers();
-	}
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Add);
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listUsers();
+		}
+
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgUsersEditor::onDelUserClicked()
@@ -123,7 +128,7 @@ void DlgUsersEditor::onDelUserClicked()
 
 	if (QMessageBox::question(this, tr("Delete user"), tr("Do you really want to delete user") + " " + user) == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
-		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+		auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
@@ -155,12 +160,17 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Edit);
-	dlg.setUser(user);
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Edit);
+	dlg->setUser(user);
 
-	if (dlg.exec() == QDialog::Accepted){
-		listUsers();
-	}
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			listUsers();
+		}
+
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgUsersEditor::onTableUsersDoubleClicked(QModelIndex ix)

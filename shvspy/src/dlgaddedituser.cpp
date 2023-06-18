@@ -119,7 +119,7 @@ void DlgAddEditUser::accept()
 void DlgAddEditUser::checkExistingUser(std::function<void(bool, bool)> callback)
 {
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this, callback](const shv::chainpack::RpcResponse &response) {
 		if (response.isSuccess()) {
@@ -176,12 +176,16 @@ void DlgAddEditUser::onSelectRolesClicked()
 
 void DlgAddEditUser::execSelectRolesDialog()
 {
-	DlgSelectRoles dlg(this);
-	dlg.init(m_rpcConnection, m_aclEtcNodePath, roles());
+	auto dlg = new DlgSelectRoles(this);
+	dlg->init(m_rpcConnection, m_aclEtcNodePath, roles());
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			setRoles(dlg->selectedRoles());
+		}
 
-	if (dlg.exec() == QDialog::Accepted){
-		setRoles(dlg.selectedRoles());
-	}
+		dlg->deleteLater();
+	});
+	dlg->open();
 }
 
 void DlgAddEditUser::callCreateRole(const std::string &role_name, std::function<void()> callback)
@@ -190,7 +194,7 @@ void DlgAddEditUser::callCreateRole(const std::string &role_name, std::function<
 		return;
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this, callback](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -222,7 +226,7 @@ void DlgAddEditUser::callGetUserSettings()
 	ui->lblStatus->setText(tr("Getting settings ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -249,7 +253,7 @@ void DlgAddEditUser::callSetUserSettings()
 		return;
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -326,7 +330,7 @@ void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)
 {
 	QStringList roles_list;
 
-	for (shv::chainpack::RpcValue role : roles){
+	for (const auto& role : roles){
 		if (role.isString()){
 			roles_list.append(QString::fromStdString(role.asString()));
 		}

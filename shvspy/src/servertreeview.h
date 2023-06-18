@@ -10,8 +10,8 @@ private:
 	typedef QTreeView Super;
 public:
 	ServerTreeView(QWidget *parent);
-protected:
 	Q_SIGNAL void enterKeyPressed(const QModelIndex &ix);
+protected:
 	void keyPressEvent(QKeyEvent *ev) Q_DECL_OVERRIDE;
 };
 
