@@ -103,6 +103,14 @@ int main(int argc, char *argv[])
 		shvWarning() << "Undefined argument:" << s;
 	}
 
+	if(cli_opts.isRawRpcMessageLog()) {
+		auto s = NecroLog::topicsLogThresholds();
+		if(!s.empty())
+			s += ",";
+		s += "RpcMsg";
+		NecroLog::setTopicsLogThresholds(s);
+	}
+
 	shv::chainpack::RpcMessage::registerMetaTypes();
 
 	shvInfo() << "======================================================================================";
