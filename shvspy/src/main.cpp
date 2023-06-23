@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 	w.show();
 
 	shvInfo() << "starting main thread event loop";
-	ret = a.exec();
+	ret = TheApp::exec();
 	shvInfo() << "main event loop exit code:" << ret;
 	shvInfo() << "bye ...";
 
