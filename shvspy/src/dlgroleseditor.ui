@@ -51,7 +51,6 @@
       <widget class="QPushButton" name="pbAddRole">
        <property name="font">
         <font>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>
@@ -61,23 +60,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pbDeleteRole">
-       <property name="font">
-        <font>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>Delete</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="pbEditRole">
        <property name="font">
         <font>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>

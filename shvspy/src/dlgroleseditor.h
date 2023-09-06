@@ -32,7 +32,6 @@ private:
 	void callDeleteAccessForRole(const std::string &role);
 
 	void onAddRoleClicked();
-	void onDeleteRoleClicked();
 	void onEditRoleClicked();
 	void onTableRoleDoubleClicked(QModelIndex ix);
 
