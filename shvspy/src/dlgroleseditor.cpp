@@ -36,7 +36,6 @@ DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	ui->twRoles->verticalHeader()->setVisible(false);
 
 	connect(ui->pbAddRole, &QPushButton::clicked, this, &DlgRolesEditor::onAddRoleClicked);
-	connect(ui->pbDeleteRole, &QPushButton::clicked, this, &DlgRolesEditor::onDeleteRoleClicked);
 	connect(ui->pbEditRole, &QPushButton::clicked, this, &DlgRolesEditor::onEditRoleClicked);
 	connect(ui->twRoles, &QTableView::doubleClicked, this, &DlgRolesEditor::onTableRoleDoubleClicked);
 	connect(ui->leFilter, &QLineEdit::textChanged, m_modelProxy, &QSortFilterProxyModel::setFilterFixedString);
@@ -81,42 +80,6 @@ void DlgRolesEditor::onAddRoleClicked()
 		dlg->deleteLater();
 	});
 	dlg->open();
-}
-
-void DlgRolesEditor::onDeleteRoleClicked()
-{
-	std::string role = selectedRole().toStdString();
-
-	if (role.empty()){
-		setStatusText(tr("Select role in the table above."));
-		return;
-	}
-
-	setStatusText(QString());
-
-	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete data and associated access pahts for role") + " " + QString::fromStdString(role) + "?") == QMessageBox::Yes){
-		int rqid = m_rpcConnection->nextRequestId();
-		auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-		cb->start(this, [this, role](const shv::chainpack::RpcResponse &response) {
-			if(response.isValid()){
-				if(response.isError()) {
-					setStatusText(tr("Failed to delete role.") + " " + QString::fromStdString(response.error().toString()));
-				}
-				else{
-					callDeleteAccessForRole(role);
-					listRoles();
-					setStatusText(QString());
-				}
-			}
-			else{
-				setStatusText(tr("Request timeout expired"));
-			}
-		});
-
-		shv::chainpack::RpcValue::List params{role, {}};
-		m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), SET_VALUE_METHOD, params);
-	}
 }
 
 void DlgRolesEditor::onEditRoleClicked()
