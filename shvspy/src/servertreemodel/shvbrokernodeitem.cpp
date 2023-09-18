@@ -262,7 +262,10 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		//m_rpcConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::onBrokerConnectedChanged);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
-		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerLoginError, this, &ShvBrokerNodeItem::onBrokerLoginError);
+		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerLoginError, this, [this](const shv::chainpack::RpcError &err) {
+			auto err_msg = QString::fromStdString(err.toString());
+			onBrokerLoginError(err_msg);
+		});
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketError, this, &ShvBrokerNodeItem::onBrokerLoginError);
 	}
 	return m_rpcConnection;

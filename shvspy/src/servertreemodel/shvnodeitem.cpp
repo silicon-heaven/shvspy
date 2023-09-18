@@ -1,7 +1,7 @@
 #include "shvnodeitem.h"
 #include "shvbrokernodeitem.h"
 #include "servertreemodel.h"
-#include "../theapp.h"
+//#include "../theapp.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/chainpack/cponreader.h>
@@ -15,25 +15,10 @@
 
 namespace cp = shv::chainpack;
 
-cp::MetaMethod::Signature ShvMetaMethod::signature() const
-{
-	return static_cast<cp::MetaMethod::Signature>(methodAttributes.value("signature").toInt());
-}
-
-unsigned ShvMetaMethod::flags() const
-{
-	return methodAttributes.value("flags").toInt();
-}
-
-shv::chainpack::RpcValue ShvMetaMethod::accessGrant() const
-{
-	return methodAttributes.value("accessGrant");
-}
-
 std::string ShvMetaMethod::signatureStr() const
 {
 	std::string ret;
-	switch (signature()) {
+	switch (metamethod.signature()) {
 	case cp::MetaMethod::Signature::VoidVoid: ret = "void()"; break;
 	case cp::MetaMethod::Signature::VoidParam: ret = "void(param)"; break;
 	case cp::MetaMethod::Signature::RetVoid: ret = "ret()"; break;
@@ -47,18 +32,18 @@ std::string ShvMetaMethod::signatureStr() const
 std::string ShvMetaMethod::flagsStr() const
 {
 	std::string ret;
-	if(flags() & cp::MetaMethod::Flag::IsSignal)
+	if(metamethod.flags() & cp::MetaMethod::Flag::IsSignal)
 		ret += (ret.empty()? "": ",") + std::string("SIG");
-	if(flags() & cp::MetaMethod::Flag::IsGetter)
+	if(metamethod.flags() & cp::MetaMethod::Flag::IsGetter)
 		ret += (ret.empty()? "": ",") + std::string("G");
-	if(flags() & cp::MetaMethod::Flag::IsSetter)
+	if(metamethod.flags() & cp::MetaMethod::Flag::IsSetter)
 		ret += (ret.empty()? "": ",") + std::string("S");
 	return ret;
 }
 
 std::string ShvMetaMethod::accessGrantStr() const
 {
-	cp::AccessGrant ag = cp::AccessGrant::fromRpcValue(accessGrant());
+	cp::AccessGrant ag = cp::AccessGrant::fromRpcValue(metamethod.accessGrant());
 	if(ag.isRole())
 		return ag.role;
 	if(ag.isAccessLevel()) {
@@ -100,7 +85,7 @@ std::string ShvMetaMethod::accessGrantStr() const
 
 bool ShvMetaMethod::isSignal() const
 {
-	return flags() & cp::MetaMethod::Flag::IsSignal;
+	return metamethod.flags() & cp::MetaMethod::Flag::IsSignal;
 }
 
 ShvNodeItem::ShvNodeItem(ServerTreeModel *m, const std::string &ndid, ShvNodeItem *parent)
@@ -148,8 +133,8 @@ QVariant ShvNodeItem::data(int role) const
 
 ShvBrokerNodeItem *ShvNodeItem::serverNode() const
 {
-	for(ShvNodeItem *nd = const_cast<ShvNodeItem*>(this); nd; nd=nd->parentNode()) {
-		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem *>(nd);
+	for(auto *nd = const_cast<ShvNodeItem*>(this); nd; nd=nd->parentNode()) {
+		auto *bnd = qobject_cast<ShvBrokerNodeItem *>(nd);
 		if(bnd)
 			return bnd;
 	}
@@ -220,8 +205,7 @@ std::string ShvNodeItem::shvPath() const
 	while(nd) {
 		if(!nd || nd == srv_nd)
 			break;
-		else
-			lst.push_back(nd->nodeId());
+		lst.push_back(nd->nodeId());
 		nd = nd->parentNode();
 	}
 	std::reverse(lst.begin(), lst.end());
@@ -243,17 +227,16 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			ServerTreeModel *m = treeModel();
 			const auto res = resp.result();
 			for(const auto &dir_entry : res.asList()) {
-				const auto &long_dir_entry = dir_entry.asList();
-				std::string ndid = long_dir_entry.empty()? dir_entry.toString(): long_dir_entry.value(0).toString();
-				ShvNodeItem *nd = new ShvNodeItem(m, ndid);
-				if(!long_dir_entry.empty()) {
-					cp::RpcValue has_children = long_dir_entry.value(1);
-					if(has_children.isBool()) {
-						nd->setHasChildren(has_children.toBool());
-						if(!has_children.toBool())
-							nd->setChildrenLoaded();
-					}
-				}
+				std::string ndid = dir_entry.asString();
+				auto *nd = new ShvNodeItem(m, ndid);
+				//if(!long_dir_entry.empty()) {
+				//	cp::RpcValue has_children = long_dir_entry.value(1);
+				//	if(has_children.isBool()) {
+				//		nd->setHasChildren(has_children.toBool());
+				//		if(!has_children.toBool())
+				//			nd->setChildrenLoaded();
+				//	}
+				//}
 				appendChild(nd);
 			}
 			emitDataChanged();
@@ -266,29 +249,9 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			m_methods.clear();
 			cp::RpcValue methods = resp.result();
 			for(const cp::RpcValue &method : methods.asList()) {
-				if(method.isList()) {
-					ShvMetaMethod mm;
-					cp::RpcValueGenList lst(method);
-					mm.method = lst.value(0).asString();
-					mm.methodAttributes["signature"] = lst.value(1).toUInt();
-					mm.methodAttributes["flags"] = lst.value(2).toUInt();
-					mm.methodAttributes["accessGrant"] = lst.value(3);
-					mm.methodAttributes["description"] = lst.value(4);
-					cp::RpcValue::Map tags = lst.value(5).asMap();
-					mm.methodAttributes.merge(tags);
-					m_methods.push_back(mm);
-				}
-				else if(method.isMap()) {
-					ShvMetaMethod mm;
-					mm.methodAttributes = method.asMap();
-					mm.method = mm.methodAttributes.value("name").asString();
-					m_methods.push_back(mm);
-				}
-				else if(method.isString()) {
-					ShvMetaMethod mm;
-					mm.method = method.asString();
-					m_methods.push_back(mm);
-				}
+				ShvMetaMethod mm;
+				mm.metamethod = shv::chainpack::MetaMethod::fromRpcValue(method);
+				m_methods.push_back(mm);
 			}
 			emit methodsLoaded();
 		}
@@ -317,7 +280,7 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_LS, cp::RpcValue::List{std::string(), 0x7FU});
+	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_LS, {});
 	//emitDataChanged();
 }
 
@@ -352,11 +315,11 @@ unsigned ShvNodeItem::callMethod(int method_ix, bool throw_exc)
 	if(method_ix < 0 || method_ix >= m_methods.count())
 		return 0;
 	ShvMetaMethod &mtd = m_methods[method_ix];
-	if(mtd.method.empty() || mtd.isSignal())
+	if(mtd.metamethod.name().empty() || mtd.isSignal())
 		return 0;
 	mtd.response = cp::RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.method, mtd.params, throw_exc);
+	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.metamethod.name(), mtd.params, throw_exc);
 	return mtd.rpcRequestId;
 }
 

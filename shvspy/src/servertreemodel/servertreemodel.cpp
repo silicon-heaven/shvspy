@@ -2,7 +2,6 @@
 #include "shvbrokernodeitem.h"
 
 #include "../theapp.h"
-#include "../log/rpcnotificationsmodel.h"
 
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
@@ -104,14 +103,11 @@ int ServerTreeModel::rowCount(const QModelIndex &parent) const
 	ShvNodeItem *par_nd = itemFromIndex(parent);
 	ShvBrokerNodeItem *par_brnd = qobject_cast<ShvBrokerNodeItem*>(par_nd);
 	//shvDebug() << "ServerTreeModel::rowCount, item:" << par_it << "parent model index valid:" << parent.isValid();
-	//ShvNodeItem *par_nd = dynamic_cast<ShvNodeItem*>(par_it);
 	if(par_brnd || par_nd == invisibleRootItem()) {
 		return static_cast<int>(par_nd->childCount());
 	}
 	if(par_nd) {
-		//if(par_nd->nodeId() == "localhost")
-		//	par_nd->shvPath();
-		shvDebug() << "\t parent node:" << par_nd << "id:" << par_nd->nodeId() << "path:" << par_nd->shvPath();
+		//shvDebug() << "\t parent node:" << par_nd << "id:" << par_nd->nodeId() << "path:" << par_nd->shvPath();
 		if(!par_nd->isChildrenLoaded() && !par_nd->isChildrenLoading()) {
 			shvDebug() << "\t loading" << par_nd->shvPath();
 			par_nd->loadChildren();

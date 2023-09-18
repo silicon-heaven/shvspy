@@ -14,12 +14,7 @@ class ServerTreeModel;
 
 struct ShvMetaMethod
 {
-	std::string method;
-	shv::chainpack::RpcValue::Map methodAttributes;
-
-	shv::chainpack::MetaMethod::Signature signature() const;
-	unsigned flags() const;
-	shv::chainpack::RpcValue accessGrant() const;
+	shv::chainpack::MetaMethod metamethod;
 
 	shv::chainpack::RpcValue params;
 	shv::chainpack::RpcResponse response;

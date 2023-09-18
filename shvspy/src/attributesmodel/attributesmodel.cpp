@@ -68,7 +68,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		}
 		case ColResult: {
 			if(m_rows[ix.row()][ColError].isIMap()) {
-				cp::RpcResponse::Error err(m_rows[ix.row()][ColError].asIMap());
+				auto err = cp::RpcResponse::Error::fromRpcValue(m_rows[ix.row()][ColError].asIMap());
 				return QString::fromStdString(err.message());
 			}
 			else {
@@ -245,7 +245,7 @@ QString AttributesModel::method(int row) const
 	if (m_shvTreeNodeItem.isNull()) {
 		return QString();
 	}
-	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].method);
+	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].metamethod.name());
 }
 
 void AttributesModel::onMethodsLoaded()
@@ -272,7 +272,7 @@ void AttributesModel::callGetters()
 	for (unsigned i = 0; i < m_rows.size(); ++i) {
 		const ShvMetaMethod *mm = metaMethodAt(i);
 		if(mm) {
-			if((mm->flags() & cp::MetaMethod::Flag::IsGetter) && !(mm->flags() & cp::MetaMethod::Flag::LargeResultHint)) {
+			if((mm->metamethod.flags() & cp::MetaMethod::Flag::IsGetter) && !(mm->metamethod.flags() & cp::MetaMethod::Flag::LargeResultHint)) {
 				callMethod(i);
 			}
 		}
@@ -295,16 +295,16 @@ void AttributesModel::loadRow(unsigned method_ix)
 	if(!mtd)
 		return;
 	RowVals &rv = m_rows[method_ix];
-	shvDebug() << "load row:" << mtd->method << "flags:" << mtd->flags() << mtd->flagsStr();
-	rv[ColMethodName] = mtd->method;
+	shvDebug() << "load row:" << mtd->metamethod.name() << "flags:" << mtd->metamethod.flags() << mtd->flagsStr();
+	rv[ColMethodName] = mtd->metamethod.name();
 	rv[ColSignature] = mtd->signatureStr();
 	rv[ColFlags] = mtd->flagsStr();
 	rv[ColAccessGrant] = mtd->accessGrantStr();
 	rv[ColParams] = mtd->params;
-	rv[ColAttributes] = mtd->methodAttributes;
+	rv[ColAttributes] = mtd->metamethod.toRpcValue();
 	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();
 	if(mtd->response.isError()) {
-		rv[ColResult] = mtd->response.error();
+		rv[ColResult] = mtd->response.error().toRpcValue();
 	}
 	else {
 		shv::chainpack::RpcValue result = mtd->response.result();

@@ -96,7 +96,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 		if(nd) {
 			for(const auto &mm : nd->methods()) {
-				if(mm.method == cp::Rpc::METH_GET_LOG) {
+				if(mm.metamethod.name() == cp::Rpc::METH_GET_LOG) {
 					ui->btLogInspector->setEnabled(true);
 					break;
 				}
