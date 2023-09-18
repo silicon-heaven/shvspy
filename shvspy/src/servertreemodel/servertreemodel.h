@@ -32,7 +32,7 @@ public:
 
 	void loadSettings(const QSettings &settings);
 	void loadSettings(const shv::chainpack::RpcValue &settings);
-	void saveSettings(QSettings &settings);
+	void saveSettings(QSettings &settings) const;
 public:
 	ShvBrokerNodeItem* createConnection(const QVariantMap &params);
 	unsigned nextId() {return ++m_maxId;}

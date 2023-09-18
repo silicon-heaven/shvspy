@@ -105,7 +105,7 @@ ShvNodeItem::~ShvNodeItem()
 ServerTreeModel *ShvNodeItem::treeModel() const
 {
 	for(QObject *o = this->parent(); o; o = o->parent()) {
-		ServerTreeModel *m = qobject_cast<ServerTreeModel*>(o);
+		auto *m = qobject_cast<ServerTreeModel*>(o);
 		if(m)
 			return m;
 	}
@@ -131,10 +131,20 @@ QVariant ShvNodeItem::data(int role) const
 	return ret;
 }
 
-ShvBrokerNodeItem *ShvNodeItem::serverNode() const
+ShvBrokerNodeItem *ShvNodeItem::serverNode()
 {
-	for(auto *nd = const_cast<ShvNodeItem*>(this); nd; nd=nd->parentNode()) {
+	for(auto *nd = this; nd; nd = nd->parentNode()) {
 		auto *bnd = qobject_cast<ShvBrokerNodeItem *>(nd);
+		if(bnd)
+			return bnd;
+	}
+	SHV_EXCEPTION("ServerNode parent must exist.");
+}
+
+const ShvBrokerNodeItem *ShvNodeItem::serverNode() const
+{
+	for(auto *nd = this; nd; nd = nd->parentNode()) {
+		auto *bnd = qobject_cast<const ShvBrokerNodeItem *>(nd);
 		if(bnd)
 			return bnd;
 	}
@@ -200,7 +210,7 @@ void ShvNodeItem::deleteChildren()
 std::string ShvNodeItem::shvPath() const
 {
 	std::vector<std::string> lst;
-	ShvBrokerNodeItem *srv_nd = serverNode();
+	auto *srv_nd = serverNode();
 	const ShvNodeItem *nd = this;
 	while(nd) {
 		if(!nd || nd == srv_nd)

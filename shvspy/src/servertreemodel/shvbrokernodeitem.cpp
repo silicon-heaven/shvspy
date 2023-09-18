@@ -47,9 +47,9 @@ ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &serv
 	static int s_broker_id = 0;
 	m_brokerId = ++ s_broker_id;
 
-	QTimer *rpc_rq_timeout = new QTimer(this);
+	auto *rpc_rq_timeout = new QTimer(this);
 	rpc_rq_timeout->start(5000);
-	connect(rpc_rq_timeout, &QTimer::timeout, [this]() {
+	connect(rpc_rq_timeout, &QTimer::timeout, this, [this]() {
 		QElapsedTimer tm2;
 		tm2.start();
 		auto it = m_runningRpcRequests.begin();
@@ -112,7 +112,7 @@ void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::
 {
 	int rqid = callSubscribe(shv_path, method);
 
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 	cb->start(5000, this, [this, shv_path, method](const cp::RpcResponse &resp) {
 		if(resp.isError() || (resp.result() == false)){
 			emit subscriptionAddError(shv_path, resp.error().message());
@@ -303,7 +303,7 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path_)
 	std::string path = path_;
 	if(!shvRoot().empty()) {
 		path = path.substr(shvRoot().size());
-		if(path.size() && path[0] == '/')
+		if(!path.empty() && path[0] == '/')
 			path = path.substr(1);
 	}
 	shv::core::StringViewList id_list = shv::core::utils::ShvPath::split(path);
@@ -388,7 +388,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 						resp.setResult(true);
 						break;
 				}
-				else if(shv_path.empty()) {
+				if(shv_path.empty()) {
 					if(method == cp::Rpc::METH_DIR) {
 						using namespace shv::chainpack;
 						resp.setResult(cp::RpcValue::List{
@@ -399,15 +399,15 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 									   });
 						break;
 					}
-					else if(method == cp::Rpc::METH_APP_NAME) {
+					if(method == cp::Rpc::METH_APP_NAME) {
 						resp.setResult(QCoreApplication::instance()->applicationName().toStdString());
 						break;
 					}
-					else if(method == cp::Rpc::METH_APP_VERSION) {
+					if(method == cp::Rpc::METH_APP_VERSION) {
 						resp.setResult(QCoreApplication::instance()->applicationVersion().toStdString());
 						break;
 					}
-					else if(method == cp::Rpc::METH_ECHO) {
+					if(method == cp::Rpc::METH_ECHO) {
 						resp.setResult(rq.params());
 						break;
 					}
@@ -438,8 +438,8 @@ void ShvBrokerNodeItem::createSubscriptions()
 	if(v.isValid()) {
 		QVariantList subs = v.toList();
 
-		for (int i = 0; i < subs.size(); i++) {
-			QVariantMap s = subs.at(i).toMap();
+		for (const auto & sub : subs) {
+			QVariantMap s = sub.toMap();
 
 			if (s.value(meta_sub.valueToKey(SubscriptionItem::IsEnabled)).toBool()){
 				callSubscribe(s.value(meta_sub.valueToKey(SubscriptionItem::Path)).toString().toStdString(), s.value(meta_sub.valueToKey(SubscriptionItem::Method)).toString().toStdString());

@@ -21,7 +21,7 @@ public:
 	enum Roles {RpcValueRole = Qt::UserRole };
 public:
 	AttributesModel(QObject *parent = nullptr);
-	~AttributesModel() Q_DECL_OVERRIDE;
+	~AttributesModel() override = default;
 public:
 	int rowCount(const QModelIndex &parent) const override;
 	int columnCount(const QModelIndex &parent) const override {Q_UNUSED(parent) return ColBtRun + 1;}

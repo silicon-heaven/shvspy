@@ -46,7 +46,7 @@ QModelIndex ServerTreeModel::parent(const QModelIndex &child) const
 
 ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
-	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
+	auto *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
 
 	connect(ret, &ShvBrokerNodeItem::subscriptionAdded, this, [this, ret](const std::string &path, const std::string &method){
 		emit ServerTreeModel::subscriptionAdded(ret->brokerId(), path, method);
@@ -101,7 +101,7 @@ bool ServerTreeModel::hasChildren(const QModelIndex &parent) const
 int ServerTreeModel::rowCount(const QModelIndex &parent) const
 {
 	ShvNodeItem *par_nd = itemFromIndex(parent);
-	ShvBrokerNodeItem *par_brnd = qobject_cast<ShvBrokerNodeItem*>(par_nd);
+	auto *par_brnd = qobject_cast<ShvBrokerNodeItem*>(par_nd);
 	//shvDebug() << "ServerTreeModel::rowCount, item:" << par_it << "parent model index valid:" << parent.isValid();
 	if(par_brnd || par_nd == invisibleRootItem()) {
 		return static_cast<int>(par_nd->childCount());
@@ -166,7 +166,7 @@ QModelIndex ServerTreeModel::indexFromItem(ShvNodeItem *nd) const
 ShvBrokerNodeItem *ServerTreeModel::brokerById(int id)
 {
 	for (int i = 0; i < m_invisibleRoot->childCount(); i++){
-		ShvBrokerNodeItem *nd = qobject_cast<ShvBrokerNodeItem*>(m_invisibleRoot->childAt(i));
+		auto *nd = qobject_cast<ShvBrokerNodeItem*>(m_invisibleRoot->childAt(i));
 		SHV_ASSERT_EX(nd != nullptr, "Internal error");
 		if (nd->brokerId() == id){
 			return  nd;
@@ -196,12 +196,12 @@ void ServerTreeModel::loadSettings(const shv::chainpack::RpcValue &settings)
 	}
 }
 
-void ServerTreeModel::saveSettings(QSettings &settings)
+void ServerTreeModel::saveSettings(QSettings &settings) const
 {
 	ShvNodeRootItem *root = invisibleRootItem();
 	QVariantList lst;
 	for(int i=0; i<root->childCount(); i++) {
-		ShvBrokerNodeItem *nd = qobject_cast<ShvBrokerNodeItem*>(root->childAt(i));
+		auto *nd = qobject_cast<ShvBrokerNodeItem*>(root->childAt(i));
 		SHV_ASSERT_EX(nd != nullptr, "Internal error");
 		QVariantMap props = nd->brokerProperties();
 		props["password"] = QString::fromStdString(TheApp::instance()->crypt().encrypt(props.value("password").toString().toStdString(), 30));

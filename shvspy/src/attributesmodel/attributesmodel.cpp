@@ -24,10 +24,6 @@ AttributesModel::AttributesModel(QObject *parent)
 {
 }
 
-AttributesModel::~AttributesModel()
-{
-}
-
 int AttributesModel::rowCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent)
@@ -71,7 +67,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 				auto err = cp::RpcResponse::Error::fromRpcValue(m_rows[ix.row()][ColError].asIMap());
 				return QString::fromStdString(err.message());
 			}
-			else {
+			{
 				cp::RpcValue rv = m_rows[ix.row()][ColResult];
 				if(!rv.isValid())
 					return QVariant();
@@ -86,7 +82,6 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			}
 		}
 		case ColFlags:
-			return QString::fromStdString(m_rows[ix.row()][ix.column()].toString());
 		case ColAccessGrant:
 			return QString::fromStdString(m_rows[ix.row()][ix.column()].toString());
 		default:
@@ -134,14 +129,14 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		if(ix.column() == ColBtRun) {
 			return tr("Call remote method");
 		}
-		else if(ix.column() == ColResult) {
+		if(ix.column() == ColResult) {
 			return data(ix, Qt::DisplayRole);
 		}
-		else if(ix.column() == ColFlags) {
+		if(ix.column() == ColFlags) {
 			bool is_notify = m_rows[static_cast<unsigned>(ix.row())][ColFlags].toUInt() & cp::MetaMethod::Flag::IsSignal;
 			return is_notify? tr("Method is notify signal"): QVariant();
 		}
-		else if(ix.column() == ColMethodName) {
+		if(ix.column() == ColMethodName) {
 			auto attrs = m_rows[static_cast<unsigned>(ix.row())][ColAttributes].asMap();
 			QStringList lines;
 			for(const auto &kv : attrs) {
@@ -149,9 +144,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			}
 			return lines.join('\n');
 		}
-		else {
-			return data(ix, Qt::DisplayRole);
-		}
+		return data(ix, Qt::DisplayRole);
 	}
 	default:
 		break;

@@ -38,7 +38,8 @@ public:
 	ServerTreeModel* treeModel() const;
 	const std::string& nodeId() const {return m_nodeId;}
 	void setNodeId(std::string nid) {m_nodeId = std::move(nid);}
-	ShvBrokerNodeItem* serverNode() const;
+	ShvBrokerNodeItem* serverNode();
+	const ShvBrokerNodeItem* serverNode() const;
 	ShvNodeItem* parentNode() const;
 	ShvNodeItem* childAt(qsizetype ix) const;
 	ShvNodeItem* childAt(const std::string_view &id) const;
