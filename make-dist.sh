@@ -188,6 +188,7 @@ $RSYNC $QT_LIB_DIR/libQt6DBus.so* $DIST_LIB_DIR
 $RSYNC $QT_LIB_DIR/libQt6Multimedia.so* $DIST_LIB_DIR
 $RSYNC $QT_LIB_DIR/libQt6XcbQpa.so* $DIST_LIB_DIR
 $RSYNC $QT_LIB_DIR/libQt6WebSockets.so* $DIST_LIB_DIR
+$RSYNC $QT_LIB_DIR/libQt6NetworkAuth.so* $DIST_LIB_DIR
 
 $RSYNC $QT_LIB_DIR/libQt6OpcUa.so* $DIST_LIB_DIR
 
