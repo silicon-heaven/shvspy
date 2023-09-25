@@ -24,7 +24,15 @@
 #include <QApplication>
 #include <QElapsedTimer>
 #include <QIcon>
+#include <QMessageBox>
 #include <QTimer>
+
+#if QT_VERSION_MAJOR >= 6
+#include <QDesktopServices>
+#include <QFuture>
+#include <QOAuth2AuthorizationCodeFlow>
+#include <QOAuthHttpServerReplyHandler>
+#endif
 
 namespace cp = shv::chainpack;
 
@@ -149,6 +157,74 @@ const std::string& ShvBrokerNodeItem::shvRoot() const
 	return m_shvRoot;
 }
 
+#if QT_VERSION_MAJOR >= 6
+namespace {
+const auto AZURE_CLIENT_ID = "f6c73b47-914d-4232-bbe9-70495e48b314";
+const auto AZURE_AUTH_URL = QUrl("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
+const auto AZURE_ACCESS_TOKEN_URL = QUrl("https://login.microsoftonline.com/common/oauth2/v2.0/token");
+const auto AZURE_SCOPES = "User.Read";
+
+#define azureInfo() shvCInfo("azure")
+#define azureWarning() shvCWarning("azure")
+#define azureError() shvCError("azure")
+
+auto do_azure_auth(QObject* parent)
+{
+	auto oauth2 = new QOAuth2AuthorizationCodeFlow(parent);
+	auto replyHandler = new QOAuthHttpServerReplyHandler(oauth2);
+	replyHandler->setCallbackText("Azure authentication successful. You can now close this window.");
+	oauth2->setReplyHandler(replyHandler);
+	oauth2->setClientIdentifier(AZURE_CLIENT_ID);
+	oauth2->setAuthorizationUrl(AZURE_AUTH_URL);
+	oauth2->setAccessTokenUrl(AZURE_ACCESS_TOKEN_URL);
+	oauth2->setScope(AZURE_SCOPES);
+	QObject::connect(oauth2, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, [] (const auto& url) {
+		QDesktopServices::openUrl(url);
+	});
+
+	QObject::connect(oauth2, &QOAuth2AuthorizationCodeFlow::statusChanged, [] (const QOAuth2AuthorizationCodeFlow::Status& status) {
+		azureInfo() << "Status changed: " << [status] {
+			using Status = QOAuth2AuthorizationCodeFlow::Status;
+			switch (status) {
+			case Status::NotAuthenticated: return "NotAuthenticated";
+			case Status::TemporaryCredentialsReceived: return "TemporaryCredentialsReceived";
+			case Status::Granted: return "Granted";
+			case Status::RefreshingToken: return "RefreshingToken";
+			}
+			throw std::logic_error{"QOAuth2AuthorizationCodeFlow::statusChanged: unknown status" + std::to_string(static_cast<int>(status))};
+		}();
+	});
+
+	oauth2->grant();
+	return QtFuture::whenAny(
+		QtFuture::connect(oauth2, &QOAuth2AuthorizationCodeFlow::granted).then([oauth2] {
+		return oauth2->token();
+	}), QtFuture::connect(oauth2, &QOAuth2AuthorizationCodeFlow::error).then([] (std::tuple<const QString&, const QString&, const QUrl&> errors) {
+		auto [error, error_description, error_url] = errors;
+		auto res = QStringLiteral("Failed to authenticate with Azure.\n");
+		auto append_error_if_not_empty = [&res] (const auto& error_prefix, const auto& error_str) {
+			if (!error_str.isEmpty()) {
+				res += error_prefix;
+				res += error_str;
+				res += '\n';
+			}
+		};
+		append_error_if_not_empty("Error: ", error);
+		// The error description is a percent encoded string with plus signs instead of spaces.
+		append_error_if_not_empty("Description: ", QUrl::fromPercentEncoding(error_description.toLatin1().replace('+', ' ')));
+		// The error url is actually inside the path the QUrl. Urgh. The reason is that Azure precent-encodes the URL,
+		// and Qt doesn't expect that.
+		append_error_if_not_empty("URL: ", error_url.path());
+		azureWarning() << res;
+		return res;
+	})).then([oauth2] (const std::variant<QFuture<QString>, QFuture<QString>>& result) {
+		oauth2->deleteLater();
+		return result;
+	});
+}
+}
+#endif
+
 void ShvBrokerNodeItem::open()
 {
 	close();
@@ -191,8 +267,45 @@ void ShvBrokerNodeItem::open()
 	cli->setUser(m_brokerPropeties.value(brokerProperty::USER).toString().toStdString());
 	cli->setPassword(pwd);
 	//cli->setSkipLoginPhase(m_brokerPropeties.value("skipLoginPhase").toBool());
+
+#if QT_VERSION_MAJOR >= 6
+	bool azure_login = m_brokerPropeties.value(brokerProperty::AZURELOGIN, false).toBool();
+
+	if (azure_login) {
+		if (scheme_enum != shv::iotqt::rpc::Socket::Scheme::Ssl) {
+			QMessageBox::warning(nullptr, tr("Alert"), tr("Can't connect via Azure through an unencrypted connection. Please enable SSL."));
+			m_openStatus = OpenStatus::Disconnected;
+			return;
+		}
+		do_azure_auth(this).then([this, cli] (const std::variant<QFuture<QString>, QFuture<QString>>& result_or_error) {
+			if (result_or_error.index() == 0) {
+				auto result = std::get<0>(result_or_error);
+				// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
+				if (!result.isValid()) {
+					return;
+				}
+				cli->setLoginType(shv::iotqt::rpc::ClientConnection::LoginType::AzureAccessToken);
+				cli->setPassword(std::get<0>(result_or_error).result().toStdString());
+				cli->open();
+				emitDataChanged();
+			}
+			else {
+				auto error = std::get<1>(result_or_error);
+				// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
+				if (!error.isValid()) {
+					return;
+				}
+				onBrokerLoginError(std::get<1>(result_or_error).result());
+			}
+		});
+	}
+	else {
+#endif
 	cli->open();
 	emitDataChanged();
+#if QT_VERSION_MAJOR >= 6
+	}
+#endif
 }
 
 void ShvBrokerNodeItem::close()
@@ -400,11 +513,11 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 						break;
 					}
 					if(method == cp::Rpc::METH_APP_NAME) {
-						resp.setResult(QCoreApplication::instance()->applicationName().toStdString());
+						resp.setResult(QCoreApplication::applicationName().toStdString());
 						break;
 					}
 					if(method == cp::Rpc::METH_APP_VERSION) {
-						resp.setResult(QCoreApplication::instance()->applicationVersion().toStdString());
+						resp.setResult(QCoreApplication::applicationVersion().toStdString());
 						break;
 					}
 					if(method == cp::Rpc::METH_ECHO) {

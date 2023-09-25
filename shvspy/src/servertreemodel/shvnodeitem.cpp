@@ -33,11 +33,11 @@ std::string ShvMetaMethod::flagsStr() const
 {
 	std::string ret;
 	if(metamethod.flags() & cp::MetaMethod::Flag::IsSignal)
-		ret += (ret.empty()? "": ",") + std::string("SIG");
+		ret += (ret.empty() ? std::string() : std::string(",")) + std::string("SIG");
 	if(metamethod.flags() & cp::MetaMethod::Flag::IsGetter)
-		ret += (ret.empty()? "": ",") + std::string("G");
+		ret += (ret.empty() ? std::string() : std::string(",")) + std::string("G");
 	if(metamethod.flags() & cp::MetaMethod::Flag::IsSetter)
-		ret += (ret.empty()? "": ",") + std::string("S");
+		ret += (ret.empty()? std::string() : std::string(",")) + std::string("S");
 	return ret;
 }
 

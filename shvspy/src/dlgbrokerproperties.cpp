@@ -17,6 +17,10 @@ DlgBrokerProperties::DlgBrokerProperties(QWidget *parent) :
 	ui(new Ui::DlgBrokerProperties)
 {
 	ui->setupUi(this);
+#if QT_VERSION_MAJOR < 6
+	ui->cbLoginWithAzure->hide();
+#endif
+
 	{
 		using namespace shv::iotqt::rpc;
 		using Scheme = Socket::Scheme;
@@ -56,7 +60,11 @@ DlgBrokerProperties::DlgBrokerProperties(QWidget *parent) :
 	ui->chkPeerVerify->setChecked(false);
 	ui->chkPeerVerify->setDisabled(true);
 
-	connect(ui->lstSecurityType, &QComboBox::currentTextChanged,
+	connect(ui->cbLoginWithAzure, &QCheckBox::clicked, this, [this]() {
+		ui->edUser->setEnabled(!ui->cbLoginWithAzure->isChecked());
+		ui->edPassword->setEnabled(!ui->cbLoginWithAzure->isChecked());
+	});
+	connect(ui->lstSecurityType, &QComboBox::currentTextChanged, this,
 			[this] (const QString &security_type_text) { ui->chkPeerVerify->setDisabled(security_type_text == "none"); });
 
 	QSettings settings;
@@ -78,6 +86,7 @@ QVariantMap DlgBrokerProperties::brokerProperties() const
 	ret[PORT] = ui->edPort->value();
 	ret[USER] = ui->edUser->text();
 	ret[PASSWORD] = ui->edPassword->text();
+	ret[AZURELOGIN] = ui->cbLoginWithAzure->isChecked();
 	ret[SKIPLOGINPHASE] = !ui->grpLogin->isChecked();
 	ret[SECURITYTYPE] = ui->lstSecurityType->currentText();
 	ret[PEERVERIFY] = ui->chkPeerVerify->isChecked();
@@ -109,6 +118,10 @@ void DlgBrokerProperties::setBrokerProperties(const QVariantMap &props)
 	ui->edPort->setValue(props.value(PORT, shv::chainpack::IRpcConnection::DEFAULT_RPC_BROKER_PORT_NONSECURED).toInt());
 	ui->edUser->setText(props.value(USER).toString());
 	ui->edPassword->setText(props.value(PASSWORD).toString());
+	ui->cbLoginWithAzure->setChecked(props.value(AZURELOGIN).toBool());
+	ui->edUser->setEnabled(!ui->cbLoginWithAzure->isChecked());
+	ui->edPassword->setEnabled(!ui->cbLoginWithAzure->isChecked());
+
 	{
 		QVariant v = props.value(RPC_RECONNECTINTERVAL);
 		if(v.isValid())

@@ -32,7 +32,11 @@ qt_add_executable(shvspy
     config/config.qrc
 )
 
-target_link_libraries(shvspy PRIVATE libshvvisu)
+if(USE_QT6)
+    target_link_libraries(shvspy PRIVATE libshvvisu Qt::NetworkAuth)
+else()
+    target_link_libraries(shvspy PRIVATE libshvvisu)
+endif()
 
 target_include_directories(shvspy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
