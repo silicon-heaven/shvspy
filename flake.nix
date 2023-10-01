@@ -24,6 +24,7 @@
               qtserialport
               qtwebsockets
               qtsvg
+              qtnetworkauth
               doctest
               openldap
             ];

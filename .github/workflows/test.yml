@@ -1,0 +1,26 @@
+name: Test
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  nix:
+    name: Qt 6.5.0 / NixOS
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: Build
+        run: nix --experimental-features 'nix-command flakes' build -L .?submodules=1
+      - name: Flake check
+        run: nix --experimental-features 'nix-command flakes' flake check .?submodules=1
+      - name: Format
+        run: nix --experimental-features 'nix-command flakes' fmt && git diff --exit-code
