@@ -1,5 +1,9 @@
 name: AppImage
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ "master" ]
@@ -21,7 +25,7 @@ jobs:
         with:
           qt_version: 6.5.0
           use_qt6: ON
-          modules: qtserialport qtwebsockets
+          modules: qtserialport qtwebsockets qtnetworkauth
           additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
 
       - name: Create AppImage
