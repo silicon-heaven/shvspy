@@ -307,7 +307,7 @@ void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_DIR, cp::RpcValue::List{std::string(), 127});
+	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_DIR, cp::RpcValue::List{std::string(), true});
 	//emitDataChanged();
 }
 
