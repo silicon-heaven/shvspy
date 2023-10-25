@@ -39,7 +39,7 @@ jobs:
       - name: Copy MinGW runtime libraries
         # windeployqt is unable to copy those, because it looks for them next to where g++.exe is. On the GitHub runner,
         # they are in a different directory.
-        run: cp /mingw64/bin/{libstdc++-6.dll,libgcc_s_seh-1.dll,libwinpthread-1.dll} '${{ github.workspace }}/install/bin'
+        run: cp /c/mingw64/bin/{libstdc++-6.dll,libgcc_s_seh-1.dll,libwinpthread-1.dll} '${{ github.workspace }}/install/bin'
         shell: bash
 
       - name: Get app version
