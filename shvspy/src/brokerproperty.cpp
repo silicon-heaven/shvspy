@@ -8,6 +8,7 @@ const char *const HOST = "host";
 const char *const PORT = "port";
 const char *const USER = "user";
 const char *const PASSWORD = "password";
+const char *const PLAIN_TEXT_PASSWORD = "plainTextPassword";
 const char *const AZURELOGIN = "azure";
 const char *const SKIPLOGINPHASE = "skipLoginPhase";
 const char *const SECURITYTYPE = "securityType";

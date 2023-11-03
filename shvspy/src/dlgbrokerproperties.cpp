@@ -86,6 +86,7 @@ QVariantMap DlgBrokerProperties::brokerProperties() const
 	ret[PORT] = ui->edPort->value();
 	ret[USER] = ui->edUser->text();
 	ret[PASSWORD] = ui->edPassword->text();
+	ret[PLAIN_TEXT_PASSWORD] = ui->cbPlainTextPassword->isChecked();
 	ret[AZURELOGIN] = ui->cbLoginWithAzure->isChecked();
 	ret[SKIPLOGINPHASE] = !ui->grpLogin->isChecked();
 	ret[SECURITYTYPE] = ui->lstSecurityType->currentText();
@@ -118,6 +119,7 @@ void DlgBrokerProperties::setBrokerProperties(const QVariantMap &props)
 	ui->edPort->setValue(props.value(PORT, shv::chainpack::IRpcConnection::DEFAULT_RPC_BROKER_PORT_NONSECURED).toInt());
 	ui->edUser->setText(props.value(USER).toString());
 	ui->edPassword->setText(props.value(PASSWORD).toString());
+	ui->cbPlainTextPassword->setChecked(props.value(PLAIN_TEXT_PASSWORD).toBool());
 	ui->cbLoginWithAzure->setChecked(props.value(AZURELOGIN).toBool());
 	ui->edUser->setEnabled(!ui->cbLoginWithAzure->isChecked());
 	ui->edPassword->setEnabled(!ui->cbLoginWithAzure->isChecked());

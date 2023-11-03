@@ -8,6 +8,7 @@ extern const char *const HOST;
 extern const char *const PORT;
 extern const char *const USER;
 extern const char *const PASSWORD;
+extern const char *const PLAIN_TEXT_PASSWORD;
 extern const char *const AZURELOGIN;
 extern const char *const SKIPLOGINPHASE;
 extern const char *const SECURITYTYPE;

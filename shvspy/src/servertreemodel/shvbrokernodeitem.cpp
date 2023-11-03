@@ -256,8 +256,13 @@ void ShvBrokerNodeItem::open()
 			cli->setLoginType(cp::IRpcConnection::LoginType::Plain);
 		}
 		else {
-			// do not send plain text password over not encrypted socket
-			cli->setLoginType(cp::IRpcConnection::LoginType::Sha1);
+			if(m_brokerPropeties.value(brokerProperty::PLAIN_TEXT_PASSWORD).toBool()) {
+				cli->setLoginType(cp::IRpcConnection::LoginType::Plain);
+			}
+			else {
+				// do not send plain text password over not encrypted socket
+				cli->setLoginType(cp::IRpcConnection::LoginType::Sha1);
+			}
 		}
 	}
 	cli->setHost(host);
