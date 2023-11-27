@@ -43,13 +43,13 @@ add_subdirectory(3rdparty/libshv)
 
 if(USE_QT6)
     if(EMSCRIPTEN)
-        find_package(Qt6 COMPONENTS Core Widgets Gui Network NetworkAuth Svg WebSockets)
+        find_package(Qt6 COMPONENTS Core Widgets Gui Network NetworkAuth WebSockets)
     else()
-        find_package(Qt6 COMPONENTS Core Widgets Gui Network NetworkAuth Svg SerialPort WebSockets)
+        find_package(Qt6 COMPONENTS Core Widgets Gui Network NetworkAuth SerialPort WebSockets)
     endif()
     set(Qt_FOUND ${Qt6_FOUND})
 else()
-    find_package(Qt5 QUIET COMPONENTS Core Widgets Gui Network Svg SerialPort)
+    find_package(Qt5 QUIET COMPONENTS Core Widgets Gui Network SerialPort)
     set(Qt_FOUND ${Qt5_FOUND})
 
     # Qt5 doesn't have add qt_add_executable so this is a polyfill for that, since we already support Qt6.
