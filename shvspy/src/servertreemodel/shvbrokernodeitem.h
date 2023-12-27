@@ -58,9 +58,8 @@ private:
 	void onBrokerLoginError(const QString &err);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createSubscriptions();
-	int callSubscribe(const std::string &shv_path, std::string method);
-	int callUnsubscribe(const std::string &shv_path, std::string method);
-
+	int callSubscribe(const std::string &shv_path, const std::string &method);
+	int callUnsubscribe(const std::string &shv_path, const std::string &method);
 private:
 	int m_brokerId;
 	QVariantMap m_brokerPropeties;
@@ -70,5 +69,7 @@ private:
 	std::map<int, RpcRequestInfo> m_runningRpcRequests;
 	std::string m_shvRoot;
 	int m_brokerLoginErrorCount = 0;
+	enum class ShvApiVersion {V2, V3};
+	ShvApiVersion m_shvApiVersion = ShvApiVersion::V2;
 };
 
