@@ -10,6 +10,9 @@ runs:
   steps:
     - name: Setup CMake
       uses: ./.github/actions/cmake
+      env:
+        CC: clang-15
+        CXX: clang++-15
       with:
         qt_version: 6.5.0
         use_qt6: ON
