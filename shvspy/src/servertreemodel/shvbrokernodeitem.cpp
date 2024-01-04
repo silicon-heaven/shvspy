@@ -445,26 +445,14 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path_)
 int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, const std::string &method)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	int rqid;
-	if(m_shvApiVersion == ShvApiVersion::V3) {
-		rqid = cc->callMethodSubscribe_v3(shv_path, method);
-	}
-	else {
-		rqid = cc->callMethodSubscribe(shv_path, method);
-	};
+	int rqid = cc->callMethodSubscribe(shv_path, method);
 	return rqid;
 }
 
 int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, const std::string &method)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	int rqid;
-	if(m_shvApiVersion == ShvApiVersion::V3) {
-		rqid = cc->callMethodUnsubscribe_v3(shv_path, method);
-	}
-	else {
-		rqid = cc->callMethodUnsubscribe(shv_path, method);
-	};
+	int rqid = cc->callMethodUnsubscribe(shv_path, method);
 	return rqid;
 }
 
@@ -567,16 +555,17 @@ void ShvBrokerNodeItem::createSubscriptions()
 	using namespace shv::chainpack;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	auto *rpc = RpcCall::create(cc);
-	rpc->setShvPath(Rpc::DIR_APP_BROKER_CURRENTCLIENT)
-			->setMethod(Rpc::METH_DIR)
-			->setParams(Rpc::METH_DIR);
-	connect(rpc, &RpcCall::maybeResult, this, [this](const auto &, const auto &err) {
+	rpc->setShvPath(Rpc::DIR_APP)
+			->setMethod(Rpc::METH_LS)
+			->setParams("broker");
+	connect(rpc, &RpcCall::maybeResult, this, [this](const auto &result, const auto &err) {
+		using ShvApiVersion = shv::iotqt::rpc::ClientConnection::ShvApiVersion;
 		if(err.isValid()) {
-			//shvError() << "Call check SHV API version error:" << err.toString();
-			m_shvApiVersion = ShvApiVersion::V2;
+			shvError() << "Call check SHV API version error:" << err.toString();
+			clientConnection()->setShvApiVersion(ShvApiVersion::V2);
 		}
 		else {
-			m_shvApiVersion = ShvApiVersion::V3;
+			clientConnection()->setShvApiVersion(result.toBool()? ShvApiVersion::V3: ShvApiVersion::V2);
 		}
 
 		QMetaEnum meta_sub = QMetaEnum::fromType<SubscriptionItem>();

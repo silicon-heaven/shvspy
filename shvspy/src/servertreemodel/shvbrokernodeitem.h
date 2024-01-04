@@ -69,7 +69,5 @@ private:
 	std::map<int, RpcRequestInfo> m_runningRpcRequests;
 	std::string m_shvRoot;
 	int m_brokerLoginErrorCount = 0;
-	enum class ShvApiVersion {V2, V3};
-	ShvApiVersion m_shvApiVersion = ShvApiVersion::V2;
 };
 
