@@ -52,7 +52,7 @@ endif()
 
 if(USE_QT6)
     if(EMSCRIPTEN)
-        find_package(Qt6 COMPONENTS Core Widgets Gui Network NetworkAuth WebSockets)
+        find_package(Qt6 COMPONENTS Core Widgets Gui Network WebSockets)
     else()
         find_package(Qt6 COMPONENTS Core Widgets Gui Network NetworkAuth SerialPort WebSockets)
     endif()
