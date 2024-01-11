@@ -23,7 +23,7 @@ jobs:
       - name: Run clang-tidy
         uses: ./.github/actions/run-linter
         with:
-          lint_program_with_args: clang-tidy --quiet --warnings-as-errors=*
+          lint_program_with_args: clang-tidy-15 --quiet --warnings-as-errors=*
 
   clazy:
     name: clazy / Ubuntu 22.04
