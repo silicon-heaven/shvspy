@@ -3,8 +3,10 @@
 
 #include <shv/chainpack/rpcvalue.h>
 
-#include <QSettings>
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QPushButton>
+#include <QSettings>
 #include <QTimer>
 
 namespace cp = shv::chainpack;
@@ -20,6 +22,7 @@ TextEditDialog::TextEditDialog(QWidget *parent)
 	ui->lblError->hide();
 	ui->btFormatCpon->hide();
 	ui->btCompactCpon->hide();
+	ui->btSaveToFile->hide();
 	setReadOnly(false);
 
 	QSettings settings;
@@ -33,6 +36,7 @@ TextEditDialog::TextEditDialog(QWidget *parent)
 	connect(ui->closeToolButton, &QToolButton::clicked, ui->searchWidget, &QWidget::hide);
 	connect(ui->nextToolButton, &QToolButton::clicked, this, &TextEditDialog::search);
 	connect(ui->prevToolButton, &QToolButton::clicked, this, &TextEditDialog::searchBack);
+	connect(ui->btSaveToFile, &QPushButton::clicked, this, &TextEditDialog::saveToFile);
 }
 
 TextEditDialog::~TextEditDialog()
@@ -47,6 +51,12 @@ void TextEditDialog::setText(const QString &s)
 	ui->plainTextEdit->setPlainText(s);
 }
 
+void TextEditDialog::setBlob(const QByteArray &s)
+{
+	m_blobData = s;
+	ui->plainTextEdit->setPlainText(QString::fromUtf8(s));
+}
+
 QString TextEditDialog::text() const
 {
 	return ui->plainTextEdit->toPlainText();
@@ -56,6 +66,7 @@ void TextEditDialog::setReadOnly(bool ro)
 {
 	ui->plainTextEdit->setReadOnly(ro);
 	ui->btSave->setVisible(!ro);
+	ui->btSaveToFile->setVisible(ro);
 }
 
 bool TextEditDialog::eventFilter(QObject *o, QEvent *e)
@@ -106,6 +117,24 @@ void TextEditDialog::search()
 void TextEditDialog::searchBack()
 {
 	ui->plainTextEdit->find(ui->searchEdit->text(), QTextDocument::FindFlag::FindBackward);
+}
+
+void TextEditDialog::saveToFile()
+{
+	QString file_name = QFileDialog::getSaveFileName(this, tr("Save to file"));
+	if (!file_name.isEmpty()) {
+		QFile f(file_name);
+		if (!f.open(QFile::WriteOnly)) {
+			QMessageBox::warning(this, tr("Warning"), tr("Cannot open file ") + file_name);
+			return;
+		}
+		if (!m_blobData.isEmpty()) {
+			f.write(m_blobData);
+		}
+		else {
+			f.write(text().toUtf8());
+		}
+	}
 }
 
 //=========================================================
