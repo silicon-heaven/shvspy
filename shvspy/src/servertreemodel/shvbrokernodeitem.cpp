@@ -28,7 +28,7 @@
 #include <QMessageBox>
 #include <QTimer>
 
-#if QT_VERSION_MAJOR >= 6
+#if QT_VERSION_MAJOR >= 6 && defined(WITH_AZURE_SUPPORT)
 #include <QDesktopServices>
 #include <QFuture>
 #include <QOAuth2AuthorizationCodeFlow>
@@ -157,7 +157,7 @@ const std::string& ShvBrokerNodeItem::shvRoot() const
 	return m_shvRoot;
 }
 
-#if QT_VERSION_MAJOR >= 6
+#if QT_VERSION_MAJOR >= 6 && defined(WITH_AZURE_SUPPORT)
 namespace {
 const auto AZURE_CLIENT_ID = "f6c73b47-914d-4232-bbe9-70495e48b314";
 const auto AZURE_AUTH_URL = QUrl("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
@@ -273,7 +273,7 @@ void ShvBrokerNodeItem::open()
 	cli->setPassword(pwd);
 	//cli->setSkipLoginPhase(m_brokerPropeties.value("skipLoginPhase").toBool());
 
-#if QT_VERSION_MAJOR >= 6
+#if QT_VERSION_MAJOR >= 6 && defined(WITH_AZURE_SUPPORT)
 	bool azure_login = m_brokerPropeties.value(brokerProperty::AZURELOGIN, false).toBool();
 
 	if (azure_login) {
@@ -308,7 +308,7 @@ void ShvBrokerNodeItem::open()
 #endif
 	cli->open();
 	emitDataChanged();
-#if QT_VERSION_MAJOR >= 6
+#if QT_VERSION_MAJOR >= 6 && defined(WITH_AZURE_SUPPORT)
 	}
 #endif
 }

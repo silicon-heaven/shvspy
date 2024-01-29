@@ -32,8 +32,9 @@ qt_add_executable(shvspy
     config/config.qrc
 )
 
-if(USE_QT6)
+if(USE_QT6 AND NOT EMSCRIPTEN)
     target_link_libraries(shvspy PRIVATE libshv::libshvvisu Qt::NetworkAuth)
+    target_compile_definitions(shvspy PRIVATE "WITH_AZURE_SUPPORT")
 else()
     target_link_libraries(shvspy PRIVATE libshv::libshvvisu)
 endif()
