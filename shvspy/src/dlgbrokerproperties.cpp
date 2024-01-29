@@ -30,6 +30,7 @@ DlgBrokerProperties::DlgBrokerProperties(QWidget *parent) :
 		cbx->addItem(Socket::schemeToString(Scheme::WebSocketSecure), static_cast<int>(Scheme::WebSocketSecure));
 		cbx->addItem(Socket::schemeToString(Scheme::SerialPort), static_cast<int>(Scheme::SerialPort));
 		cbx->addItem(Socket::schemeToString(Scheme::LocalSocket), static_cast<int>(Scheme::LocalSocket));
+		cbx->addItem(Socket::schemeToString(Scheme::LocalSocketSerial), static_cast<int>(Scheme::LocalSocketSerial));
 		cbx->setCurrentIndex(0);
 	}
 	connect(ui->cbxScheme, qOverload<int>(&QComboBox::currentIndexChanged), this, [this] (int ix) {
@@ -49,8 +50,8 @@ DlgBrokerProperties::DlgBrokerProperties(QWidget *parent) :
 	ui->cbxConnectionType->setCurrentIndex(0);
 
 	ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::ChainPack), static_cast<int>(Rpc::ProtocolType::ChainPack));
-	ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::Cpon), static_cast<int>(Rpc::ProtocolType::Cpon));
-	ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::JsonRpc), static_cast<int>(Rpc::ProtocolType::JsonRpc));
+	//ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::Cpon), static_cast<int>(Rpc::ProtocolType::Cpon));
+	//ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::JsonRpc), static_cast<int>(Rpc::ProtocolType::JsonRpc));
 	ui->rpc_protocolType->setCurrentIndex(0);
 
 	using shv::iotqt::rpc::ClientConnection;

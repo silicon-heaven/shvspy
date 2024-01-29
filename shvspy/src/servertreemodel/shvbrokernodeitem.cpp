@@ -241,14 +241,20 @@ void ShvBrokerNodeItem::open()
 	auto host = m_brokerPropeties.value(brokerProperty::HOST).toString().toStdString();
 	auto port = m_brokerPropeties.value(brokerProperty::PORT).toInt();
 	std::string pwd = m_brokerPropeties.value(brokerProperty::PASSWORD).toString().toStdString();
-	if(scheme_enum == shv::iotqt::rpc::Socket::Scheme::LocalSocket || scheme_enum == shv::iotqt::rpc::Socket::Scheme::SerialPort) {
+	if(scheme_enum == shv::iotqt::rpc::Socket::Scheme::LocalSocket || scheme_enum == shv::iotqt::rpc::Socket::Scheme::LocalSocketSerial || scheme_enum == shv::iotqt::rpc::Socket::Scheme::SerialPort) {
 		host = scheme + ":" + host;
-		cli->setLoginType(shv::iotqt::rpc::ClientConnection::LoginType::None);
 	}
 	else {
 		host = scheme + "://" + host;
-		if(port > 0)
+		if(port > 0) {
 			host += ':' + QString::number(port).toStdString();
+		}
+	}
+	bool skip_login = m_brokerPropeties.value(brokerProperty::SKIPLOGINPHASE).toBool();
+	if (skip_login) {
+		cli->setLoginType(shv::iotqt::rpc::ClientConnection::LoginType::None);
+	}
+	else {
 		//cli->setLoginType(pwd.size() == 40? cp::IRpcConnection::LoginType::Sha1: cp::IRpcConnection::LoginType::Plain);
 		if(scheme_enum == shv::iotqt::rpc::Socket::Scheme::Ssl) {
 			// SSL encryption is enough
@@ -330,15 +336,15 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		QString conn_type = m_brokerPropeties.value(brokerProperty::CONNECTIONTYPE).toString();
 
 		shv::iotqt::rpc::DeviceAppCliOptions opts;
-		{
-			int proto_type = m_brokerPropeties.value(brokerProperty::RPC_PROTOCOLTYPE).toInt();
-			if(proto_type == static_cast<int>(cp::Rpc::ProtocolType::JsonRpc))
-				opts.setProtocolType("jsonrpc");
-			else if(proto_type == static_cast<int>(cp::Rpc::ProtocolType::Cpon))
-				opts.setProtocolType("cpon");
-			else
-				opts.setProtocolType("chainpack");
-		}
+		//{
+		//	int proto_type = m_brokerPropeties.value(brokerProperty::RPC_PROTOCOLTYPE).toInt();
+		//	if(proto_type == static_cast<int>(cp::Rpc::ProtocolType::JsonRpc))
+		//		opts.setProtocolType("jsonrpc");
+		//	else if(proto_type == static_cast<int>(cp::Rpc::ProtocolType::Cpon))
+		//		opts.setProtocolType("cpon");
+		//	else
+		//		opts.setProtocolType("chainpack");
+		//}
 		{
 			QVariant v = m_brokerPropeties.value(brokerProperty::RPC_RECONNECTINTERVAL);
 			if(v.isValid())
@@ -536,7 +542,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		catch (shv::core::Exception &e) {
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
 		}
-		m_rpcConnection->sendMessage(resp);
+		m_rpcConnection->sendRpcMessage(resp);
 	}
 	else if(msg.isSignal()) {
 		shvDebug() << msg.toCpon();
