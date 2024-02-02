@@ -90,16 +90,16 @@ bool TextEditDialog::eventFilter(QObject *o, QEvent *e)
 				search();
 				return true;
 			}
-			else if (ke->key() == Qt::Key_Escape && ke->modifiers() == Qt::NoModifier) {
+			if (ke->key() == Qt::Key_Escape && ke->modifiers() == Qt::NoModifier) {
 				ui->searchWidget->hide();
 				return true;
 			}
-			else if (ke->key() == Qt::Key_F3) {
+			if (ke->key() == Qt::Key_F3) {
 				if (ke->modifiers() == Qt::NoModifier) {
 					search();
 					return true;
 				}
-				else if (ke->modifiers() == Qt::SHIFT) {
+				if (ke->modifiers() == Qt::SHIFT) {
 					searchBack();
 					return true;
 				}
