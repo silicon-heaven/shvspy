@@ -567,7 +567,6 @@ void ShvBrokerNodeItem::createSubscriptions()
 	connect(rpc, &RpcCall::maybeResult, this, [this](const auto &result, const auto &err) {
 		using ShvApiVersion = shv::iotqt::rpc::ClientConnection::ShvApiVersion;
 		if(err.isValid()) {
-			shvError() << "Call check SHV API version error:" << err.toString();
 			clientConnection()->setShvApiVersion(ShvApiVersion::V2);
 		}
 		else {
