@@ -18,6 +18,7 @@ public:
 	~TextEditDialog() override;
 
 	void setText(const QString &s);
+	void setBlob(const QByteArray &s);
 	QString text() const;
 
 	void setReadOnly(bool ro);
@@ -25,8 +26,10 @@ protected:
 	bool eventFilter(QObject *o, QEvent *e) override;
 	void search();
 	void searchBack();
+	void saveToFile();
 
 	Ui::TextEditDialog *ui;
+	QByteArray m_blobData;
 };
 
 class CponEditDialog : public TextEditDialog

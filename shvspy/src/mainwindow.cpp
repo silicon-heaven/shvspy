@@ -420,8 +420,14 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 		view->setAttribute(Qt::WA_DeleteOnClose);
 		view->setWindowIconText(tr("Result"));
 		view->setReadOnly(true);
-		std::pair<const char *, size_t> data = rv.asData();
-		view->setText(QString::fromUtf8(std::get<0>(data), std::get<1>(data)));
+		auto [blob, size] = rv.asData();
+		auto data = QByteArray::fromRawData(blob, size);
+		if (rv.isString()) {
+			view->setText(QString::fromUtf8(data));
+		}
+		else {
+			view->setBlob(data);
+		}
 		view->show();
 	}
 	else {
