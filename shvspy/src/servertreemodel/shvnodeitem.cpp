@@ -88,6 +88,11 @@ bool ShvMetaMethod::isSignal() const
 	return metamethod.flags() & cp::MetaMethod::Flag::IsSignal;
 }
 
+bool ShvMetaMethod::isGetter() const
+{
+	return metamethod.flags() & cp::MetaMethod::Flag::IsGetter;
+}
+
 ShvNodeItem::ShvNodeItem(ServerTreeModel *m, const std::string &ndid, ShvNodeItem *parent)
 	: Super(parent)
 	, m_nodeId(ndid)
@@ -325,7 +330,7 @@ unsigned ShvNodeItem::callMethod(int method_ix, bool throw_exc)
 	if(method_ix < 0 || method_ix >= m_methods.count())
 		return 0;
 	ShvMetaMethod &mtd = m_methods[method_ix];
-	if(mtd.metamethod.name().empty() || mtd.isSignal())
+	if(mtd.metamethod.name().empty() || (mtd.isSignal() && !mtd.isGetter()))
 		return 0;
 	mtd.response = cp::RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();

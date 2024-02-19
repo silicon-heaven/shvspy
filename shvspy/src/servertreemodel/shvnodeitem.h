@@ -24,6 +24,7 @@ struct ShvMetaMethod
 	std::string flagsStr() const;
 	std::string accessGrantStr() const;
 	bool isSignal() const;
+	bool isGetter() const;
 };
 
 class ShvNodeItem : public QObject
