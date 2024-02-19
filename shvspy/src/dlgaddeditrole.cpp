@@ -1,7 +1,10 @@
 #include "dlgaddeditrole.h"
 #include "ui_dlgaddeditrole.h"
+#include "accessmodel/accessitemdelegate.h"
 
 #include "shv/coreqt/log.h"
+#include <shv/iotqt/rpc/rpccall.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QMessageBox>
 

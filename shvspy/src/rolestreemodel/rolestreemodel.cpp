@@ -1,6 +1,6 @@
 #include "rolestreemodel.h"
 
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/rpccall.h>
 #include <shv/core/log.h>
 
 #include <shv/iotqt/acl/aclrole.h>

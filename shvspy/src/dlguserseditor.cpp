@@ -2,9 +2,9 @@
 #include "ui_dlguserseditor.h"
 
 #include "dlgaddedituser.h"
-#include "theapp.h"
 
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/iotqt/rpc/rpccall.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/core/log.h>
 #include <shv/core/assert.h>
@@ -57,7 +57,7 @@ DlgUsersEditor::~DlgUsersEditor()
 
 void DlgUsersEditor::init(const std::string &path)
 {
-    m_aclEtcNodePath = path;
+	m_aclEtcNodePath = path;
 	listUsers();
 }
 

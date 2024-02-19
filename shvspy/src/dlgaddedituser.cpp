@@ -1,11 +1,11 @@
 #include "dlgaddedituser.h"
 #include "ui_dlgaddedituser.h"
 
-#include "theapp.h"
 #include "dlgselectroles.h"
 
 #include <shv/iotqt/acl/aclrole.h>
-
+#include <shv/iotqt/rpc/rpccall.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QCryptographicHash>
 #include <QMessageBox>

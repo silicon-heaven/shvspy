@@ -3,14 +3,11 @@
 #include <QDialog>
 #include <QMap>
 
-#include "shv/chainpack/rpcvalue.h"
-
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/iotqt/rpc/clientconnection.h>
-
 namespace Ui {
 class DlgMountsEditor;
 }
+
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class QStandardItemModel;
 class QSortFilterProxyModel;

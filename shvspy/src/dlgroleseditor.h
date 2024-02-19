@@ -2,17 +2,14 @@
 
 #include <QDialog>
 
-#include "shv/chainpack/rpcvalue.h"
-
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/iotqt/rpc/clientconnection.h>
-
 namespace Ui {
 class DlgRolesEditor;
 }
 
 class QSortFilterProxyModel;
 class QStandardItemModel;
+
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class DlgRolesEditor : public QDialog
 {

@@ -2,7 +2,11 @@
 #include "ui_dlgmountseditor.h"
 
 #include "dlgaddeditmount.h"
-#include "shv/core/assert.h"
+
+#include <shv/core/assert.h>
+#include <shv/iotqt/rpc/rpccall.h>
+#include <shv/iotqt/rpc/clientconnection.h>
+
 #include <QMessageBox>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>

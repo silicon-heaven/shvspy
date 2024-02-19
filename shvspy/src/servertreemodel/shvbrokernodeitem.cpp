@@ -10,7 +10,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/deviceappclioptions.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/socket.h>
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/core/utils/shvpath.h>
@@ -44,8 +44,7 @@ struct ShvBrokerNodeItem::RpcRequestInfo
 	std::string shvPath;
 	QElapsedTimer startTS;
 
-	RpcRequestInfo()
-	{
+	RpcRequestInfo() {
 		startTS.start();
 	}
 };

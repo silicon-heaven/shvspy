@@ -2,11 +2,8 @@
 #define DLGADDEDITROLE_H
 
 #include "accessmodel/accessmodel.h"
-#include "accessmodel/accessitemdelegate.h"
 
 #include <shv/chainpack/rpcvalue.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/acl/aclrole.h>
 
 #include <QDialog>
@@ -15,6 +12,8 @@
 namespace Ui {
 class DlgAddEditRole;
 }
+
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class DlgAddEditRole : public QDialog
 {

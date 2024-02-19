@@ -1,11 +1,6 @@
 #ifndef DLGADDEDITMOUNT_H
 #define DLGADDEDITMOUNT_H
 
-#include "accessmodel/accessmodel.h"
-
-#include "shv/chainpack/rpcvalue.h"
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/acl/aclmountdef.h>
 
 #include <QDialog>
@@ -14,6 +9,8 @@
 namespace Ui {
 class DlgAddEditMount;
 }
+
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class DlgAddEditMount : public QDialog
 {

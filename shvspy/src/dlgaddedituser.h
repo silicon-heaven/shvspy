@@ -5,14 +5,13 @@
 
 #include "shv/chainpack/rpcvalue.h"
 
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/iotqt/rpc/clientconnection.h>
-
 #include <shv/iotqt/acl/acluser.h>
 
 namespace Ui {
 class DlgAddEditUser;
 }
+
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class DlgAddEditUser : public QDialog
 {

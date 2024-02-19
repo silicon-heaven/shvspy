@@ -1,7 +1,9 @@
 #include "dlgaddeditmount.h"
 #include "ui_dlgaddeditmount.h"
 
-#include "shv/core/log.h"
+#include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/iotqt/rpc/rpccall.h>
+#include <shv/core/log.h>
 
 #include <QMessageBox>
 

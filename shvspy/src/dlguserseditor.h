@@ -3,7 +3,6 @@
 
 #include <QDialog>
 
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/chainpack/rpcvalue.h>
 
 namespace Ui {
@@ -12,6 +11,8 @@ class DlgUsersEditor;
 
 class QStandardItemModel;
 class QSortFilterProxyModel;
+
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class DlgUsersEditor : public QDialog
 {
@@ -33,7 +34,7 @@ private:
 	void onEditUserClicked();
 	void onTableUsersDoubleClicked(QModelIndex ix);
 
-    std::string aclEtcUsersNodePath();
+	std::string aclEtcUsersNodePath();
 	void setFilter(const QString &filter);
 
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
