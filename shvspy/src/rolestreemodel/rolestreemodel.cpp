@@ -35,7 +35,7 @@ void RolesTreeModel::load(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 		return;
 
 	int rqid = rpc_connection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
 
 	cb->start(this, [this, rpc_connection, acl_etc_roles_node_path](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -77,7 +77,7 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 	int rqid = rpc_connection->nextRequestId();
 	std::string role_name = not_loaded_roles.takeFirst();
 
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
 	std::string role_path = acl_etc_roles_node_path + "/" + role_name;
 
 	cb->start(this, [this, rpc_connection, acl_etc_roles_node_path, role_path, role_name, not_loaded_roles](const shv::chainpack::RpcResponse &response) {
@@ -104,8 +104,7 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 
 void RolesTreeModel::setSelectedRoles(const std::vector<std::string> &roles)
 {
-	for (size_t r = 0; r < roles.size(); r++){
-		std::string role = roles.at(r);
+	for (const auto &role : roles) {
 		QStandardItem *root_item = invisibleRootItem();
 
 		for(int i = 0; i < root_item->rowCount(); i++) {
@@ -148,7 +147,7 @@ void RolesTreeModel::generateTree()
 
 	for (const QString &role_name: m_shvRoles.keys()){
 		QList<QStandardItem *> row;
-		QStandardItem *it = new QStandardItem(role_name);
+		auto *it = new QStandardItem(role_name);
 		it->setData(role_name, NameRole);
 		it->setCheckable(true);
 		it->setFlags(it->flags() & ~Qt::ItemIsEditable);
@@ -158,8 +157,8 @@ void RolesTreeModel::generateTree()
 		std::vector<std::string> sub_roles = m_shvRoles.value(role_name);
 		QSet<QString> created_roles{role_name};
 
-		for (size_t i = 0; i < sub_roles.size(); i++){
-			generateSubTree(it, QString::fromStdString(sub_roles.at(i)), created_roles);
+		for (const auto &subrole : sub_roles) {
+			generateSubTree(it, QString::fromStdString(subrole), created_roles);
 		}
 	}
 }
@@ -172,20 +171,18 @@ void RolesTreeModel::generateSubTree(QStandardItem *parent_item, const QString &
 	}
 
 	QList<QStandardItem *> row;
-	QStandardItem *it = new QStandardItem(role);
+	auto *it = new QStandardItem(role);
 	it->setData(role, NameRole);
 	it->setFlags(it->flags() & ~Qt::ItemIsEditable);
 	row << it;
 	parent_item->appendRow(row);
 
-	std::vector<std::string> subRoles = m_shvRoles.value(role);
+	std::vector<std::string> sub_roles = m_shvRoles.value(role);
 
-	for (size_t j = 0; j < subRoles.size(); j++){
-		QString sub_role = QString::fromStdString(subRoles.at(j));
+	for (const auto &sub_role : sub_roles) {
 		QSet<QString> cr = created_roles;
 		cr += role;
-
-		generateSubTree(it, sub_role, cr);
+		generateSubTree(it, QString::fromStdString(sub_role), cr);
 	}
 }
 

@@ -71,7 +71,7 @@ void DlgCallShvMethod::callShvMethod()
 		return;
 	}
 	int rq_id = m_connection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_connection, rq_id, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_connection, rq_id, this);
 	cb->start(this, [this](const cp::RpcResponse &resp) {
 		if(resp.isValid()) {
 			if(resp.isError())

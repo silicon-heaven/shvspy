@@ -69,7 +69,7 @@ void DlgAddEditRole::accept()
 		QMessageBox::critical(this, tr("Invalid data"), tr("Role name is empty."));
 		return;
 	}
-	else if (!m_accessModel.isRulesValid()){
+	if (!m_accessModel.isRulesValid()){
 		QMessageBox::critical(this, tr("Invalid data"), 	tr("Access rules are invalid."));
 		return;
 	}
@@ -98,7 +98,7 @@ void DlgAddEditRole::accept()
 void DlgAddEditRole::checkExistingRole(std::function<void(bool, bool)> callback)
 {
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this, callback](const shv::chainpack::RpcResponse &response) {
 		if (response.isSuccess()) {
@@ -133,7 +133,7 @@ void DlgAddEditRole::callSetRoleSettings()
 		return;
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -168,7 +168,7 @@ void DlgAddEditRole::callGetRoleSettings()
 	}
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -206,7 +206,7 @@ void DlgAddEditRole::callGetAccessRulesForRole()
 	setStatusText(tr("Getting access rules ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -237,7 +237,7 @@ void DlgAddEditRole::callSetAccessRulesForRole()
 	setStatusText(tr("Updating access rules ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){

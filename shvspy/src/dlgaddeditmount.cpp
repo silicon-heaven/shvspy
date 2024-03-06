@@ -68,7 +68,7 @@ void DlgAddEditMount::accept()
 void DlgAddEditMount::checkExistingMountId(std::function<void(bool, bool)> callback)
 {
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this, callback](const shv::chainpack::RpcResponse &response) {
 		if (response.isSuccess()) {
@@ -103,7 +103,7 @@ void DlgAddEditMount::callSetMountSettings()
 		setStatusText(tr("Error: device id is empty."));
 		return;
 	}
-	else if (ui->leMountPoint->text().trimmed().isEmpty()){
+	if (ui->leMountPoint->text().trimmed().isEmpty()) {
 		setStatusText(tr("Error: mount point is empty."));
 		return;
 	}
@@ -112,7 +112,7 @@ void DlgAddEditMount::callSetMountSettings()
 		return;
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -142,7 +142,7 @@ void DlgAddEditMount::callGetMountSettings()
 	}
 
 	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
