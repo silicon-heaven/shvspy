@@ -29,6 +29,7 @@
               openldap
             ];
             nativeBuildInputs = [
+              qttools
               cmake
               copyDesktopItems
             ];
