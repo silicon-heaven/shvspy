@@ -50,6 +50,10 @@ else()
     add_subdirectory(3rdparty/libshv)
 endif()
 
+if(NOT TARGET libshv::libshvvisu)
+    message(FATAL_ERROR "libshvvisu not found. Including libshv might've failed due to missing Qt dependencies. Please check above for errors.")
+endif()
+
 if(USE_QT6)
     if(EMSCRIPTEN)
         find_package(Qt6 COMPONENTS Core Widgets Gui Network WebSockets)
