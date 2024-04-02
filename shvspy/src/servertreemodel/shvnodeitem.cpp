@@ -13,84 +13,37 @@
 #include <QIcon>
 #include <QVariant>
 
-namespace cp = shv::chainpack;
-
-std::string ShvMetaMethod::signatureStr() const
-{
-	std::string ret;
-	switch (metamethod.signature()) {
-	case cp::MetaMethod::Signature::VoidVoid: ret = "void()"; break;
-	case cp::MetaMethod::Signature::VoidParam: ret = "void(param)"; break;
-	case cp::MetaMethod::Signature::RetVoid: ret = "ret()"; break;
-	case cp::MetaMethod::Signature::RetParam: ret = "ret(param)"; break;
-	}
-	//if(isSignal)
-	//	ret = ret + " NTF";
-	return ret;
-}
+using namespace shv::chainpack;
 
 std::string ShvMetaMethod::flagsStr() const
 {
 	std::string ret;
-	if(metamethod.flags() & cp::MetaMethod::Flag::IsSignal)
+	if(metamethod.flags() & MetaMethod::Flag::IsSignal)
 		ret += (ret.empty() ? std::string() : std::string(",")) + std::string("SIG");
-	if(metamethod.flags() & cp::MetaMethod::Flag::IsGetter)
+	if(metamethod.flags() & MetaMethod::Flag::IsGetter)
 		ret += (ret.empty() ? std::string() : std::string(",")) + std::string("G");
-	if(metamethod.flags() & cp::MetaMethod::Flag::IsSetter)
+	if(metamethod.flags() & MetaMethod::Flag::IsSetter)
 		ret += (ret.empty()? std::string() : std::string(",")) + std::string("S");
 	return ret;
 }
 
-std::string ShvMetaMethod::accessGrantStr() const
+std::string ShvMetaMethod::accessLevelStr() const
 {
-	cp::AccessGrant ag = cp::AccessGrant::fromRpcValue(metamethod.accessGrant());
-	if(ag.isRole())
-		return ag.role;
-	if(ag.isAccessLevel()) {
-		std::string ret;
-		if(ag.accessLevel <= cp::MetaMethod::AccessLevel::Browse)
-			ret = "none";
-		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Browse)
-			ret = "bws";
-		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Read)
-			ret = "bws+";
-		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Read)
-			ret = "rd";
-		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Write)
-			ret = "rd+";
-		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Write)
-			ret = "wr";
-		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Command)
-			ret = "wr+";
-		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Command)
-			ret = "cmd";
-		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Config)
-			ret = "cmd+";
-		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Config)
-			ret = "cfg";
-		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Service)
-			ret = "cfg+";
-		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Service)
-			ret = "svc";
-		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Admin)
-			ret = "svc+";
-		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Admin)
-			ret = "su";
-		else
-			ret = "su+";
-		return ret;
+	std::string s = accessLevelToAccessString(metamethod.accessLevel());
+	if (s.empty()) {
+		s = std::to_string(static_cast<int>(metamethod.accessLevel()));
 	}
-	return "N/A";
+	return s;
 }
 
 bool ShvMetaMethod::isSignal() const
 {
-	return metamethod.flags() & cp::MetaMethod::Flag::IsSignal;
+	return metamethod.flags() & MetaMethod::Flag::IsSignal;
 }
 
 bool ShvMetaMethod::isGetter() const
 {
-	return metamethod.flags() & cp::MetaMethod::Flag::IsGetter;
+	return metamethod.flags() & MetaMethod::Flag::IsGetter;
 }
 
 ShvNodeItem::ShvNodeItem(ServerTreeModel *m, const std::string &ndid, ShvNodeItem *parent)
@@ -232,7 +185,7 @@ std::string ShvNodeItem::shvPath() const
 void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 {
 	if(msg.isResponse()) {
-		cp::RpcResponse resp(msg);
+		RpcResponse resp(msg);
 		int rqid = resp.requestId().toInt();
 		if(rqid == m_loadChildrenRqId) {
 			m_loadChildrenRqId = 0;
@@ -245,7 +198,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 				std::string ndid = dir_entry.asString();
 				auto *nd = new ShvNodeItem(m, ndid);
 				//if(!long_dir_entry.empty()) {
-				//	cp::RpcValue has_children = long_dir_entry.value(1);
+				//	RpcValue has_children = long_dir_entry.value(1);
 				//	if(has_children.isBool()) {
 				//		nd->setHasChildren(has_children.toBool());
 				//		if(!has_children.toBool())
@@ -262,8 +215,8 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			m_methodsLoaded = true;
 
 			m_methods.clear();
-			cp::RpcValue methods = resp.result();
-			for(const cp::RpcValue &method : methods.asList()) {
+			RpcValue methods = resp.result();
+			for(const RpcValue &method : methods.asList()) {
 				ShvMetaMethod mm;
 				mm.metamethod = shv::chainpack::MetaMethod::fromRpcValue(method);
 				m_methods.push_back(mm);
@@ -295,7 +248,7 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_LS, {});
+	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_LS, {});
 	//emitDataChanged();
 }
 
@@ -312,7 +265,7 @@ void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_DIR, cp::RpcValue::List{std::string(), true});
+	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_DIR, RpcValue::List{std::string(), true});
 	//emitDataChanged();
 }
 
@@ -332,7 +285,7 @@ unsigned ShvNodeItem::callMethod(int method_ix, bool throw_exc)
 	ShvMetaMethod &mtd = m_methods[method_ix];
 	if(mtd.metamethod.name().empty() || (mtd.isSignal() && !mtd.isGetter()))
 		return 0;
-	mtd.response = cp::RpcResponse();
+	mtd.response = RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.metamethod.name(), mtd.params, throw_exc);
 	return mtd.rpcRequestId;

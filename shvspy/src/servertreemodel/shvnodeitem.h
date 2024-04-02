@@ -20,9 +20,8 @@ struct ShvMetaMethod
 	shv::chainpack::RpcResponse response;
 	int rpcRequestId = 0;
 
-	std::string signatureStr() const;
 	std::string flagsStr() const;
-	std::string accessGrantStr() const;
+	std::string accessLevelStr() const;
 	bool isSignal() const;
 	bool isGetter() const;
 };

@@ -1,5 +1,6 @@
 #include "dlgaddeditrole.h"
 #include "ui_dlgaddeditrole.h"
+#include "accessmodel/accessmodel.h"
 #include "accessmodel/accessitemdelegate.h"
 
 #include "shv/coreqt/log.h"
@@ -15,10 +16,11 @@ using namespace std;
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt) :
-	QDialog(parent),
-	ui(new Ui::DlgAddEditRole),
-	m_aclEtcNodePath(acl_etc_node_path)
+DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt)
+	: QDialog(parent)
+	, ui(new Ui::DlgAddEditRole)
+	, m_aclEtcNodePath(acl_etc_node_path)
+	, m_accessModel(new AccessModel(this))
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
@@ -28,7 +30,7 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	ui->groupBox->setTitle(edit_mode ? tr("Edit role") : tr("New role"));
 	setWindowTitle(edit_mode ? tr("Edit role dialog") : tr("New role dialog"));
 
-	ui->tvAccessRules->setModel(&m_accessModel);
+	ui->tvAccessRules->setModel(m_accessModel);
 	ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tvAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
 	ui->tvAccessRules->setColumnWidth(AccessModel::Columns::ColPath, static_cast<int>(frameGeometry().width() * 0.6));
@@ -69,7 +71,7 @@ void DlgAddEditRole::accept()
 		QMessageBox::critical(this, tr("Invalid data"), tr("Role name is empty."));
 		return;
 	}
-	if (!m_accessModel.isRulesValid()){
+	if (!m_accessModel->isRulesValid()){
 		QMessageBox::critical(this, tr("Invalid data"), 	tr("Access rules are invalid."));
 		return;
 	}
@@ -214,7 +216,7 @@ void DlgAddEditRole::callGetAccessRulesForRole()
 				setStatusText(tr("Error: %1").arg(QString::fromStdString(response.error().toString())));
 			}
 			else{
-				m_accessModel.setRules(response.result());
+				m_accessModel->setRules(response.result());
 				setStatusText(QString());
 				return;
 			}
@@ -222,7 +224,7 @@ void DlgAddEditRole::callGetAccessRulesForRole()
 		else{
 			setStatusText(tr("Request timeout expired"));
 		}
-		m_accessModel.setRules(shv::chainpack::RpcValue());
+		m_accessModel->setRules(shv::chainpack::RpcValue());
 	});
 
 	m_rpcConnection->callShvMethod(rqid, accessShvPath(), VALUE_METHOD);
@@ -253,7 +255,7 @@ void DlgAddEditRole::callSetAccessRulesForRole()
 		}
 	});
 
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_accessModel.rules()};
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_accessModel->rules()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcAcessNodePath(), SET_VALUE_METHOD, params);
 }
 
@@ -340,22 +342,22 @@ std::string DlgAddEditRole::accessShvPath()
 
 void DlgAddEditRole::onAddRowClicked()
 {
-	m_accessModel.addRule();
+	m_accessModel->addRule();
 }
 
 void DlgAddEditRole::onDeleteRowClicked()
 {
-	m_accessModel.deleteRule(ui->tvAccessRules->currentIndex().row());
+	m_accessModel->deleteRule(ui->tvAccessRules->currentIndex().row());
 }
 
 void DlgAddEditRole::onMoveRowUpClicked()
 {
-	m_accessModel.moveRuleUp(ui->tvAccessRules->currentIndex().row());
+	m_accessModel->moveRuleUp(ui->tvAccessRules->currentIndex().row());
 }
 
 void DlgAddEditRole::onMoveRowDownClicked()
 {
-	m_accessModel.moveRuleDown(ui->tvAccessRules->currentIndex().row());
+	m_accessModel->moveRuleDown(ui->tvAccessRules->currentIndex().row());
 }
 
 void DlgAddEditRole::setStatusText(const QString &txt)

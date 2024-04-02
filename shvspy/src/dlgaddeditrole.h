@@ -1,8 +1,6 @@
 #ifndef DLGADDEDITROLE_H
 #define DLGADDEDITROLE_H
 
-#include "accessmodel/accessmodel.h"
-
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/iotqt/acl/aclrole.h>
 
@@ -14,6 +12,8 @@ class DlgAddEditRole;
 }
 
 namespace shv::iotqt::rpc { class ClientConnection; }
+
+class AccessModel;
 
 class DlgAddEditRole : public QDialog
 {
@@ -64,7 +64,7 @@ private:
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;
-	AccessModel m_accessModel;
+	AccessModel *m_accessModel = nullptr;
 	shv::iotqt::acl::AclRole m_role;
 };
 

@@ -56,7 +56,11 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	case Qt::DisplayRole: {
 		switch (ix.column()) {
 		case ColMethodName:
-		case ColSignature:
+		case ColParamType:
+		case ColResultType: {
+			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
+			return rv.isValid()? QString::fromStdString(rv.asString()): QVariant();
+		}
 		case ColParams: {
 			//QVariant v = m_rows.value(ix.row()).value(ix.column());
 			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
@@ -82,7 +86,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			}
 		}
 		case ColFlags:
-		case ColAccessGrant:
+		case ColAccessLevel:
 			return QString::fromStdString(m_rows[ix.row()][ix.column()].toString());
 		default:
 			break;
@@ -183,11 +187,13 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 		if(role == Qt::DisplayRole) {
 			if(section == ColMethodName)
 				ret = tr("Method");
-			else if(section == ColSignature)
-				ret = tr("Signature");
+			else if(section == ColParamType)
+				ret = tr("Param type");
+			else if(section == ColResultType)
+				ret = tr("Result type");
 			else if(section == ColFlags)
 				ret = tr("Flags");
-			else if(section == ColAccessGrant)
+			else if(section == ColAccessLevel)
 				ret = tr("ACG");
 			else if(section == ColParams)
 				ret = tr("Params");
@@ -195,7 +201,7 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 				ret = tr("Result");
 		}
 		else if(role == Qt::ToolTipRole) {
-			if(section == ColAccessGrant)
+			if(section == ColAccessLevel)
 				ret = tr("Acess Grant");
 		}
 	}
@@ -290,9 +296,10 @@ void AttributesModel::loadRow(unsigned method_ix)
 	RowVals &rv = m_rows[method_ix];
 	shvDebug() << "load row:" << mtd->metamethod.name() << "flags:" << mtd->metamethod.flags() << mtd->flagsStr();
 	rv[ColMethodName] = mtd->metamethod.name();
-	rv[ColSignature] = mtd->signatureStr();
+	rv[ColResultType] = mtd->metamethod.resultType();
+	rv[ColParamType] = mtd->metamethod.paramType();
 	rv[ColFlags] = mtd->flagsStr();
-	rv[ColAccessGrant] = mtd->accessGrantStr();
+	rv[ColAccessLevel] = mtd->accessLevelStr();
 	rv[ColParams] = mtd->params;
 	rv[ColAttributes] = mtd->metamethod.toRpcValue();
 	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();

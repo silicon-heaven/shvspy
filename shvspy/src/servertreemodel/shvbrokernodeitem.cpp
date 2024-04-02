@@ -515,10 +515,10 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 					if(method == cp::Rpc::METH_DIR) {
 						using namespace shv::chainpack;
 						resp.setResult(cp::RpcValue::List{
-										   MetaMethod(Rpc::METH_DIR, MetaMethod::Signature::RetParam, MetaMethod::Flag::None).toRpcValue(),
-										   MetaMethod(Rpc::METH_APP_NAME, MetaMethod::Signature::RetVoid, MetaMethod::Flag::IsGetter).toRpcValue(),
-										   MetaMethod(Rpc::METH_APP_VERSION, MetaMethod::Signature::RetVoid, MetaMethod::Flag::IsGetter).toRpcValue(),
-										   MetaMethod(Rpc::METH_ECHO, MetaMethod::Signature::RetParam, MetaMethod::Flag::None, Rpc::ROLE_WRITE).toRpcValue(),
+										   shv::chainpack::methods::DIR.toRpcValue(),
+										   shv::chainpack::methods::LS.toRpcValue(),
+										   MetaMethod(Rpc::METH_APP_VERSION, MetaMethod::Flag::IsGetter, {}, "String").toRpcValue(),
+										   MetaMethod(Rpc::METH_ECHO, MetaMethod::Flag::None, "RpcValue", "RpcValue", AccessLevel::Write).toRpcValue(),
 									   });
 						break;
 					}

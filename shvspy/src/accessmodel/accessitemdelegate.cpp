@@ -25,7 +25,7 @@ void AccessItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model
 	if (index.isValid() && e) {
 		std::string val = e->text().trimmed().toStdString();
 
-		if (index.column() == AccessModel::Columns::ColGrant) {
+                if (index.column() == AccessModel::Columns::ColAccess) {
 			std::string err;
 			shv::chainpack::RpcValue rv = shv::chainpack::RpcValue::fromCpon(val, &err);
 			if (!err.empty()) {

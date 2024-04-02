@@ -11,7 +11,7 @@ class AccessModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColService = 0, ColPath, ColMethod, ColGrant, ColCount};
+	enum Columns {ColPath = 0, ColMethod, ColAccess, ColCount};
 	static QString columnName(int col);
 
 public:
