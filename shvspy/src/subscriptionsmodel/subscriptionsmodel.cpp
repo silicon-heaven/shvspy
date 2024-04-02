@@ -12,6 +12,14 @@
 
 namespace cp = shv::chainpack;
 
+namespace {
+auto constexpr KEY_Path = "Path";
+auto constexpr KEY_Method = "Method";
+auto constexpr KEY_Source = "Source";
+auto constexpr KEY_IsPermanent = "IsPermanent";
+auto constexpr KEY_IsEnabled = "IsEnabled";
+}
+
 SubscriptionsModel::SubscriptionsModel(QObject *parent)
 	: Super(parent)
 {
@@ -41,7 +49,7 @@ Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &ix) const
 		return Qt::NoItemFlags;
 	}
 
-	if(ix.column() == Columns::ColMethod || ix.column() == Columns::ColPath){
+	if(ix.column() == Columns::ColMethod || ix.column() == Columns::ColPath || ix.column() == Columns::ColSource){
 		return  Super::flags(ix) |= Qt::ItemIsEditable;
 	}
 
@@ -69,28 +77,33 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 			return sub.shvPath();
 		case Columns::ColMethod:
 			return sub.method();
+		case Columns::ColSource:
+			return sub.source();
+		default: return {};
 		}
 	}
-	else if(role == Qt::CheckStateRole) {
+	if(role == Qt::CheckStateRole) {
 		switch (ix.column()) {
 		case Columns::ColPermanent:
 			return (sub.isPermanent()) ? Qt::Checked : Qt::Unchecked;
 		case Columns::ColEnabled:
 			return (sub.isEnabled()) ? Qt::Checked : Qt::Unchecked;
+		default: return {};
 		}
 	}
-	else if(role == Qt::UserRole) {
+	if(role == Qt::UserRole) {
 		if (ix.column() == Columns::ColServer){
 			return sub.brokerId();
 		}
+		return {};
 	}
-	else if(role == Qt::BackgroundRole) {
+	if(role == Qt::BackgroundRole) {
 		if (ix.column() == Columns::ColServer) {
 			return QBrush(QColor::fromHsv((sub.brokerId() * 36) % 360, 45, 255));
 		}
+		return {};
 	}
-
-	return QVariant();
+	return {};
 }
 
 bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
@@ -115,7 +128,7 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 			}
 			else if (col == Columns::ColEnabled){
 				sub.setIsEnabled(v);
-				nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), v);
+				nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), sub.source().toStdString(), v);
 			}
 
 			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
@@ -124,39 +137,30 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 			return true;
 		}
 	}
-	else if (role == Qt::EditRole){
-		if (ix.column() == Columns::ColMethod){
+	else if (role == Qt::EditRole) {
+		auto update_subscription = [this, ix, val]() {
 			Subscription &sub = m_subscriptions[ix.row()];
 
 			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
-			if (nd == nullptr){
+			if (nd == nullptr) {
 				return false;
 			}
 
-			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
-			sub.setMethod(val.toString());
-			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
-
-			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
-			nd->setSubscriptionList(new_subs);
-			return true;
-		}
-		else if (ix.column() == Columns::ColPath){
-			Subscription &sub = m_subscriptions[ix.row()];
-
-			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
-			if (nd == nullptr){
-				return false;
+			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), sub.source().toStdString(), false);
+			switch (ix.column()) {
+			case Columns::ColPath: sub.setShvPath(val.toString()); break;
+			case Columns::ColMethod: sub.setMethod(val.toString()); break;
+			case Columns::ColSource: sub.setSource(val.toString()); break;
+			default: return false;
 			}
-
-			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
-			sub.setShvPath(val.toString());
-			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
+			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), sub.source().toStdString(), true);
 
 			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
 			nd->setSubscriptionList(new_subs);
+			emit dataChanged(ix.sibling(ix.row(), 0), ix.sibling(ix.row(), Columns::ColCount - 1));
 			return true;
-		}
+		};
+		return update_subscription();
 	}
 
 	return false;
@@ -174,6 +178,8 @@ QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation
 				return tr("Path");
 			case Columns::ColMethod:
 				 return tr("Method");
+			case Columns::ColSource:
+				 return tr("Source");
 			case Columns::ColPermanent:
 				return tr("Permanent");
 			case Columns::ColEnabled:
@@ -202,14 +208,13 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 
 	beginResetModel();
 	if (is_connected){
-		QMetaEnum met_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
 		QVariant v = nd->brokerProperties().value(ShvBrokerNodeItem::SUBSCRIPTIONS);
 
 		if(v.isValid()) {
 			QVariantList subs = v.toList();
 
 			for (int i = 0; i < subs.size(); i++) {
-				if (subs.at(i).toMap().contains(met_sub.valueToKey(ShvBrokerNodeItem::SubscriptionItem::IsPermanent))){
+				if (subs.at(i).toMap().contains(KEY_IsPermanent)){
 					SubscriptionsModel::Subscription s(broker_id, QString::fromStdString(nd->nodeId()));
 					s.setConfig(subs.at(i).toMap());
 
@@ -284,23 +289,12 @@ SubscriptionsModel::Subscription::Subscription(int broker_id, const QString &ser
 
 void SubscriptionsModel::Subscription::setConfig(const QVariantMap &config)
 {
-	QMetaEnum meta_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
-
-	for (int i = 0; i < ShvBrokerNodeItem::SubscriptionItem::Count; i++){
-		m_config[i] = config.value(meta_sub.valueToKey(i));
-	}
+	m_config = config;
 }
 
 QVariantMap SubscriptionsModel::Subscription::config() const
 {
-	QVariantMap config;
-	QMetaEnum meta_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
-
-	for (int i = 0; i < ShvBrokerNodeItem::SubscriptionItem::Count; i++){
-		config[meta_sub.valueToKey(i)] = m_config.value(i);
-	}
-
-	return config;
+	return m_config;
 }
 
 int SubscriptionsModel::Subscription::brokerId() const
@@ -315,40 +309,50 @@ QString SubscriptionsModel::Subscription::serverName() const
 
 QString SubscriptionsModel::Subscription::shvPath() const
 {
-	return m_config[ShvBrokerNodeItem::SubscriptionItem::Path].toString();
+	return m_config.value(KEY_Path).toString();
 }
 
 void SubscriptionsModel::Subscription::setShvPath(const QString &shv_path)
 {
-	m_config[ShvBrokerNodeItem::SubscriptionItem::Path] = shv_path;
+	m_config[KEY_Path] = shv_path;
 }
 
 QString SubscriptionsModel::Subscription::method() const
 {
-	return m_config[ShvBrokerNodeItem::SubscriptionItem::Method].toString();
+	return m_config.value(KEY_Method).toString();
 }
 
 void SubscriptionsModel::Subscription::setMethod(const QString &method)
 {
-	m_config[ShvBrokerNodeItem::SubscriptionItem::Method] = method;
+	m_config[KEY_Method] = method;
+}
+
+QString SubscriptionsModel::Subscription::source() const
+{
+	return m_config.value(KEY_Source).toString();
+}
+
+void SubscriptionsModel::Subscription::setSource(const QString &source)
+{
+	m_config[KEY_Source] = source;
 }
 
 bool SubscriptionsModel::Subscription::isPermanent() const
 {
-	return m_config[ShvBrokerNodeItem::SubscriptionItem::IsPermanent].toBool();
+	return m_config.value(KEY_IsPermanent).toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsPermanent(bool val)
 {
-	m_config[ShvBrokerNodeItem::SubscriptionItem::IsPermanent] = val;
+	m_config[KEY_IsPermanent] = val;
 }
 
 bool SubscriptionsModel::Subscription::isEnabled() const
 {
-	return m_config[ShvBrokerNodeItem::SubscriptionItem::IsEnabled].toBool();
+	return m_config.value(KEY_IsEnabled).toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsEnabled(bool val)
 {
-	m_config[ShvBrokerNodeItem::SubscriptionItem::IsEnabled] = val;
+	m_config[KEY_IsEnabled] = val;
 }

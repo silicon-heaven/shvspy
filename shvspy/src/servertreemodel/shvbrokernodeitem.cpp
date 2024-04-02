@@ -5,7 +5,8 @@
 #include "../appclioptions.h"
 #include "../log/rpcnotificationsmodel.h"
 #include "../attributesmodel/attributesmodel.h"
-#include "src/brokerproperty.h"
+#include "../brokerproperty.h"
+#include "../subscriptionsmodel/subscriptionsmodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -116,27 +117,27 @@ void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 }
 
 
-void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method)
+void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method, const std::string &source)
 {
-	int rqid = callSubscribe(shv_path, method);
+	int rqid = callSubscribe(shv_path, method, source);
 	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-	cb->start(5000, this, [this, shv_path, method](const cp::RpcResponse &resp) {
+	cb->start(5000, this, [this, shv_path, method, source](const cp::RpcResponse &resp) {
 		if(resp.isError() || (resp.result() == false)){
 			emit subscriptionAddError(shv_path, resp.error().message());
 		}
 		else{
-			emit subscriptionAdded(shv_path, method);
+			emit subscriptionAdded(shv_path, method, source);
 		}
 	});
 }
 
-void ShvBrokerNodeItem::enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled)
+void ShvBrokerNodeItem::enableSubscription(const std::string &shv_path, const std::string &method, const std::string &source, bool is_enabled)
 {
 	if (is_enabled){
-		callSubscribe(shv_path, method);
+		callSubscribe(shv_path, method, source);
 	}
 	else{
-		callUnsubscribe(shv_path, method);
+		callUnsubscribe(shv_path, method, source);
 	}
 }
 
@@ -447,17 +448,17 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path_)
 	return ret;
 }
 
-int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, const std::string &method)
+int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, const std::string &method, const std::string& source)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	int rqid = cc->callMethodSubscribe(shv_path, method);
+	int rqid = cc->callMethodSubscribe(shv_path, method, source);
 	return rqid;
 }
 
-int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, const std::string &method)
+int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, const std::string &method, const std::string& source)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	int rqid = cc->callMethodUnsubscribe(shv_path, method);
+	int rqid = cc->callMethodUnsubscribe(shv_path, method, source);
 	return rqid;
 }
 
@@ -572,16 +573,16 @@ void ShvBrokerNodeItem::createSubscriptions()
 			clientConnection()->setShvApiVersion(result.toBool()? ShvApiVersion::V3: ShvApiVersion::V2);
 		}
 
-		QMetaEnum meta_sub = QMetaEnum::fromType<SubscriptionItem>();
 		QVariant v = m_brokerPropeties.value(SUBSCRIPTIONS);
 		if(v.isValid()) {
 			QVariantList subs = v.toList();
 
 			for (const auto & sub : subs) {
-				QVariantMap s = sub.toMap();
-
-				if (s.value(meta_sub.valueToKey(SubscriptionItem::IsEnabled)).toBool()){
-					callSubscribe(s.value(meta_sub.valueToKey(SubscriptionItem::Path)).toString().toStdString(), s.value(meta_sub.valueToKey(SubscriptionItem::Method)).toString().toStdString());
+				QVariantMap config = sub.toMap();
+				SubscriptionsModel::Subscription subscription;
+				subscription.setConfig(config);
+				if (subscription.isEnabled()) {
+					callSubscribe(subscription.shvPath().toStdString(), subscription.method().toStdString(), subscription.source().toStdString());
 				}
 			}
 		}

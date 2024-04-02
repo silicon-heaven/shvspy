@@ -338,7 +338,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 			else if(a == a_subscribeNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
-					nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED);
+					nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
 				}
 			}
 			else if(a == a_callShvMethod) {

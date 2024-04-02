@@ -15,7 +15,7 @@ class SubscriptionsModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColServer = 0, ColPath, ColMethod, ColPermanent, ColEnabled, ColCount};
+	enum Columns {ColServer = 0, ColPath, ColMethod, ColSource, ColPermanent, ColEnabled, ColCount};
 
 	class Subscription{
 	public:
@@ -30,7 +30,9 @@ public:
 		QString shvPath() const;
 		void setShvPath(const QString &shv_path);
 		QString method() const;
-		void setMethod(const QString&method);
+		void setMethod(const QString &method);
+		QString source() const;
+		void setSource(const QString &source);
 		bool isPermanent() const;
 		void setIsPermanent(bool val);
 		bool isEnabled() const;
@@ -38,7 +40,7 @@ public:
 	private:
 		int m_brokerId;
 		QString m_serverName;
-		QMap<int, QVariant> m_config;
+		QVariantMap m_config;
 	};
 
 public:

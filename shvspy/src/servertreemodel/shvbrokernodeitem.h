@@ -17,8 +17,6 @@ private:
 public:
 	static const QString SUBSCRIPTIONS;
 	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
-	enum SubscriptionItem {Path = 0, Method, IsPermanent, IsEnabled, Count};
-	Q_ENUM(SubscriptionItem)
 public:
 	explicit ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name);
 	~ShvBrokerNodeItem() Q_DECL_OVERRIDE;
@@ -37,8 +35,8 @@ public:
 	void setBrokerProperties(const QVariantMap &props);
 
 	void setSubscriptionList(const QVariantList &subs);
-	void addSubscription(const std::string &shv_path, const std::string &method);
-	void enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled);
+	void addSubscription(const std::string &shv_path, const std::string &method, const std::string& source);
+	void enableSubscription(const std::string &shv_path, const std::string &method, const std::string& source, bool is_enabled);
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
@@ -48,7 +46,7 @@ public:
 
 	int brokerId() const { return m_brokerId; }
 
-	Q_SIGNAL void subscriptionAdded(const std::string &path, const std::string &method);
+	Q_SIGNAL void subscriptionAdded(const std::string &path, const std::string &method, const std::string& source);
 	Q_SIGNAL void subscriptionAddError(const std::string &shv_path, const std::string &error_msg);
 
 	Q_SIGNAL void brokerConnectedChange(bool is_connected);
@@ -58,8 +56,8 @@ private:
 	void onBrokerLoginError(const QString &err);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createSubscriptions();
-	int callSubscribe(const std::string &shv_path, const std::string &method);
-	int callUnsubscribe(const std::string &shv_path, const std::string &method);
+	int callSubscribe(const std::string &shv_path, const std::string &method, const std::string &source);
+	int callUnsubscribe(const std::string &shv_path, const std::string &method, const std::string& source);
 private:
 	int m_brokerId;
 	QVariantMap m_brokerPropeties;
