@@ -56,7 +56,7 @@ runs:
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_TESTING=OFF \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DUSE_QT6=${{ inputs.use_qt6 }} \
+        -DSHVSPY_USE_QT6=${{ inputs.use_qt6 }} \
         ${{ env.cmake_extra_args }} \
         ${{ inputs.additional_cmake_args }}
       shell: bash
