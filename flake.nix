@@ -1,66 +1,84 @@
 {
-  description = "Silicon Heaven Spy Flake";
+  description = "Silicon Heaven Spy";
+
+  inputs.libshv.url = "github:silicon-heaven/libshv";
 
   outputs = {
     self,
     flake-utils,
     nixpkgs,
-  }:
-    with builtins;
-    with flake-utils.lib;
-    with nixpkgs.lib; let
-      packages = pkgs:
-        with pkgs;
-        with qt6Packages; rec {
-          shvspy = stdenv.mkDerivation {
+    libshv,
+  }: let
+    inherit (flake-utils.lib) eachDefaultSystem;
+    inherit (nixpkgs.lib) hasSuffix composeManyExtensions;
+    rev = self.shortRev or self.dirtyShortRev or "unknown";
+
+    shvspy = {
+      stdenv,
+      cmake,
+      qt6,
+      libshvForClients,
+      necrolog,
+      doctest,
+      openldap,
+      copyDesktopItems,
+      makeDesktopItem,
+    }:
+      stdenv.mkDerivation {
+        name = "shvspy-${rev}";
+        src = builtins.path {
+          path = ./.;
+          filter = path: type: ! hasSuffix ".nix" path;
+        };
+        buildInputs = [
+          qt6.wrapQtAppsHook
+          qt6.qtbase
+          qt6.qtserialport
+          qt6.qtwebsockets
+          qt6.qtsvg
+          qt6.qtnetworkauth
+          necrolog
+          libshvForClients
+          doctest
+          openldap
+        ];
+        nativeBuildInputs = [
+          cmake
+          qt6.qttools
+          copyDesktopItems
+        ];
+        desktopItems = [
+          (makeDesktopItem {
             name = "shvspy";
-            src = builtins.path {
-              path = ./.;
-              filter = path: type: ! hasSuffix ".nix" path;
-            };
-            buildInputs = [
-              wrapQtAppsHook
-              qtbase
-              qtserialport
-              qtwebsockets
-              qtsvg
-              qtnetworkauth
-              doctest
-              openldap
-            ];
-            nativeBuildInputs = [
-              qttools
-              cmake
-              copyDesktopItems
-            ];
-            desktopItems = [
-              (makeDesktopItem {
-                name = "shvspy";
-                exec = "shvspy";
-                desktopName = "SHVSpy";
-                categories = ["Network" "RemoteAccess"];
-              })
-            ];
-          };
+            exec = "shvspy";
+            desktopName = "SHVSpy";
+            categories = ["Network" "RemoteAccess"];
+          })
+        ];
+        cmakeFlags = [
+          "-DSHVSPY_USE_LOCAL_NECROLOG=ON"
+          "-DSHVSPY_USE_LOCAL_LIBSHV=ON"
+          "-DUSE_QT6=ON"
+        ];
+      };
+  in
+    {
+      overlays = {
+        pkgs = final: prev: {
+          shvspy = final.callPackage shvspy {};
         };
-    in
-      {
-        overlays = {
-          shvspy = final: prev: packages (id prev);
-          default = self.overlays.shvspy;
-        };
-      }
-      // eachDefaultSystem (system: let
-        pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
-      in {
-        packages = filterPackages system rec {
-          inherit (pkgs) shvspy;
-          default = shvspy;
-        };
-        legacyPackages = pkgs;
+        default = composeManyExtensions [
+          libshv.overlays.default
+          self.overlays.pkgs
+        ];
+      };
+    }
+    // eachDefaultSystem (system: let
+      pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+    in {
+      packages.default = pkgs.shvspy;
+      legacyPackages = pkgs;
 
-        checks.default = self.packages.${system}.default;
-
-        formatter = pkgs.alejandra;
-      });
+      formatter = pkgs.alejandra;
+    });
 }
