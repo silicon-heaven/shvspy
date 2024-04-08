@@ -46,6 +46,11 @@ runs:
         install-deps: false
         modules: ${{ inputs.modules }}
 
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2.12
+      with:
+        key: ${{ github.job }}
+
     - name: Configure CMake
       run: |
         CFLAGS="-Werror ${CFLAGS}" \
@@ -55,8 +60,10 @@ runs:
         -B '${{github.workspace}}/build' \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_TESTING=OFF \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DUSE_QT6=${{ inputs.use_qt6 }} \
+        -DSHVSPY_USE_QT6=${{ inputs.use_qt6 }} \
         ${{ env.cmake_extra_args }} \
         ${{ inputs.additional_cmake_args }}
       shell: bash

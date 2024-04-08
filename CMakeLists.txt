@@ -3,12 +3,14 @@ project(shvspy LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(SHVSPY_USE_QT6 ON CACHE BOOL "Qt6 build")
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(SHV_WARNING_FLAGS "-Wall -Wextra -pedantic -Wcast-align -Wunused -Wpedantic -Wmisleading-indentation -Wdouble-promotion -Wformat=2 -Wimplicit-fallthrough")
 
     # We switched to qsizetype in Qt6, so let's get rid of this warning in Qt5 for now.
     # TODO: Remove this after dropping support for Qt5
-    if(USE_QT6)
+    if(SHVSPY_USE_QT6)
         set(SHV_WARNING_FLAGS "${SHV_WARNING_FLAGS} -Wconversion")
         if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             set(SHV_WARNING_FLAGS_CXX "-Wuseless-cast ${SHV_WARNING_FLAGS_CXX}")
@@ -47,6 +49,7 @@ if(SHVSPY_USE_LOCAL_LIBSHV)
     find_package(libshv REQUIRED)
 else()
     set(WITH_BROKER OFF CACHE BOOL "")
+    set(LIBSHV_USE_QT6 "${SHVSPY_USE_QT6}" CACHE BOOL "")
     add_subdirectory(3rdparty/libshv)
 endif()
 
@@ -54,7 +57,7 @@ if(NOT TARGET libshv::libshvvisu)
     message(FATAL_ERROR "libshvvisu not found. Including libshv might've failed due to missing Qt dependencies. Please check above for errors.")
 endif()
 
-if(USE_QT6)
+if(SHVSPY_USE_QT6)
     if(EMSCRIPTEN)
         find_package(Qt6 COMPONENTS Core Widgets Gui Network WebSockets)
     else()
