@@ -58,7 +58,7 @@
         cmakeFlags = [
           "-DSHVSPY_USE_LOCAL_NECROLOG=ON"
           "-DSHVSPY_USE_LOCAL_LIBSHV=ON"
-          "-DUSE_QT6=ON"
+          "-DSHVSPY_USE_QT6=ON"
         ];
       };
   in
