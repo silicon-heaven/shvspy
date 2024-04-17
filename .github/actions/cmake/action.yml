@@ -5,7 +5,7 @@ inputs:
     description: "Specify Qt version to use"
     required: true
   qt_arch:
-    description: "Specify Qt version to use"
+    description: "Specify Qt arch to use"
     default: "gcc_64"
   use_qt6:
     description: "Specify whether we're using Qt 5 or Qt 6"
@@ -16,6 +16,9 @@ inputs:
   additional_cmake_args:
     description: "Additional args to pass to CMake"
     default: ""
+  emsdk_cache_dir:
+    description: "Where to store emsdk cache"
+    default: "emsdk-cache"
 
 runs:
   using: "composite"
@@ -45,6 +48,26 @@ runs:
         arch: ${{ inputs.qt_arch }}
         install-deps: false
         modules: ${{ inputs.modules }}
+        extra: --autodesktop
+
+    - name: WASM-specific stuff
+      if: inputs.qt_arch == 'wasm_singlethread'
+      run: |
+        echo cmake_extra_args="'-DBUILD_SHARED_LIBS=OFF' '-DQT_HOST_PATH=$(realpath ${Qt6_DIR}/../gcc_64)'" >> "$GITHUB_ENV"
+      shell: bash
+
+    - name: Setup emsdk cache
+      id: cache-system-libraries
+      uses: actions/cache@v2
+      with:
+        key: emsdk-cache
+        path: ${{ inputs.emsdk_cache_dir }}
+
+    - uses: mymindstorm/setup-emsdk@v14
+      if: inputs.qt_arch == 'wasm_singlethread'
+      with:
+        version: 3.1.37
+        actions-cache-folder: ${{ inputs.emsdk_cache_dir }}
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2.12
@@ -53,17 +76,18 @@ runs:
 
     - name: Configure CMake
       run: |
+        chmod +x "${Qt6_DIR}/bin/qt-cmake"
         CFLAGS="-Werror ${CFLAGS}" \
         CXXFLAGS="-Werror ${CXXFLAGS}" \
-        cmake \
-        -S '${{github.workspace}}' \
-        -B '${{github.workspace}}/build' \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DBUILD_TESTING=OFF \
-        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DSHVSPY_USE_QT6=${{ inputs.use_qt6 }} \
-        ${{ env.cmake_extra_args }} \
-        ${{ inputs.additional_cmake_args }}
+        qt-cmake \
+          -S '${{github.workspace}}' \
+          -B '${{github.workspace}}/build' \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTING=OFF \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DSHVSPY_USE_QT6=${{ inputs.use_qt6 }} \
+          ${{ env.cmake_extra_args }} \
+          ${{ inputs.additional_cmake_args }}
       shell: bash

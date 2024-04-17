@@ -1,0 +1,56 @@
+name: WebAssembly
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  id-token: write
+  pages: write
+
+jobs:
+  ubuntu-qt6-wasm:
+    name: Qt 6.6.3 / Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          qt_version: 6.6.3
+          qt_arch: wasm_singlethread
+          use_qt6: ON
+          modules: qtwebsockets
+
+      - name: Build
+        run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
+        shell: bash
+
+      - name: Consolidate WebAssembly artifacts
+        run: |
+          mkdir gh-sources
+          cp '${{github.workspace}}'/build/shvspy/*.{js,wasm,html} gh-sources/
+          mv gh-sources/shvspy.html gh-sources/index.html
+          cp '${{github.workspace}}'/distro/shvspy.AppDir/shvspy.svg gh-sources/qtlogo.svg
+        shell: bash
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: 'gh-sources/'
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
