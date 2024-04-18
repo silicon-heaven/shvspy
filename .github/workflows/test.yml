@@ -12,7 +12,7 @@ on:
 
 jobs:
   nix:
-    name: Qt 6.6.2 / NixOS
+    name: NixOS / Qt 6.6.2
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
