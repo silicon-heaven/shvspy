@@ -12,7 +12,7 @@ on:
 
 jobs:
   ubuntu-qt6:
-    name: Qt 6.5.0 / Ubuntu 22.04
+    name: Qt 6.5.3 / Ubuntu 22.04
     runs-on: ubuntu-22.04
     steps:
       - name: Clone the repository
@@ -23,7 +23,7 @@ jobs:
       - name: Setup CMake
         uses: ./.github/actions/cmake
         with:
-          qt_version: 6.5.0
+          qt_version: 6.5.3
           use_qt6: ON
           modules: qtserialport qtwebsockets qtnetworkauth
           additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'

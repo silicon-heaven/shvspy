@@ -12,7 +12,7 @@ on:
 
 jobs:
   windows:
-    name: Qt 6.5.0 / Windows
+    name: Qt 6.5.3 / Windows
     runs-on: windows-2022
     steps:
       - name: Clone the repository
@@ -23,7 +23,7 @@ jobs:
       - name: Setup CMake
         uses: ./.github/actions/cmake
         with:
-          qt_version: 6.5.0
+          qt_version: 6.5.3
           qt_arch: win64_mingw
           use_qt6: ON
           modules: qtserialport qtwebsockets qtnetworkauth
@@ -36,9 +36,7 @@ jobs:
         run: cmake --install '${{ github.workspace }}/build'
 
       - name: Run windeployqt
-        # --no-translations is needed because https://bugreports.qt.io/browse/QTBUG-112204
-        # FIXME: Remove when 6.5.1 becomes available.
-        run: windeployqt --no-translations -websockets -serialport '${{ github.workspace }}/install/bin/shvspy.exe'
+        run: windeployqt -websockets -serialport '${{ github.workspace }}/install/bin/shvspy.exe'
 
       - name: Copy MinGW runtime libraries
         # windeployqt is unable to copy those, because it looks for them next to where g++.exe is. On the GitHub runner,
