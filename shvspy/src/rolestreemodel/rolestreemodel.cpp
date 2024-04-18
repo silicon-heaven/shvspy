@@ -145,7 +145,12 @@ void RolesTreeModel::generateTree()
 
 	QStandardItem *parent_item = invisibleRootItem();
 
-	for (const QString &role_name: m_shvRoles.keys()){
+#if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
+	for (const auto &[role_name, role_value] : m_shvRoles.asKeyValueRange()){
+#else
+	for (const auto &role_name: m_shvRoles.keys()){
+		const auto& role_value = m_shvRoles.value(role_name);
+#endif
 		QList<QStandardItem *> row;
 		auto *it = new QStandardItem(role_name);
 		it->setData(role_name, NameRole);
@@ -154,7 +159,7 @@ void RolesTreeModel::generateTree()
 		row << it;
 		parent_item->appendRow(row);
 
-		std::vector<std::string> sub_roles = m_shvRoles.value(role_name);
+		std::vector<std::string> sub_roles = role_value;
 		QSet<QString> created_roles{role_name};
 
 		for (const auto &subrole : sub_roles) {
