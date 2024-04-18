@@ -17,9 +17,6 @@ inputs:
   additional_cmake_args:
     description: "Additional args to pass to CMake"
     default: ""
-  emsdk_cache_dir:
-    description: "Where to store emsdk cache"
-    default: "emsdk-cache"
 
 runs:
   using: "composite"
@@ -55,22 +52,9 @@ runs:
       if: inputs.qt_arch == 'wasm_singlethread'
       run: |
         chmod +x "${Qt6_DIR}/bin/qt-cmake"
-        echo cmake_extra_args="'-DBUILD_SHARED_LIBS=OFF' '-DQT_HOST_PATH=$(realpath ${Qt6_DIR}/../gcc_64)'" >> "$GITHUB_ENV"
+        echo cmake_extra_args="'-DBUILD_SHARED_LIBS=OFF' '-DQT_HOST_PATH=$(realpath "${Qt6_DIR}/../gcc_64")'" >> "$GITHUB_ENV"
         echo CMAKE_BIN="${Qt6_DIR}/bin/qt-cmake" >> "$GITHUB_ENV"
       shell: bash
-
-    - name: Setup emsdk cache
-      if: inputs.qt_arch == 'wasm_singlethread'
-      uses: actions/cache@v4
-      with:
-        key: emsdk-cache
-        path: ${{ inputs.emsdk_cache_dir }}
-
-    - uses: mymindstorm/setup-emsdk@v14
-      if: inputs.qt_arch == 'wasm_singlethread'
-      with:
-        version: 3.1.37
-        actions-cache-folder: ${{ inputs.emsdk_cache_dir }}
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2.12

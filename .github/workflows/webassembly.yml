@@ -14,6 +14,9 @@ permissions:
   id-token: write
   pages: write
 
+env:
+  emsdk_cache_dir: "emsdk-cache"
+
 jobs:
   ubuntu-qt6-wasm:
     name: Qt 6.6.3 / Ubuntu 22.04
@@ -23,6 +26,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Setup emsdk cache
+        uses: actions/cache@v4
+        with:
+          key: emsdk-cache
+          path: ${{ env.emsdk_cache_dir }}
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.37
+          actions-cache-folder: ${{ env.emsdk_cache_dir }}
 
       - name: Setup CMake
         uses: ./.github/actions/cmake
