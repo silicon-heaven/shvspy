@@ -104,10 +104,10 @@ cp::RpcValue MethodParametersDialog::value() const
 	}
 	if (ui->tabWidget->currentIndex() == TAB_INDEX_CPON) {
 		std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-		if (cpon.size()) {
+		if (!cpon.empty()) {
 			std::string err;
 			cp::RpcValue val = cp::RpcValue::fromCpon(ui->rawCponEdit->toPlainText().toStdString(), &err);
-			if (err.size() == 0) {
+			if (err.empty()) {
 				return val;
 			}
 		}
@@ -459,13 +459,13 @@ void MethodParametersDialog::switchToMap()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_LIST && ui->parameterListTable->isHidden() && m_cponEdited) ||
 			(m_currentTabIndex == TAB_INDEX_SINGLE_PARAMETER && ui->singleParameterTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-			if (cpon.size() == 0) {
+			if (cpon.empty()) {
 				parsed = true;
 			}
 			else {
 				std::string err;
 				cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
-				if (err.size() == 0) {
+				if (err.empty()) {
 					parsed = tryParseMapParams(val);
 				}
 			}
@@ -499,13 +499,13 @@ void MethodParametersDialog::switchToList()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_MAP && ui->parameterMapTable->isHidden() && m_cponEdited) ||
 			(m_currentTabIndex == TAB_INDEX_SINGLE_PARAMETER && ui->singleParameterTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-			if (cpon.size() == 0) {
+			if (cpon.empty()) {
 				parsed = true;
 			}
 			else {
 				std::string err;
 				cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
-				if (err.size() == 0) {
+				if (err.empty()) {
 					parsed = tryParseListParams(val);
 				}
 			}
@@ -539,13 +539,13 @@ void MethodParametersDialog::switchToSingle()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_MAP && ui->parameterMapTable->isHidden() && m_cponEdited) ||
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_LIST && ui->parameterListTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-			if (cpon.size() == 0) {
+			if (cpon.empty()) {
 				parsed = true;
 			}
 			else {
 				std::string err;
 				cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
-				if (err.size() == 0) {
+				if (err.empty()) {
 					parsed = tryParseSingleParam(val);
 				}
 			}
@@ -626,10 +626,10 @@ void MethodParametersDialog::onCurrentTabChanged(int index)
 void MethodParametersDialog::checkSyntax()
 {
 	std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-	if (cpon.size()) {
+	if (!cpon.empty()) {
 		std::string err;
 		cp::RpcValue val = cp::RpcValue::fromCpon(ui->rawCponEdit->toPlainText().toStdString(), &err);
-		if (err.size()) {
+		if (!err.empty()) {
 			QPalette pal = ui->rawCponEdit->palette();
 			pal.setColor(QPalette::ColorRole::Text, Qt::red);
 			ui->rawCponEdit->setPalette(pal);
@@ -675,7 +675,7 @@ cp::RpcValue MethodParametersDialog::singleParamValue() const
 	}
 
 	cp::RpcValue val = m_singleValueGetters[0]();
-	if (val.isString() && val.asString().size() == 0) {
+	if (val.isString() && val.asString().empty()) {
 		return cp::RpcValue();
 	}
 	return val;
