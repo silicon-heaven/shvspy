@@ -78,7 +78,7 @@ private:
 	QVector<ValueSetter> m_listValueSetters;
 	QVector<ValueGetter> m_mapValueGetters;
 	QVector<ValueSetter> m_mapValueSetters;
-	static QVector<shv::chainpack::RpcValue::Type> m_supportedTypes;
+	const static QVector<shv::chainpack::RpcValue::Type> m_supportedTypes;
 	QTimer m_syntaxCheckTimer;
 	QString m_path;
 	QString m_method;

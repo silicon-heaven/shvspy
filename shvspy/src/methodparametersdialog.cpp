@@ -13,13 +13,13 @@
 namespace cp = shv::chainpack;
 
 namespace {
-int TAB_INDEX_SINGLE_PARAMETER = 0;
-int TAB_INDEX_PARAMETER_MAP = 1;
-int TAB_INDEX_PARAMETER_LIST = 2;
-int TAB_INDEX_CPON = 3;
+const int TAB_INDEX_SINGLE_PARAMETER = 0;
+const int TAB_INDEX_PARAMETER_MAP = 1;
+const int TAB_INDEX_PARAMETER_LIST = 2;
+const int TAB_INDEX_CPON = 3;
 }
 
-QVector<cp::RpcValue::Type> MethodParametersDialog::m_supportedTypes {
+const QVector<cp::RpcValue::Type> MethodParametersDialog::m_supportedTypes {
 	cp::RpcValue::Type::String,
 	cp::RpcValue::Type::Int,
 	cp::RpcValue::Type::UInt,
