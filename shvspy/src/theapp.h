@@ -12,7 +12,7 @@ class RpcNotificationsModel;
 class AppCliOptions;
 class QSettings;
 
-namespace shv { namespace visu { class ErrorLogModel; } }
+namespace shv::visu { class ErrorLogModel; }
 
 class TheApp : public QApplication
 {

@@ -6,6 +6,9 @@ Qt GUI tool for shvbroker administration and browsing
 
 <img width="922" alt="image" src="https://user-images.githubusercontent.com/4949019/115882642-3dba7900-a44d-11eb-9769-630631d70f24.png">
 
+## ShvSpy in the web browser
+ShvSpy for the browser is available at https://silicon-heaven.github.io/shvspy.
+
 ## Graph view short-cuts
 | short-cut | action |
 |-----------|--------|

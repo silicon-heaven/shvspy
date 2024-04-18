@@ -12,12 +12,14 @@
 
 namespace cp = shv::chainpack;
 
-static int TAB_INDEX_SINGLE_PARAMETER = 0;
-static int TAB_INDEX_PARAMETER_MAP = 1;
-static int TAB_INDEX_PARAMETER_LIST = 2;
-static int TAB_INDEX_CPON = 3;
+namespace {
+const int TAB_INDEX_SINGLE_PARAMETER = 0;
+const int TAB_INDEX_PARAMETER_MAP = 1;
+const int TAB_INDEX_PARAMETER_LIST = 2;
+const int TAB_INDEX_CPON = 3;
+}
 
-QVector<cp::RpcValue::Type> MethodParametersDialog::m_supportedTypes {
+const QVector<cp::RpcValue::Type> MethodParametersDialog::m_supportedTypes {
 	cp::RpcValue::Type::String,
 	cp::RpcValue::Type::Int,
 	cp::RpcValue::Type::UInt,
@@ -32,9 +34,7 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	, m_syntaxCheckTimer(this)
 	, m_path(path)
 	, m_method(method)
-	, m_usedParamsWidget(nullptr)
 	, m_currentTabIndex(TAB_INDEX_CPON)
-	, m_cponEdited(false)
 {
 	shvLogFuncFrame() << "method:" << method << "params:" << params.toCpon();
 	ui->setupUi(this);
@@ -56,7 +56,7 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	connect(ui->parameterListTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onListCurrentCellChanged);
 	connect(ui->parameterMapTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onMapCurrentCellChanged);
 	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, &m_syntaxCheckTimer, QOverload<>::of(&QTimer::start));
-	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, [this]() {
+	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, this, [this]() {
 		m_cponEdited = true;
 	});
 
@@ -96,18 +96,18 @@ cp::RpcValue MethodParametersDialog::value() const
 	if (ui->tabWidget->currentIndex() == TAB_INDEX_SINGLE_PARAMETER) {
 		return singleParamValue();
 	}
-	else if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_MAP) {
+	if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_MAP) {
 		return mapParamValue();
 	}
 	if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_LIST) {
 		return listParamValue();
 	}
-	else if (ui->tabWidget->currentIndex() == TAB_INDEX_CPON) {
+	if (ui->tabWidget->currentIndex() == TAB_INDEX_CPON) {
 		std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-		if (cpon.size()) {
+		if (!cpon.empty()) {
 			std::string err;
 			cp::RpcValue val = cp::RpcValue::fromCpon(ui->rawCponEdit->toPlainText().toStdString(), &err);
-			if (err.size() == 0) {
+			if (err.empty()) {
 				return val;
 			}
 		}
@@ -151,7 +151,7 @@ void MethodParametersDialog::newMapParameter(const QString &key, const cp::RpcVa
 	ui->parameterMapTable->setRowCount(row + 1);
 
 	ui->parameterMapTable->setItem(row, 0, new QTableWidgetItem(key));
-	QComboBox *combo = new QComboBox(this);
+	auto *combo = new QComboBox(this);
 	ui->parameterMapTable->setCellWidget(row, 1, combo);
 	for (cp::RpcValue::Type t : m_supportedTypes) {
 		combo->addItem(cp::RpcValue::typeToName(t), static_cast<int>(t));
@@ -172,7 +172,7 @@ void MethodParametersDialog::newMapParameter(const QString &key, const cp::RpcVa
 		combo->setCurrentIndex(index);
 		switchToString(ui->parameterMapTable, row, 2, m_mapValueGetters, m_mapValueSetters);
 	}
-	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, row](int index) {
+	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, combo, row](int index) {
 		auto t = static_cast<cp::RpcValue::Type>(combo->itemData(index).toInt());
 		switchByType(t, ui->parameterMapTable, row, 2, m_mapValueGetters, m_mapValueSetters);
 	});
@@ -183,7 +183,7 @@ void MethodParametersDialog::newListParameter(const cp::RpcValue &param)
 	int row = ui->parameterListTable->rowCount();
 	ui->parameterListTable->setRowCount(row + 1);
 
-	QComboBox *combo = new QComboBox(this);
+	auto *combo = new QComboBox(this);
 	ui->parameterListTable->setCellWidget(row, 0, combo);
 	for (cp::RpcValue::Type t : m_supportedTypes) {
 		combo->addItem(cp::RpcValue::typeToName(t), static_cast<int>(t));
@@ -204,7 +204,7 @@ void MethodParametersDialog::newListParameter(const cp::RpcValue &param)
 		combo->setCurrentIndex(index);
 		switchToString(ui->parameterListTable, row, 1, m_listValueGetters, m_listValueSetters);
 	}
-	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, row](int index) {
+	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, combo, row](int index) {
 		auto t = static_cast<cp::RpcValue::Type>(combo->itemData(index).toInt());
 		switchByType(t, ui->parameterListTable, row, 1, m_listValueGetters, m_listValueSetters);
 	});
@@ -291,7 +291,7 @@ bool MethodParametersDialog::tryParseMapParams(const cp::RpcValue &params)
 
 void MethodParametersDialog::switchToBool(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QCheckBox *checkbox = new QCheckBox(this);
+	auto *checkbox = new QCheckBox(this);
 	table->setCellWidget(row, col, checkbox);
 	getters[row] = [checkbox]() {
 		return cp::RpcValue(checkbox->isChecked() ? true : false);
@@ -303,7 +303,7 @@ void MethodParametersDialog::switchToBool(QTableWidget *table, int row, int col,
 
 void MethodParametersDialog::switchToInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
 	line_edit->setValidator(new QIntValidator(line_edit));
 	getters[row] = [line_edit]() {
@@ -316,7 +316,7 @@ void MethodParametersDialog::switchToInt(QTableWidget *table, int row, int col, 
 
 void MethodParametersDialog::switchToUInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
 	line_edit->setValidator(new QIntValidator(0, std::numeric_limits<int>::max(), line_edit));
 	getters[row] = [line_edit]() {
@@ -329,7 +329,7 @@ void MethodParametersDialog::switchToUInt(QTableWidget *table, int row, int col,
 
 void MethodParametersDialog::switchToString(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
 	getters[row] = [line_edit]() {
 		return  cp::RpcValue(line_edit->text().toStdString());
@@ -341,9 +341,9 @@ void MethodParametersDialog::switchToString(QTableWidget *table, int row, int co
 
 void MethodParametersDialog::switchToDouble(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
-	QDoubleValidator *v = new QDoubleValidator(line_edit);
+	auto *v = new QDoubleValidator(line_edit);
 	v->setLocale(QLocale::C);
 	line_edit->setValidator(v);
 	getters[row] = [line_edit]() {
@@ -356,12 +356,12 @@ void MethodParametersDialog::switchToDouble(QTableWidget *table, int row, int co
 
 void MethodParametersDialog::switchToDateTime(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QWidget *datetime_widget = new QWidget(this);
-	QDateTimeEdit *edit = new QDateTimeEdit(datetime_widget);
+	auto *datetime_widget = new QWidget(this);
+	auto *edit = new QDateTimeEdit(datetime_widget);
 	edit->setTimeSpec(Qt::TimeSpec::UTC);
-	QPushButton *today = new QPushButton("...", datetime_widget);
+	auto *today = new QPushButton("...", datetime_widget);
 	today->setFixedWidth(20);
-	QHBoxLayout *layout = new QHBoxLayout;
+	auto *layout = new QHBoxLayout;
 	layout->setContentsMargins(0,0,0,0);
 	layout->setSpacing(0);
 	layout->addWidget(edit);
@@ -370,7 +370,7 @@ void MethodParametersDialog::switchToDateTime(QTableWidget *table, int row, int 
 	edit->setDisplayFormat("dd.MM.yyyy HH:mm:ss");
 	edit->setCalendarPopup(true);
 	table->setCellWidget(row, col, datetime_widget);
-	connect(today, &QPushButton::clicked, [edit]() {
+	connect(today, &QPushButton::clicked, edit, [edit]() {
 		edit->setDateTime(QDateTime::currentDateTime());
 	});
 	getters[row] = [edit]() {
@@ -459,13 +459,13 @@ void MethodParametersDialog::switchToMap()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_LIST && ui->parameterListTable->isHidden() && m_cponEdited) ||
 			(m_currentTabIndex == TAB_INDEX_SINGLE_PARAMETER && ui->singleParameterTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-			if (cpon.size() == 0) {
+			if (cpon.empty()) {
 				parsed = true;
 			}
 			else {
 				std::string err;
 				cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
-				if (err.size() == 0) {
+				if (err.empty()) {
 					parsed = tryParseMapParams(val);
 				}
 			}
@@ -499,13 +499,13 @@ void MethodParametersDialog::switchToList()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_MAP && ui->parameterMapTable->isHidden() && m_cponEdited) ||
 			(m_currentTabIndex == TAB_INDEX_SINGLE_PARAMETER && ui->singleParameterTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-			if (cpon.size() == 0) {
+			if (cpon.empty()) {
 				parsed = true;
 			}
 			else {
 				std::string err;
 				cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
-				if (err.size() == 0) {
+				if (err.empty()) {
 					parsed = tryParseListParams(val);
 				}
 			}
@@ -539,13 +539,13 @@ void MethodParametersDialog::switchToSingle()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_MAP && ui->parameterMapTable->isHidden() && m_cponEdited) ||
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_LIST && ui->parameterListTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-			if (cpon.size() == 0) {
+			if (cpon.empty()) {
 				parsed = true;
 			}
 			else {
 				std::string err;
 				cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
-				if (err.size() == 0) {
+				if (err.empty()) {
 					parsed = tryParseSingleParam(val);
 				}
 			}
@@ -626,10 +626,10 @@ void MethodParametersDialog::onCurrentTabChanged(int index)
 void MethodParametersDialog::checkSyntax()
 {
 	std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-	if (cpon.size()) {
+	if (!cpon.empty()) {
 		std::string err;
 		cp::RpcValue val = cp::RpcValue::fromCpon(ui->rawCponEdit->toPlainText().toStdString(), &err);
-		if (err.size()) {
+		if (!err.empty()) {
 			QPalette pal = ui->rawCponEdit->palette();
 			pal.setColor(QPalette::ColorRole::Text, Qt::red);
 			ui->rawCponEdit->setPalette(pal);
@@ -675,7 +675,7 @@ cp::RpcValue MethodParametersDialog::singleParamValue() const
 	}
 
 	cp::RpcValue val = m_singleValueGetters[0]();
-	if (val.isString() && val.asString().size() == 0) {
+	if (val.isString() && val.asString().empty()) {
 		return cp::RpcValue();
 	}
 	return val;

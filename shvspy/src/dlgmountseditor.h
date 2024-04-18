@@ -18,7 +18,7 @@ class DlgMountsEditor : public QDialog
 
 public:
 	explicit DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
-	~DlgMountsEditor();
+	~DlgMountsEditor() override;
 	void init(const std::string &acl_node_path);
 
 private:

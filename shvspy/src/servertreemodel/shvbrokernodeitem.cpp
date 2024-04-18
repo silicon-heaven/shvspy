@@ -5,7 +5,6 @@
 #include "../appclioptions.h"
 #include "../log/rpcnotificationsmodel.h"
 #include "../attributesmodel/attributesmodel.h"
-#include "../brokerproperty.h"
 #include "../subscriptionsmodel/subscriptionsmodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>

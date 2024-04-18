@@ -144,7 +144,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			auto attrs = m_rows[static_cast<unsigned>(ix.row())][ColAttributes].asMap();
 			QStringList lines;
 			for(const auto &kv : attrs) {
-				lines << tr("%1: %2").arg(kv.first.c_str()).arg(kv.second.toCpon().c_str());
+				lines << tr("%1: %2").arg(kv.first.c_str(), kv.second.toCpon().c_str());
 			}
 			return lines.join('\n');
 		}

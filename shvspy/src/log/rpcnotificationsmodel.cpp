@@ -20,7 +20,7 @@ QVariant RpcNotificationsModel::headerData(int section, Qt::Orientation orientat
 		case ColShvPath: return tr("Source");
 		case ColMethod: return tr("Method");
 		case ColParams: return tr("Params");
-		case ColCnt: break;
+		default: break;
 		}
 	}
 	return QVariant();

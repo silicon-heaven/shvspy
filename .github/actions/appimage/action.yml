@@ -46,7 +46,7 @@ runs:
       shell: bash
 
     - name: Upload AppImage
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: shvspy-${{ env.VERSION }}-x86_64.Appimage
         path: shvspy-*-x86_64.AppImage

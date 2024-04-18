@@ -9,7 +9,7 @@
 class ShvNodeItem;
 struct ShvMetaMethod;
 
-namespace shv { namespace chainpack { class RpcMessage; }}
+namespace shv::chainpack { class RpcMessage; }
 
 class AttributesModel : public QAbstractTableModel
 {

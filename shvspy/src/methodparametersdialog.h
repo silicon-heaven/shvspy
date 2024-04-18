@@ -21,7 +21,7 @@ class MethodParametersDialog : public QDialog
 
 public:
 	explicit MethodParametersDialog(const QString &path, const QString &method, const shv::chainpack::RpcValue &params, QWidget *parent = nullptr);
-	~MethodParametersDialog();
+	~MethodParametersDialog() override;
 
 	shv::chainpack::RpcValue value() const;
 
@@ -78,11 +78,11 @@ private:
 	QVector<ValueSetter> m_listValueSetters;
 	QVector<ValueGetter> m_mapValueGetters;
 	QVector<ValueSetter> m_mapValueSetters;
-	static QVector<shv::chainpack::RpcValue::Type> m_supportedTypes;
+	const static QVector<shv::chainpack::RpcValue::Type> m_supportedTypes;
 	QTimer m_syntaxCheckTimer;
 	QString m_path;
 	QString m_method;
-	LastUsedParamsWidget *m_usedParamsWidget;
+	LastUsedParamsWidget *m_usedParamsWidget = nullptr;
 	int m_currentTabIndex;
-	bool m_cponEdited;
+	bool m_cponEdited = false;
 };

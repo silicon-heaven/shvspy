@@ -10,8 +10,6 @@
 
 #include <QBrush>
 
-namespace cp = shv::chainpack;
-
 namespace {
 auto constexpr KEY_Path = "Path";
 auto constexpr KEY_Method = "Method";
@@ -25,9 +23,7 @@ SubscriptionsModel::SubscriptionsModel(QObject *parent)
 {
 }
 
-SubscriptionsModel::~SubscriptionsModel()
-{
-}
+SubscriptionsModel::~SubscriptionsModel() = default;
 
 int SubscriptionsModel::rowCount(const QModelIndex &parent) const
 {
@@ -213,10 +209,10 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 		if(v.isValid()) {
 			QVariantList subs = v.toList();
 
-			for (int i = 0; i < subs.size(); i++) {
-				if (subs.at(i).toMap().contains(KEY_IsPermanent)){
+			for (const auto & sub : subs) {
+				if (sub.toMap().contains(KEY_IsPermanent)){
 					SubscriptionsModel::Subscription s(broker_id, QString::fromStdString(nd->nodeId()));
-					s.setConfig(subs.at(i).toMap());
+					s.setConfig(sub.toMap());
 
 					m_subscriptions.append(s);
 				}
@@ -224,7 +220,6 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 		}
 	}
 	else{
-		QVariantList subs;
 		for (auto i = m_subscriptions.size() -1; i >= 0; i--) {
 			if (m_subscriptions.at(i).brokerId() == broker_id){
 				m_subscriptions.removeAt(i);

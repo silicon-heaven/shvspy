@@ -163,7 +163,7 @@ void DlgMountsEditor::onRpcCallsFinished()
 
 	m_dataModel->setRowCount(static_cast<int>(m_mountPoints.count()));
 	int i = 0;
-	for (const MountPointInfo &info : qAsConst(m_mountPoints)) {
+	for (const MountPointInfo &info : std::as_const(m_mountPoints)) {
 		auto *id_item = new QStandardItem(info.id);
 		id_item->setFlags(id_item->flags() & ~Qt::ItemIsEditable);
 		m_dataModel->setItem(i, 0, id_item);
@@ -214,8 +214,8 @@ void DlgMountsEditor::listMounts()
 				const auto result = response.result();
 				const auto &res = result.asList();
 
-				for (size_t i = 0; i < res.size(); i++){
-					QString id = QString::fromStdString(res.at(i).asString());
+				for (const auto & re : res){
+					QString id = QString::fromStdString(re.asString());
 					m_mountPoints[id].id = id;
 					getMountPointDefinition(id);
 				}
@@ -258,7 +258,7 @@ void DlgMountsEditor::getMountPointDefinition(const QString &id)
 
 void DlgMountsEditor::checkRpcCallsFinished()
 {
-	for (const auto &mount_point : qAsConst(m_mountPoints)) {
+	for (const auto &mount_point : std::as_const(m_mountPoints)) {
 		if (mount_point.status != Ok) {
 			return;
 		}

@@ -17,7 +17,7 @@ class DlgSelectRoles : public QDialog
 
 public:
 	explicit DlgSelectRoles(QWidget *parent);
-	~DlgSelectRoles();
+	~DlgSelectRoles() override;
 
 	void init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const std::vector<std::string> &roles);
 

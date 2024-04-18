@@ -2,7 +2,7 @@
 
 #include <QDialog>
 
-namespace shv { namespace chainpack { class RpcValue; }}
+namespace shv::chainpack { class RpcValue; }
 
 namespace Ui {
 class TextEditDialog;

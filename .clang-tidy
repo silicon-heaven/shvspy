@@ -1,3 +1,4 @@
+HeaderFilterRegex: .*
 Checks:
     -*,
     cppcoreguidelines-*,
@@ -16,9 +17,11 @@ Checks:
     -bugprone-suspicious-missing-comma,
     -clang-analyzer-core.UndefinedBinaryOperatorResult,
     -clang-analyzer-cplusplus.NewDeleteLeaks,
+    -clang-analyzer-cplusplus.NewDelete,
     -clang-analyzer-optin.cplusplus.VirtualCall,
     -clang-analyzer-security.FloatLoopCounter,
     -cppcoreguidelines-avoid-c-arrays,
+    -cppcoreguidelines-avoid-do-while,
     -cppcoreguidelines-avoid-goto,
     -cppcoreguidelines-avoid-magic-numbers,
     -cppcoreguidelines-explicit-virtual-functions,

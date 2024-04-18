@@ -50,7 +50,7 @@ if(SHVSPY_USE_LOCAL_LIBSHV)
 else()
     set(WITH_BROKER OFF CACHE BOOL "")
     set(LIBSHV_USE_QT6 "${SHVSPY_USE_QT6}" CACHE BOOL "")
-    add_subdirectory(3rdparty/libshv)
+    add_subdirectory(3rdparty/libshv SYSTEM)
 endif()
 
 if(NOT TARGET libshv::libshvvisu)

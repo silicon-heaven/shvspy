@@ -20,7 +20,7 @@ class DlgUsersEditor : public QDialog
 
 public:
 	explicit DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
-	~DlgUsersEditor();
+	~DlgUsersEditor() override;
 	void init(const std::string &path);
 
 private:

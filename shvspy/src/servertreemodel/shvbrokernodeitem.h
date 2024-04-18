@@ -6,8 +6,8 @@
 
 #include <map>
 
-namespace shv { namespace chainpack { class RpcValue; class RpcMessage; } }
-namespace shv { namespace iotqt { namespace rpc { class ClientConnection; } } }
+namespace shv::chainpack { class RpcValue; class RpcMessage; }
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class ShvBrokerNodeItem : public ShvNodeItem
 {
@@ -25,7 +25,7 @@ public:
 
 	OpenStatus openStatus() const {return m_openStatus;}
 
-	bool isOpen() {return openStatus() == OpenStatus::Connected;}
+	bool isOpen() const {return openStatus() == OpenStatus::Connected;}
 	void open();
 	void close();
 	//QString connectionErrorString();

@@ -30,11 +30,9 @@ AccessModel::AccessModel(QObject *parent)
 {
 }
 
-AccessModel::~AccessModel()
-{
-}
+AccessModel::~AccessModel() = default;
 
-void AccessModel::setRules(const shv::chainpack::RpcValue &role_rules)
+void AccessModel::setRules(const cp::RpcValue &role_rules)
 {
 	beginResetModel();
 	m_legacyRulesFormat = role_rules.isMap();
@@ -42,7 +40,7 @@ void AccessModel::setRules(const shv::chainpack::RpcValue &role_rules)
 	endResetModel();
 }
 
-shv::chainpack::RpcValue AccessModel::rules()
+cp::RpcValue AccessModel::rules()
 {
 	if(m_legacyRulesFormat)
 		return m_rules.toRpcValue_legacy();
@@ -82,10 +80,10 @@ QVariant AccessModel::data(const QModelIndex &ix, int role) const
 
 	if(role == Qt::DisplayRole || role == Qt::EditRole) {
 		switch (ix.column()) {
-		case Columns::ColPath:
-		return QString::fromStdString(rule.path);
+		case Columns::ColPath: return QString::fromStdString(rule.path);
 		case Columns::ColMethod: return QString::fromStdString(rule.method);
 		case Columns::ColAccess: return QString::fromStdString(rule.access);
+		default: break;
 		}
 	}
 	else if(role == Qt::ToolTipRole) {
@@ -94,6 +92,7 @@ QVariant AccessModel::data(const QModelIndex &ix, int role) const
 			return tr("'path/to/node' or 'path/to/subtree/**' can be used here");
 		case Columns::ColMethod:
 			return tr("Rule is applied to this method only or to any method if blank.");
+		default: break;
 		}
 	}
 

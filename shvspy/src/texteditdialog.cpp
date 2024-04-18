@@ -178,11 +178,10 @@ cp::RpcValue CponEditDialog::validateContent()
 		ui->lblError->setVisible(false);
 		return rv;
 	}
-	else {
-		ui->lblError->setText(tr("Malformed Cpon: ") + QString::fromStdString(err));
-		ui->lblError->setVisible(true);
-		return cp::RpcValue();
-	}
+
+	ui->lblError->setText(tr("Malformed Cpon: ") + QString::fromStdString(err));
+	ui->lblError->setVisible(true);
+	return cp::RpcValue();
 }
 
 void CponEditDialog::onBtCompactCponClicked()
