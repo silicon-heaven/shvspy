@@ -9,8 +9,6 @@
 
 #include <QMessageBox>
 
-namespace cp = shv::chainpack;
-
 SubscriptionsWidget::SubscriptionsWidget(QWidget *parent) :
 	QWidget(parent),
 	ui(new Ui::SubscriptionsWidget)

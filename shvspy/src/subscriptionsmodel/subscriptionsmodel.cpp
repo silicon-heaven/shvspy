@@ -10,8 +10,6 @@
 
 #include <QBrush>
 
-namespace cp = shv::chainpack;
-
 namespace {
 auto constexpr KEY_Path = "Path";
 auto constexpr KEY_Method = "Method";

@@ -32,7 +32,7 @@ AccessModel::AccessModel(QObject *parent)
 
 AccessModel::~AccessModel() = default;
 
-void AccessModel::setRules(const shv::chainpack::RpcValue &role_rules)
+void AccessModel::setRules(const cp::RpcValue &role_rules)
 {
 	beginResetModel();
 	m_legacyRulesFormat = role_rules.isMap();
@@ -40,7 +40,7 @@ void AccessModel::setRules(const shv::chainpack::RpcValue &role_rules)
 	endResetModel();
 }
 
-shv::chainpack::RpcValue AccessModel::rules()
+cp::RpcValue AccessModel::rules()
 {
 	if(m_legacyRulesFormat)
 		return m_rules.toRpcValue_legacy();
