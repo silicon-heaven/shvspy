@@ -160,3 +160,28 @@ jobs:
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/master'
         uses: actions/deploy-pages@v4
+
+  create-nightly-release:
+    name: Create nightly
+    if: github.ref == 'refs/heads/master'
+    needs: [ubuntu-qt6, ubuntu-qt5, windows, ubuntu-qt6-wasm]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Consolidate artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - name: Rename WASM artifact
+        run: mv artifact.tar shvspy-wasm-nightly.tar
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Nightly
+          tag_name: nightly
+          fail_on_unmatched_files: true
+          body: |
+            The latest and greatest ShvSpy.
+
+            This is a nightly release. If you find any bugs, please report them to the repository's issue tracker.
+          files: |
+             shvspy-*
