@@ -26,7 +26,7 @@ runs:
     # Linux deps
     - name: Install/cache clazy, ninja, openldap, doctest libfuse, and Qt's dependencies
       if: runner.os != 'Windows'
-      uses: awalsh128/cache-apt-pkgs-action@v1.3.0
+      uses: awalsh128/cache-apt-pkgs-action@v1.4.2
       with:
         packages: ninja-build libgl1-mesa-dev libpulse-dev libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-util1 libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev clazy libfuse-dev
         version: 1.0
@@ -58,7 +58,7 @@ runs:
 
     - name: Setup emsdk cache
       id: cache-system-libraries
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         key: emsdk-cache
         path: ${{ inputs.emsdk_cache_dir }}

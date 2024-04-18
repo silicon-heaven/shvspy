@@ -16,7 +16,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -54,7 +54,7 @@ jobs:
         run: iscc "-DBUILD_DIR=${{ github.workspace }}/install" "-DVERSION=${{ env.VERSION }}" shvspy/shvspy.iss
 
       - name: Upload installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: shvspy-${{ env.VERSION }}-setup.exe
           path: ${{ github.workspace }}/install/_inno/shvspy/shvspy-*-setup.exe
