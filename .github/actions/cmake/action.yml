@@ -60,7 +60,7 @@ runs:
       shell: bash
 
     - name: Setup emsdk cache
-      id: cache-system-libraries
+      if: inputs.qt_arch == 'wasm_singlethread'
       uses: actions/cache@v4
       with:
         key: emsdk-cache
