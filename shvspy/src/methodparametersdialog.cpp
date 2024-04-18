@@ -12,10 +12,12 @@
 
 namespace cp = shv::chainpack;
 
-static int TAB_INDEX_SINGLE_PARAMETER = 0;
-static int TAB_INDEX_PARAMETER_MAP = 1;
-static int TAB_INDEX_PARAMETER_LIST = 2;
-static int TAB_INDEX_CPON = 3;
+namespace {
+int TAB_INDEX_SINGLE_PARAMETER = 0;
+int TAB_INDEX_PARAMETER_MAP = 1;
+int TAB_INDEX_PARAMETER_LIST = 2;
+int TAB_INDEX_CPON = 3;
+}
 
 QVector<cp::RpcValue::Type> MethodParametersDialog::m_supportedTypes {
 	cp::RpcValue::Type::String,
