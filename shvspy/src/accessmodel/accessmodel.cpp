@@ -30,9 +30,7 @@ AccessModel::AccessModel(QObject *parent)
 {
 }
 
-AccessModel::~AccessModel()
-{
-}
+AccessModel::~AccessModel() = default;
 
 void AccessModel::setRules(const shv::chainpack::RpcValue &role_rules)
 {

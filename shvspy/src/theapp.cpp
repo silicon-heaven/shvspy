@@ -31,10 +31,7 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_errorLogModel = new shv::visu::ErrorLogModel(this);
 }
 
-TheApp::~TheApp()
-{
-	//shvWarning() << __FUNCTION__;
-}
+TheApp::~TheApp() = default;
 
 void TheApp::loadSettings(QSettings &settings)
 {

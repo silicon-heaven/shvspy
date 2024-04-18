@@ -25,9 +25,7 @@ SubscriptionsModel::SubscriptionsModel(QObject *parent)
 {
 }
 
-SubscriptionsModel::~SubscriptionsModel()
-{
-}
+SubscriptionsModel::~SubscriptionsModel() = default;
 
 int SubscriptionsModel::rowCount(const QModelIndex &parent) const
 {
