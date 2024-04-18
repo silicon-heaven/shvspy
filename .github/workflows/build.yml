@@ -1,0 +1,162 @@
+name: Build
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: write
+  id-token: write
+  pages: write
+
+env:
+  emsdk_cache_dir: "emsdk-cache"
+
+jobs:
+  ubuntu-qt6:
+    name: Linux / Qt 6.5.3
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          use_qt6: ON
+          modules: qtserialport qtwebsockets qtnetworkauth
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+
+      - name: Create AppImage
+        uses: ./.github/actions/appimage
+        with:
+          use_qt6: ON
+
+  ubuntu-qt5:
+    name: Linux / Qt 5.15.2
+    runs-on: ubuntu-22.04
+    env:
+      CXXFLAGS: -Wno-stringop-overflow
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          qt_version: 5.15.2
+          use_qt6: OFF
+          modules: ""
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+
+      - name: Create AppImage
+        uses: ./.github/actions/appimage
+        with:
+          use_qt6: OFF
+
+  windows:
+    name: Windows / Qt 6.5.3
+    runs-on: windows-2022
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          qt_arch: win64_mingw
+          use_qt6: ON
+          modules: qtserialport qtwebsockets qtnetworkauth
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install'
+
+      - name: Build
+        run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
+
+      - name: Install
+        run: cmake --install '${{ github.workspace }}/build'
+
+      - name: Run windeployqt
+        run: windeployqt -websockets -serialport '${{ github.workspace }}/install/bin/shvspy.exe'
+
+      - name: Copy MinGW runtime libraries
+        # windeployqt is unable to copy those, because it looks for them next to where g++.exe is. On the GitHub runner,
+        # they are in a different directory.
+        run: cp /c/mingw64/bin/{libstdc++-6.dll,libgcc_s_seh-1.dll,libwinpthread-1.dll} '${{ github.workspace }}/install/bin'
+        shell: bash
+
+      - name: Get app version
+        run: echo "VERSION=$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)" >> "$GITHUB_ENV"
+        shell: bash
+
+      - name: Create installer
+        run: iscc "-DBUILD_DIR=${{ github.workspace }}/install" "-DVERSION=${{ env.VERSION }}" shvspy/shvspy.iss
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: shvspy-${{ env.VERSION }}-setup.exe
+          path: ${{ github.workspace }}/install/_inno/shvspy/shvspy-*-setup.exe
+
+  ubuntu-qt6-wasm:
+    name: WebAssembly / Qt 6.6.3
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup emsdk cache
+        uses: actions/cache@v4
+        with:
+          key: emsdk-cache
+          path: ${{ env.emsdk_cache_dir }}
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.37
+          actions-cache-folder: ${{ env.emsdk_cache_dir }}
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          qt_version: 6.6.3
+          qt_arch: wasm_singlethread
+          use_qt6: ON
+          modules: qtwebsockets
+
+      - name: Build
+        run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
+        shell: bash
+
+      - name: Consolidate WebAssembly artifacts
+        run: |
+          mkdir gh-sources
+          cp '${{github.workspace}}'/build/shvspy/*.{js,wasm,html} gh-sources/
+          mv gh-sources/shvspy.html gh-sources/index.html
+          cp '${{github.workspace}}'/distro/shvspy.AppDir/shvspy.svg gh-sources/qtlogo.svg
+        shell: bash
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'gh-sources/'
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        uses: actions/deploy-pages@v4
