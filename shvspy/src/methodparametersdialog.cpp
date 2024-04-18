@@ -34,9 +34,7 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	, m_syntaxCheckTimer(this)
 	, m_path(path)
 	, m_method(method)
-	, m_usedParamsWidget(nullptr)
 	, m_currentTabIndex(TAB_INDEX_CPON)
-	, m_cponEdited(false)
 {
 	shvLogFuncFrame() << "method:" << method << "params:" << params.toCpon();
 	ui->setupUi(this);

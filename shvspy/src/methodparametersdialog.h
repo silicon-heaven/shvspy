@@ -82,7 +82,7 @@ private:
 	QTimer m_syntaxCheckTimer;
 	QString m_path;
 	QString m_method;
-	LastUsedParamsWidget *m_usedParamsWidget;
+	LastUsedParamsWidget *m_usedParamsWidget = nullptr;
 	int m_currentTabIndex;
-	bool m_cponEdited;
+	bool m_cponEdited = false;
 };
