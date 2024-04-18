@@ -15,13 +15,13 @@ QWidget *AccessItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
 	Q_UNUSED(option);
 	Q_UNUSED(index);
 
-	QLineEdit *editor = new QLineEdit(parent);
+	auto *editor = new QLineEdit(parent);
 	return editor;
 }
 
 void AccessItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
-	QLineEdit *e = qobject_cast<QLineEdit*>(editor);
+	auto *e = qobject_cast<QLineEdit*>(editor);
 	if (index.isValid() && e) {
 		std::string val = e->text().trimmed().toStdString();
 

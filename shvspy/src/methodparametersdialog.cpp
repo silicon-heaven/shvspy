@@ -151,7 +151,7 @@ void MethodParametersDialog::newMapParameter(const QString &key, const cp::RpcVa
 	ui->parameterMapTable->setRowCount(row + 1);
 
 	ui->parameterMapTable->setItem(row, 0, new QTableWidgetItem(key));
-	QComboBox *combo = new QComboBox(this);
+	auto *combo = new QComboBox(this);
 	ui->parameterMapTable->setCellWidget(row, 1, combo);
 	for (cp::RpcValue::Type t : m_supportedTypes) {
 		combo->addItem(cp::RpcValue::typeToName(t), static_cast<int>(t));
@@ -183,7 +183,7 @@ void MethodParametersDialog::newListParameter(const cp::RpcValue &param)
 	int row = ui->parameterListTable->rowCount();
 	ui->parameterListTable->setRowCount(row + 1);
 
-	QComboBox *combo = new QComboBox(this);
+	auto *combo = new QComboBox(this);
 	ui->parameterListTable->setCellWidget(row, 0, combo);
 	for (cp::RpcValue::Type t : m_supportedTypes) {
 		combo->addItem(cp::RpcValue::typeToName(t), static_cast<int>(t));
@@ -291,7 +291,7 @@ bool MethodParametersDialog::tryParseMapParams(const cp::RpcValue &params)
 
 void MethodParametersDialog::switchToBool(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QCheckBox *checkbox = new QCheckBox(this);
+	auto *checkbox = new QCheckBox(this);
 	table->setCellWidget(row, col, checkbox);
 	getters[row] = [checkbox]() {
 		return cp::RpcValue(checkbox->isChecked() ? true : false);
@@ -303,7 +303,7 @@ void MethodParametersDialog::switchToBool(QTableWidget *table, int row, int col,
 
 void MethodParametersDialog::switchToInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
 	line_edit->setValidator(new QIntValidator(line_edit));
 	getters[row] = [line_edit]() {
@@ -316,7 +316,7 @@ void MethodParametersDialog::switchToInt(QTableWidget *table, int row, int col, 
 
 void MethodParametersDialog::switchToUInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
 	line_edit->setValidator(new QIntValidator(0, std::numeric_limits<int>::max(), line_edit));
 	getters[row] = [line_edit]() {
@@ -329,7 +329,7 @@ void MethodParametersDialog::switchToUInt(QTableWidget *table, int row, int col,
 
 void MethodParametersDialog::switchToString(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
 	getters[row] = [line_edit]() {
 		return  cp::RpcValue(line_edit->text().toStdString());
@@ -341,9 +341,9 @@ void MethodParametersDialog::switchToString(QTableWidget *table, int row, int co
 
 void MethodParametersDialog::switchToDouble(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QLineEdit *line_edit = new QLineEdit(this);
+	auto *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
-	QDoubleValidator *v = new QDoubleValidator(line_edit);
+	auto *v = new QDoubleValidator(line_edit);
 	v->setLocale(QLocale::C);
 	line_edit->setValidator(v);
 	getters[row] = [line_edit]() {
@@ -356,12 +356,12 @@ void MethodParametersDialog::switchToDouble(QTableWidget *table, int row, int co
 
 void MethodParametersDialog::switchToDateTime(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	QWidget *datetime_widget = new QWidget(this);
-	QDateTimeEdit *edit = new QDateTimeEdit(datetime_widget);
+	auto *datetime_widget = new QWidget(this);
+	auto *edit = new QDateTimeEdit(datetime_widget);
 	edit->setTimeSpec(Qt::TimeSpec::UTC);
-	QPushButton *today = new QPushButton("...", datetime_widget);
+	auto *today = new QPushButton("...", datetime_widget);
 	today->setFixedWidth(20);
-	QHBoxLayout *layout = new QHBoxLayout;
+	auto *layout = new QHBoxLayout;
 	layout->setContentsMargins(0,0,0,0);
 	layout->setSpacing(0);
 	layout->addWidget(edit);

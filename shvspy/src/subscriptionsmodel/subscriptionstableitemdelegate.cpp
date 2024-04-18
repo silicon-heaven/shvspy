@@ -14,7 +14,7 @@ SubscriptionsTableItemDelegate::SubscriptionsTableItemDelegate(QObject *parent):
 QWidget *SubscriptionsTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
 	if (index.column() == SubscriptionsModel::Columns::ColMethod){
-		QComboBox *editor = new QComboBox(parent);
+		auto *editor = new QComboBox(parent);
 		editor->setEditable(true);
 		editor->setInsertPolicy(QComboBox::NoInsert);
 		editor->addItem(shv::chainpack::Rpc::SIG_VAL_CHANGED);
@@ -30,7 +30,7 @@ QWidget *SubscriptionsTableItemDelegate::createEditor(QWidget *parent, const QSt
 void SubscriptionsTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
 	if (index.column() == SubscriptionsModel::Columns::ColMethod){
-		QComboBox *cb = static_cast<QComboBox*>(editor);
+		auto *cb = static_cast<QComboBox*>(editor);
 		cb->setCurrentText(index.data(Qt::DisplayRole).toString());
 
 		for(int i = 0; i < cb->count(); ++i){
@@ -47,7 +47,7 @@ void SubscriptionsTableItemDelegate::setEditorData(QWidget *editor, const QModel
 void SubscriptionsTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
 	if (index.column() == SubscriptionsModel::Columns::ColMethod){
-		QComboBox *cb = static_cast<QComboBox*>(editor);
+		auto *cb = static_cast<QComboBox*>(editor);
 		model->setData(index, cb->currentText(), Qt::EditRole);
 	}
 	else{
