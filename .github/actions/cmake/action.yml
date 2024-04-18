@@ -53,7 +53,9 @@ runs:
     - name: WASM-specific stuff
       if: inputs.qt_arch == 'wasm_singlethread'
       run: |
+        chmod +x "${Qt6_DIR}/bin/qt-cmake"
         echo cmake_extra_args="'-DBUILD_SHARED_LIBS=OFF' '-DQT_HOST_PATH=$(realpath ${Qt6_DIR}/../gcc_64)'" >> "$GITHUB_ENV"
+        echo CMAKE_BIN="${Qt6_DIR}/bin/qt-cmake" >> "$GITHUB_ENV"
       shell: bash
 
     - name: Setup emsdk cache
@@ -76,10 +78,9 @@ runs:
 
     - name: Configure CMake
       run: |
-        chmod +x "${Qt6_DIR}/bin/qt-cmake"
         CFLAGS="-Werror ${CFLAGS}" \
         CXXFLAGS="-Werror ${CXXFLAGS}" \
-        qt-cmake \
+        "${CMAKE_BIN:-cmake}" \
           -S '${{github.workspace}}' \
           -B '${{github.workspace}}/build' \
           -DCMAKE_BUILD_TYPE=Release \
