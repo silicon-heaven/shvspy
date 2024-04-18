@@ -22,7 +22,7 @@ runs:
   using: "composite"
   steps:
     # Linux deps
-    - name: Install/cache clazy, ninja, openldap, doctest libfuse, and Qt's dependencies
+    - name: Install apt packages
       if: runner.os != 'Windows'
       uses: awalsh128/cache-apt-pkgs-action@v1.4.2
       with:
