@@ -56,7 +56,7 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	connect(ui->parameterListTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onListCurrentCellChanged);
 	connect(ui->parameterMapTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onMapCurrentCellChanged);
 	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, &m_syntaxCheckTimer, QOverload<>::of(&QTimer::start));
-	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, [this]() {
+	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, this, [this]() {
 		m_cponEdited = true;
 	});
 
@@ -172,7 +172,7 @@ void MethodParametersDialog::newMapParameter(const QString &key, const cp::RpcVa
 		combo->setCurrentIndex(index);
 		switchToString(ui->parameterMapTable, row, 2, m_mapValueGetters, m_mapValueSetters);
 	}
-	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, row](int index) {
+	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, combo, row](int index) {
 		auto t = static_cast<cp::RpcValue::Type>(combo->itemData(index).toInt());
 		switchByType(t, ui->parameterMapTable, row, 2, m_mapValueGetters, m_mapValueSetters);
 	});
@@ -204,7 +204,7 @@ void MethodParametersDialog::newListParameter(const cp::RpcValue &param)
 		combo->setCurrentIndex(index);
 		switchToString(ui->parameterListTable, row, 1, m_listValueGetters, m_listValueSetters);
 	}
-	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, row](int index) {
+	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, combo, row](int index) {
 		auto t = static_cast<cp::RpcValue::Type>(combo->itemData(index).toInt());
 		switchByType(t, ui->parameterListTable, row, 1, m_listValueGetters, m_listValueSetters);
 	});
@@ -370,7 +370,7 @@ void MethodParametersDialog::switchToDateTime(QTableWidget *table, int row, int 
 	edit->setDisplayFormat("dd.MM.yyyy HH:mm:ss");
 	edit->setCalendarPopup(true);
 	table->setCellWidget(row, col, datetime_widget);
-	connect(today, &QPushButton::clicked, [edit]() {
+	connect(today, &QPushButton::clicked, edit, [edit]() {
 		edit->setDateTime(QDateTime::currentDateTime());
 	});
 	getters[row] = [edit]() {
