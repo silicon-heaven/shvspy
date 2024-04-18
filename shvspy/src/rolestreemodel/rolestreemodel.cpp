@@ -55,7 +55,7 @@ void RolesTreeModel::load(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 			}
 		}
 		else{
-			emit loadError(tr("Request timeout expired for method: %1 path: %2").arg("ls").arg(QString::fromStdString(acl_etc_roles_node_path)));
+			emit loadError(tr("Request timeout expired for method: %1 path: %2").arg("ls", QString::fromStdString(acl_etc_roles_node_path)));
 		}
 	});
 
@@ -95,7 +95,7 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 			}
 		}
 		else{
-			emit loadError(tr("Request timeout expired for method: %1 path: %2").arg(QString::fromStdString(VALUE_METHOD)).arg(QString::fromStdString(role_path)));
+			emit loadError(tr("Request timeout expired for method: %1 path: %2").arg(QString::fromStdString(VALUE_METHOD), QString::fromStdString(role_path)));
 		}
 	});
 
