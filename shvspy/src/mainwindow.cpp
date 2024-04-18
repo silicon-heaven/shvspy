@@ -328,7 +328,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	}
 	else {
 		m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
-		connect(m, &QMenu::triggered, this, [=, this](QAction *a) {
+		connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
 			//shvInfo() << "MENU ACTION:" << a;
 			if(a == a_reloadNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
@@ -452,7 +452,7 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
 	auto *dlg = new MethodParametersDialog(path, method, rv, this);
 	dlg->setWindowTitle(tr("Parameters"));
-	connect(dlg, &QDialog::finished, this, [=, this](int result) {
+	connect(dlg, &QDialog::finished, this, [this, dlg, ix](int result) {
 		if (result == QDialog::Accepted) {
 			cp::RpcValue val = dlg->value();
 			if (val.isValid()) {
@@ -477,7 +477,7 @@ void MainWindow::editStringParameter(const QModelIndex &ix)
 	dlg->setWindowTitle(tr("Parameters"));
 	dlg->setReadOnly(false);
 	dlg->setText(cpon);
-	connect(dlg, &QDialog::finished, this, [=, this](int result) {
+	connect(dlg, &QDialog::finished, this, [this, dlg, ix](int result) {
 		if (result == QDialog::Accepted) {
 			auto rv = cp::RpcValue(dlg->text().toStdString());
 			auto cpon =  QString::fromStdString(rv.toCpon());
@@ -498,7 +498,7 @@ void MainWindow::editCponParameters(const QModelIndex &ix)
 	dlg->setReadOnly(false);
 	dlg->setValidateContent(true);
 	dlg->setText(cpon);
-	connect(dlg, &QDialog::finished, this, [=, this](int result) {
+	connect(dlg, &QDialog::finished, this, [this, dlg, ix](int result) {
 		if (result == QDialog::Accepted) {
 			auto cpon = dlg->text();
 			ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
@@ -631,7 +631,7 @@ void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 	}
 	auto *dlg = new DlgBrokerProperties(this);
 	dlg->setBrokerProperties(broker_props);
-	connect(dlg, &QDialog::finished, this, [=, this](int result) {
+	connect(dlg, &QDialog::finished, this, [this, dlg, srv, copy_server](int result) {
 		if(result == QDialog::Accepted) {
 			QVariantMap broker_props = dlg->brokerProperties();
 			if(!srv || copy_server)
