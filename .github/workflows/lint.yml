@@ -23,7 +23,7 @@ jobs:
       - name: Run clang-tidy
         uses: ./.github/actions/run-linter
         with:
-          lint_program_with_args: clang-tidy-cache clang-tidy-15 --quiet --warnings-as-errors=*
+          lint_program_with_args: clang-tidy-cache clang-tidy-15 -p build --quiet --warnings-as-errors=*
 
   clazy:
     name: clazy / Ubuntu 22.04
@@ -37,4 +37,4 @@ jobs:
       - name: Run clazy
         uses: ./.github/actions/run-linter
         with:
-          lint_program_with_args: clazy-standalone --checks=level1,no-fully-qualified-moc-types,no-non-pod-global-static
+          lint_program_with_args: clazy-standalone -p build --checks=level1,no-fully-qualified-moc-types,no-non-pod-global-static
