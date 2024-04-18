@@ -33,7 +33,7 @@ runs:
       shell: bash
 
     - name: Generate timestamp
-      run: echo "NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
+      run: echo "NOW=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")" >> $GITHUB_ENV
       shell: bash
 
     - name: Setup clang-tidy cache
