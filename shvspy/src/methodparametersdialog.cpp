@@ -96,13 +96,13 @@ cp::RpcValue MethodParametersDialog::value() const
 	if (ui->tabWidget->currentIndex() == TAB_INDEX_SINGLE_PARAMETER) {
 		return singleParamValue();
 	}
-	else if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_MAP) {
+	if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_MAP) {
 		return mapParamValue();
 	}
 	if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_LIST) {
 		return listParamValue();
 	}
-	else if (ui->tabWidget->currentIndex() == TAB_INDEX_CPON) {
+	if (ui->tabWidget->currentIndex() == TAB_INDEX_CPON) {
 		std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
 		if (cpon.size()) {
 			std::string err;
