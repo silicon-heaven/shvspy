@@ -213,10 +213,10 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 		if(v.isValid()) {
 			QVariantList subs = v.toList();
 
-			for (int i = 0; i < subs.size(); i++) {
-				if (subs.at(i).toMap().contains(KEY_IsPermanent)){
+			for (const auto & sub : subs) {
+				if (sub.toMap().contains(KEY_IsPermanent)){
 					SubscriptionsModel::Subscription s(broker_id, QString::fromStdString(nd->nodeId()));
-					s.setConfig(subs.at(i).toMap());
+					s.setConfig(sub.toMap());
 
 					m_subscriptions.append(s);
 				}

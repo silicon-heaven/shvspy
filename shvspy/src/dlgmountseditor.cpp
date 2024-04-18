@@ -214,8 +214,8 @@ void DlgMountsEditor::listMounts()
 				const auto result = response.result();
 				const auto &res = result.asList();
 
-				for (size_t i = 0; i < res.size(); i++){
-					QString id = QString::fromStdString(res.at(i).asString());
+				for (const auto & re : res){
+					QString id = QString::fromStdString(re.asString());
 					m_mountPoints[id].id = id;
 					getMountPointDefinition(id);
 				}
