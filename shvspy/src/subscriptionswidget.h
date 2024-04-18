@@ -20,7 +20,7 @@ class SubscriptionsWidget : public QWidget
 
 public:
 	explicit SubscriptionsWidget(QWidget *parent = nullptr);
-	~SubscriptionsWidget();
+	~SubscriptionsWidget() override;
 
 	SubscriptionsModel &subscriptionsModel();
 	void onBrokerConnectedChanged(int broker_id, bool is_connected);

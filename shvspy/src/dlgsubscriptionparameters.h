@@ -15,7 +15,7 @@ class DlgSubscriptionParameters : public QDialog
 
 public:
 	explicit DlgSubscriptionParameters(QWidget *parent = 0);
-	~DlgSubscriptionParameters();
+	~DlgSubscriptionParameters() override;
 
 	//void setSubscriptionParameters(const qfopcua::SubscriptionParameters &params);
 	//qfopcua::SubscriptionParameters subscriptionParameters();

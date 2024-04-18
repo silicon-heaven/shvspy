@@ -21,7 +21,7 @@ public:
 	Q_SIGNAL void loadError(QString error);
 
 protected:
-	virtual bool setData ( const QModelIndex & index, const QVariant & value, int role = Qt::EditRole);
+	bool setData ( const QModelIndex & index, const QVariant & value, int role = Qt::EditRole) override;
 	void loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, QVector<std::string> role_names);
 
 private:

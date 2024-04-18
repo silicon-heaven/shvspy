@@ -17,7 +17,7 @@ class DlgRolesEditor : public QDialog
 
 public:
 	explicit DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
-	~DlgRolesEditor();
+	~DlgRolesEditor() override;
 	void init(const std::string &acl_node_path);
 
 private:

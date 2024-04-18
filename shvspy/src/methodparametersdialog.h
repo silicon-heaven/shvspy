@@ -21,7 +21,7 @@ class MethodParametersDialog : public QDialog
 
 public:
 	explicit MethodParametersDialog(const QString &path, const QString &method, const shv::chainpack::RpcValue &params, QWidget *parent = nullptr);
-	~MethodParametersDialog();
+	~MethodParametersDialog() override;
 
 	shv::chainpack::RpcValue value() const;
 
