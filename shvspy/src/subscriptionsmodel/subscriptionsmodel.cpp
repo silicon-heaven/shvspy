@@ -224,7 +224,6 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 		}
 	}
 	else{
-		QVariantList subs;
 		for (auto i = m_subscriptions.size() -1; i >= 0; i--) {
 			if (m_subscriptions.at(i).brokerId() == broker_id){
 				m_subscriptions.removeAt(i);
