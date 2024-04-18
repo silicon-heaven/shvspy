@@ -2,7 +2,7 @@
 
 #include <shv/visu/logtablemodelbase.h>
 
-namespace shv { namespace chainpack { class RpcMessage; }}
+namespace shv::chainpack { class RpcMessage; }
 
 class RpcNotificationsModel : public shv::visu::LogTableModelBase
 {

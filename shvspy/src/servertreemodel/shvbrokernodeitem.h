@@ -6,8 +6,8 @@
 
 #include <map>
 
-namespace shv { namespace chainpack { class RpcValue; class RpcMessage; } }
-namespace shv { namespace iotqt { namespace rpc { class ClientConnection; } } }
+namespace shv::chainpack { class RpcValue; class RpcMessage; }
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class ShvBrokerNodeItem : public ShvNodeItem
 {

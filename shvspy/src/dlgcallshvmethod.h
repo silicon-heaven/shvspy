@@ -7,7 +7,7 @@ namespace Ui {
 class DlgCallShvMethod;
 }
 
-namespace shv { namespace iotqt { namespace rpc { class ClientConnection; }}}
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class DlgCallShvMethod : public QDialog
 {

@@ -7,7 +7,7 @@
 #include <QAbstractTableModel>
 #include <QMetaEnum>
 
-namespace shv { namespace chainpack { class RpcMessage; }}
+namespace shv::chainpack { class RpcMessage; }
 
 class SubscriptionsModel : public QAbstractTableModel
 {
