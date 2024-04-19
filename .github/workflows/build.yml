@@ -157,8 +157,12 @@ jobs:
         with:
           path: 'gh-sources/'
 
+  deploy-github-pages:
+    name: Deploy GitHub Pages
+    needs: [ubuntu-qt6-wasm]
+    runs-on: ubuntu-22.04
+    steps:
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/master'
         uses: actions/deploy-pages@v4
 
   create-nightly-release:
