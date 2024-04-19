@@ -19,7 +19,7 @@ env:
   emsdk_cache_dir: "emsdk-cache"
 
 jobs:
-  ubuntu-qt6:
+  linux-qt6:
     name: Linux / Qt 6.5.3
     runs-on: ubuntu-22.04
     steps:
@@ -40,7 +40,7 @@ jobs:
         with:
           use_qt6: ON
 
-  ubuntu-qt5:
+  linux-qt5:
     name: Linux / Qt 5.15.2
     runs-on: ubuntu-22.04
     env:
@@ -64,7 +64,7 @@ jobs:
         with:
           use_qt6: OFF
 
-  windows:
+  windows-qt6:
     name: Windows / Qt 6.5.3
     runs-on: windows-2022
     steps:
@@ -109,7 +109,7 @@ jobs:
           name: shvspy-${{ env.VERSION }}-setup.exe
           path: ${{ github.workspace }}/install/_inno/shvspy/shvspy-*-setup.exe
 
-  ubuntu-qt6-wasm:
+  wasm-qt6:
     name: WebAssembly / Qt 6.6.3
     runs-on: ubuntu-22.04
     steps:
@@ -159,7 +159,7 @@ jobs:
 
   deploy-github-pages:
     name: Deploy GitHub Pages
-    needs: [ubuntu-qt6-wasm]
+    needs: [wasm-qt6]
     runs-on: ubuntu-22.04
     steps:
       - name: Deploy to GitHub Pages
@@ -168,7 +168,7 @@ jobs:
   create-nightly-release:
     name: Create nightly
     if: github.ref == 'refs/heads/master'
-    needs: [ubuntu-qt6, ubuntu-qt5, windows, ubuntu-qt6-wasm]
+    needs: [linux-qt6, linux-qt5, windows-qt6, wasm-qt6]
     runs-on: ubuntu-22.04
     steps:
       - name: Consolidate artifacts
