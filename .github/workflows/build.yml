@@ -159,6 +159,7 @@ jobs:
 
   deploy-github-pages:
     name: Deploy GitHub Pages
+    if: github.ref == 'refs/heads/master'
     needs: [wasm-qt6]
     runs-on: ubuntu-22.04
     steps:
