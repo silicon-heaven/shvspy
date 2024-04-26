@@ -210,8 +210,8 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			emitDataChanged();
 			emit childrenLoaded();
 		}
-		else if(rqid == m_loadMethodsRqId) {
-			m_loadMethodsRqId = 0;
+		else if(rqid == m_dirRqId) {
+			m_dirRqId = 0;
 			m_methodsLoaded = true;
 
 			m_methods.clear();
@@ -265,7 +265,7 @@ void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_DIR, RpcValue::List{std::string(), true});
+	m_dirRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_DIR, RpcValue::List{std::string(), true});
 }
 
 void ShvNodeItem::setMethodParams(int method_ix, const shv::chainpack::RpcValue &params)

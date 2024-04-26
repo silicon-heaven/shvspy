@@ -61,6 +61,10 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
 			return rv.isValid()? QString::fromStdString(rv.asString()): QVariant();
 		}
+		case ColSignals: {
+			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
+			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
+		}
 		case ColParams: {
 			//QVariant v = m_rows.value(ix.row()).value(ix.column());
 			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
@@ -191,6 +195,8 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 				ret = tr("Param type");
 			else if(section == ColResultType)
 				ret = tr("Result type");
+			else if(section == ColSignals)
+				ret = tr("Signals");
 			else if(section == ColFlags)
 				ret = tr("Flags");
 			else if(section == ColAccessLevel)
@@ -298,6 +304,7 @@ void AttributesModel::loadRow(unsigned method_ix)
 	rv[ColMethodName] = mtd->metamethod.name();
 	rv[ColResultType] = mtd->metamethod.resultType();
 	rv[ColParamType] = mtd->metamethod.paramType();
+	rv[ColSignals] = mtd->metamethod.methodSignals();
 	rv[ColFlags] = mtd->flagsStr();
 	rv[ColAccessLevel] = mtd->accessLevelStr();
 	rv[ColParams] = mtd->params;

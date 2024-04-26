@@ -69,7 +69,7 @@ public:
 	bool checkMethodsLoaded();
 	void loadMethods();
 	bool isMethodsLoaded() const {return m_methodsLoaded;}
-	bool isMethodsLoading() const {return m_loadMethodsRqId > 0;}
+	bool isMethodsLoading() const {return m_dirRqId > 0;}
 	Q_SIGNAL void childrenLoaded();
 	Q_SIGNAL void methodsLoaded();
 
@@ -87,7 +87,7 @@ protected:
 	QVector<ShvNodeItem*> m_children;
 	QVector<ShvMetaMethod> m_methods;
 	bool m_methodsLoaded = false;
-	int m_loadMethodsRqId = 0;
+	int m_dirRqId = 0;
 	unsigned m_treeModelId = 0;
 };
 
