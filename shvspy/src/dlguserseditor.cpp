@@ -81,8 +81,8 @@ void DlgUsersEditor::listUsers()
 					const auto result = response.result();
 					const auto &res = result.asList();
 					m_dataModel->setRowCount(static_cast<int>(res.size()));
-					for (size_t i = 0; i < res.size(); i++){
-						auto *item = new QStandardItem(QString::fromStdString(res.at(i).toStdString()));
+					for (size_t i = 0; i < res.size(); i++) {
+						auto *item = new QStandardItem(QString::fromStdString(res.at(i).asString()));
 						item->setFlags(item->flags() & ~Qt::ItemIsEditable);
 						m_dataModel->setItem(static_cast<int>(i), 0, item);
 					}

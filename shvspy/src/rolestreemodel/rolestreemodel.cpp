@@ -47,9 +47,8 @@ void RolesTreeModel::load(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 					QVector<std::string> roles;
 					const auto result = response.result();
 					for (const auto &v : result.asList()){
-						roles.push_back(v.toStdString());
+						roles.push_back(v.asString());
 					}
-
 					loadRoles(rpc_connection, acl_etc_roles_node_path, roles);
 				}
 			}
