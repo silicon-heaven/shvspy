@@ -176,8 +176,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
-      - name: Rename WASM artifact
-        run: mv artifact.tar shvspy-wasm-nightly.tar
+      - name: Rename artifacts
+        run: |
+          mv artifact.tar shvspy-wasm-nightly.tar
+          mv shvspy-*-setup.exe shvspy-nightly-setup.exe
+          mv shvspy-qt5-*-x86_64.AppImage shvspy-qt5-nightly-x86_64.AppImage
+          mv shvspy-qt6-*-x86_64.AppImage shvspy-qt6-nightly-x86_64.AppImage
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
