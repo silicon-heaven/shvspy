@@ -23,7 +23,8 @@ qt_add_executable(shvspy
     src/subscriptionswidget.cpp
     src/texteditdialog.cpp
     src/theapp.cpp
-    src/appclioptions.cpp
+	src/appclioptions.cpp
+	src/appversion.h
     src/main.cpp
     src/mainwindow.cpp
 	src/dlgbrokerproperties.cpp

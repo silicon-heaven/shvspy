@@ -121,7 +121,7 @@ void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::
 	int rqid = callSubscribe(shv_path, method, source);
 	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 	cb->start(5000, this, [this, shv_path, method, source](const cp::RpcResponse &resp) {
-		if(resp.isError() || (resp.result() == false)){
+		if(resp.isError()){
 			emit subscriptionAddError(shv_path, resp.error().message());
 		}
 		else{
@@ -517,6 +517,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 						resp.setResult(cp::RpcValue::List{
 										   shv::chainpack::methods::DIR.toRpcValue(),
 										   shv::chainpack::methods::LS.toRpcValue(),
+										   MetaMethod(Rpc::METH_APP_NAME, MetaMethod::Flag::IsGetter, {}, "String").toRpcValue(),
 										   MetaMethod(Rpc::METH_APP_VERSION, MetaMethod::Flag::IsGetter, {}, "String").toRpcValue(),
 										   MetaMethod(Rpc::METH_ECHO, MetaMethod::Flag::None, "RpcValue", "RpcValue", AccessLevel::Write).toRpcValue(),
 									   });
@@ -560,9 +561,9 @@ void ShvBrokerNodeItem::createSubscriptions()
 	using namespace shv::chainpack;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	auto *rpc = RpcCall::create(cc);
-	rpc->setShvPath(Rpc::DIR_APP)
-			->setMethod(Rpc::METH_LS)
-			->setParams("broker");
+	rpc->setShvPath(Rpc::DIR_BROKER_CURRENTCLIENT)
+			->setMethod(Rpc::METH_DIR)
+			->setParams(Rpc::METH_SUBSCRIBE);
 	connect(rpc, &RpcCall::maybeResult, this, [this](const auto &result, const auto &err) {
 		using ShvApiVersion = shv::iotqt::rpc::ClientConnection::ShvApiVersion;
 		if(err.isValid()) {
