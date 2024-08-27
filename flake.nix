@@ -60,6 +60,7 @@
           "-DSHVSPY_USE_LOCAL_LIBSHV=ON"
           "-DUSE_QT6=ON"
         ];
+        meta.mainProgram = "shvspy";
       };
   in
     {
