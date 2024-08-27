@@ -48,17 +48,13 @@ DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	connect(ui->pbEditUser, &QPushButton::clicked, this, &DlgUsersEditor::onEditUserClicked);
 	connect(ui->twUsers, &QTableWidget::doubleClicked, this, &DlgUsersEditor::onTableUsersDoubleClicked);
 	connect(ui->leFilter, &QLineEdit::textChanged, m_modelProxy, &QSortFilterProxyModel::setFilterFixedString);
+
+	listUsers();
 }
 
 DlgUsersEditor::~DlgUsersEditor()
 {
 	delete ui;
-}
-
-void DlgUsersEditor::init(const std::string &path)
-{
-	m_aclEtcNodePath = path;
-	listUsers();
 }
 
 void DlgUsersEditor::listUsers()
@@ -104,7 +100,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	auto dlg = new DlgAddEditUser(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Add);
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclEtcUsersNodePath(), DlgAddEditUser::DialogType::Add);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listUsers();
@@ -160,7 +156,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	auto dlg = new DlgAddEditUser(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditUser::DialogType::Edit);
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclEtcUsersNodePath(), DlgAddEditUser::DialogType::Edit);
 	dlg->setUser(user);
 
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
@@ -176,10 +172,14 @@ void DlgUsersEditor::onEditUserClicked()
 void DlgUsersEditor::onTableUsersDoubleClicked(QModelIndex ix)
 {
 	Q_UNUSED(ix);
-    onEditUserClicked();
+	onEditUserClicked();
 }
 
 std::string DlgUsersEditor::aclEtcUsersNodePath()
 {
-    return m_aclEtcNodePath + "/users";
+	switch (m_rpcConnection->shvApiVersion()) {
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V2: return ".broker/etc/acl/users";
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V3: return ".broker/access/users";
+	}
+	return "";
 }

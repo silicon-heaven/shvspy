@@ -358,7 +358,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
 					auto dlg = new DlgUsersEditor(this, cc);
-					dlg->init(nd->shvPath() + "/etc/acl");
 					dlg->open();
 					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}

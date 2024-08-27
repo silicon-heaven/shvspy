@@ -21,11 +21,11 @@ class DlgUsersEditor : public QDialog
 public:
 	explicit DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
 	~DlgUsersEditor() override;
-	void init(const std::string &path);
 
 private:
 	Ui::DlgUsersEditor *ui;
 
+	void init();
 	void listUsers();
 	QString selectedUser();
 
@@ -36,9 +36,8 @@ private:
 
 	std::string aclEtcUsersNodePath();
 	void setFilter(const QString &filter);
-
+private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
-	std::string m_aclEtcNodePath;
 	QStandardItemModel *m_dataModel;
 	QSortFilterProxyModel *m_modelProxy;
 };

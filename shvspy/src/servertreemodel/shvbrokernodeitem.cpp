@@ -399,7 +399,7 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 	m_openStatus = is_connected? OpenStatus::Connected: OpenStatus::Disconnected;
 	emitDataChanged();
 	if(is_connected) {
-		createSubscriptions();
+		checkShvApiVersion(this, [this]() { createSubscriptions(); });
 		loadChildren();
 		AttributesModel *m = TheApp::instance()->attributesModel();
 		m->load(this);
@@ -553,6 +553,44 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
 		m->addLogRow(nodeId(), msg);
 	}
+}
+
+void ShvBrokerNodeItem::checkShvApiVersion(QObject *context, std::function<void ()> on_success, std::function<void (const shv::chainpack::RpcError &)> on_error)
+{
+	auto *rpc_call = shv::iotqt::rpc::RpcCall::create(m_rpcConnection)->setShvPath(".broker")->setMethod("ls");
+	connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, context, [this, on_success, on_error](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+		if (error.isValid()) {
+			if (on_error) {
+				on_error(error);
+			}
+			else {
+				shvError() << "SHV API version discovery error:" << error.toString();
+			}
+		}
+		else {
+			using ShvApiVersion = shv::iotqt::rpc::ClientConnection::ShvApiVersion;
+			const auto &dirs = result.asList();
+			if (std::find(dirs.begin(), dirs.end(), "app") != dirs.end()) {
+				shvInfo() << "Setting SHV API to ver 2";
+				m_rpcConnection->setShvApiVersion(ShvApiVersion::V2);
+				on_success();
+			}
+			else if (std::find(dirs.begin(), dirs.end(), "client") != dirs.end()) {
+				shvInfo() << "Setting SHV API to ver 3";
+				m_rpcConnection->setShvApiVersion(ShvApiVersion::V3);
+				on_success();
+			}
+			else {
+				if (on_error) {
+					on_error(error);
+				}
+				else {
+					shvError() << "SHV API version cannot be discovered from ls result.";
+				}
+			}
+		}
+	});
+	rpc_call->start();
 }
 
 void ShvBrokerNodeItem::createSubscriptions()

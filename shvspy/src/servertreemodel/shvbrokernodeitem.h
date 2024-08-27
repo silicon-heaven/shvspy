@@ -55,6 +55,7 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onBrokerLoginError(const QString &err);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	void checkShvApiVersion(QObject *context, std::function<void ()> on_success, std::function<void (const shv::chainpack::RpcError &e)> on_error = {});
 	void createSubscriptions();
 	int callSubscribe(const std::string &shv_path, const std::string &method, const std::string &source);
 	int callUnsubscribe(const std::string &shv_path, const std::string &method, const std::string& source);
