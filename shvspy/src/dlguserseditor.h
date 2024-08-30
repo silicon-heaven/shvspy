@@ -34,7 +34,8 @@ private:
 	void onEditUserClicked();
 	void onTableUsersDoubleClicked(QModelIndex ix);
 
-	std::string aclEtcUsersNodePath();
+	std::string aclAccessPath();
+	std::string aclAccessUsersPath();
 	void setFilter(const QString &filter);
 private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;

@@ -90,7 +90,7 @@ void DlgUsersEditor::listUsers()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcUsersNodePath(), shv::chainpack::Rpc::METH_LS);
+	m_rpcConnection->callShvMethod(rqid, aclAccessUsersPath(), shv::chainpack::Rpc::METH_LS);
 }
 
 QString DlgUsersEditor::selectedUser()
@@ -100,7 +100,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclEtcUsersNodePath(), DlgAddEditUser::DialogType::Add);
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclAccessPath(), DlgAddEditUser::DialogType::Add);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listUsers();
@@ -141,7 +141,7 @@ void DlgUsersEditor::onDelUserClicked()
 		});
 
 		shv::chainpack::RpcValue::List params{user.toStdString(), {}};
-		m_rpcConnection->callShvMethod(rqid, aclEtcUsersNodePath(), SET_VALUE_METHOD, params);
+		m_rpcConnection->callShvMethod(rqid, aclAccessUsersPath(), SET_VALUE_METHOD, params);
 	}
 }
 
@@ -156,7 +156,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclEtcUsersNodePath(), DlgAddEditUser::DialogType::Edit);
+	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclAccessPath(), DlgAddEditUser::DialogType::Edit);
 	dlg->setUser(user);
 
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
@@ -175,11 +175,16 @@ void DlgUsersEditor::onTableUsersDoubleClicked(QModelIndex ix)
 	onEditUserClicked();
 }
 
-std::string DlgUsersEditor::aclEtcUsersNodePath()
+std::string DlgUsersEditor::aclAccessPath()
 {
 	switch (m_rpcConnection->shvApiVersion()) {
-	case shv::chainpack::IRpcConnection::ShvApiVersion::V2: return ".broker/etc/acl/users";
-	case shv::chainpack::IRpcConnection::ShvApiVersion::V3: return ".broker/access/users";
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V2: return ".broker/etc/acl";
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V3: return ".broker/access";
 	}
 	return "";
+}
+
+std::string DlgUsersEditor::aclAccessUsersPath()
+{
+	return aclAccessPath() + "/users";
 }
