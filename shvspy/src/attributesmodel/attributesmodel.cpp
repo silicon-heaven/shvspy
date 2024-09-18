@@ -145,10 +145,10 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return is_notify? tr("Method is notify signal"): QVariant();
 		}
 		if(ix.column() == ColMethodName) {
-			auto attrs = m_rows[static_cast<unsigned>(ix.row())][ColAttributes].asMap();
+			auto mm = shv::chainpack::MetaMethod::fromRpcValue(m_rows[static_cast<unsigned>(ix.row())][ColMetaMethod]);
 			QStringList lines;
-			for(const auto &kv : attrs) {
-				lines << tr("%1: %2").arg(kv.first.c_str(), kv.second.toCpon().c_str());
+			for(const auto &[k, v] : mm.toMap()) {
+				lines << tr("%1: %2").arg(k.c_str(), v.toCpon().c_str());
 			}
 			return lines.join('\n');
 		}
@@ -308,7 +308,7 @@ void AttributesModel::loadRow(unsigned method_ix)
 	rv[ColFlags] = mtd->flagsStr();
 	rv[ColAccessLevel] = mtd->accessLevelStr();
 	rv[ColParams] = mtd->params;
-	rv[ColAttributes] = mtd->metamethod.toRpcValue();
+	rv[ColMetaMethod] = mtd->metamethod.toRpcValue();
 	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();
 	if(mtd->response.isError()) {
 		rv[ColResult] = mtd->response.error().toRpcValue();
