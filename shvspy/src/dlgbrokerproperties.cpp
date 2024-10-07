@@ -68,6 +68,9 @@ DlgBrokerProperties::DlgBrokerProperties(QWidget *parent) :
 	connect(ui->lstSecurityType, &QComboBox::currentTextChanged, this,
 			[this] (const QString &security_type_text) { ui->chkPeerVerify->setDisabled(security_type_text == "none"); });
 
+	connect(ui->tbShowPassword, &QToolButton::toggled, this, [this](bool checked) {
+		ui->edPassword->setEchoMode(checked ? QLineEdit::EchoMode::Normal : QLineEdit::EchoMode::Password);
+	});
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/dlgServerProperties/geometry")).toByteArray());
 }
