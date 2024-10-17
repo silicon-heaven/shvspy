@@ -357,7 +357,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgUsersEditor(this, cc);
+					auto dlg = new DlgUsersEditor(this, cc, nd->shvPath());
 					dlg->open();
 					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}

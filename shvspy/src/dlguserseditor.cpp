@@ -17,9 +17,10 @@
 
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
+DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path) :
 	QDialog(parent),
-	ui(new Ui::DlgUsersEditor)
+	ui(new Ui::DlgUsersEditor),
+	m_brokerPath(broker_path)
 {
 	ui->setupUi(this);
 
@@ -178,8 +179,8 @@ void DlgUsersEditor::onTableUsersDoubleClicked(QModelIndex ix)
 std::string DlgUsersEditor::aclAccessPath()
 {
 	switch (m_rpcConnection->shvApiVersion()) {
-	case shv::chainpack::IRpcConnection::ShvApiVersion::V2: return ".broker/etc/acl";
-	case shv::chainpack::IRpcConnection::ShvApiVersion::V3: return ".broker/access";
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V2: return m_brokerPath + "/etc/acl";
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V3: return m_brokerPath + "/access";
 	}
 	return "";
 }
