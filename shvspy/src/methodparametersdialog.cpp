@@ -330,6 +330,7 @@ void MethodParametersDialog::switchToUInt(QTableWidget *table, int row, int col,
 void MethodParametersDialog::switchToString(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	auto *line_edit = new QLineEdit(this);
+	line_edit->setMaxLength(std::numeric_limits<int>::max());
 	table->setCellWidget(row, col, line_edit);
 	getters[row] = [line_edit]() {
 		return  cp::RpcValue(line_edit->text().toStdString());
