@@ -1,0 +1,28 @@
+name: Cleanup PR cache
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Cleanup cache
+        run: |
+          gh extension install actions/gh-actions-cache
+          REPO='${{ github.repository }}'
+          BRANCH='refs/pull/${{ github.event.pull_request.number }}/merge'
+
+          while true; do
+            readarray -t CACHE_KEYS < <(gh actions-cache list --repo "$REPO" --branch "$BRANCH" --limit 100 | cut --fields=1)
+            if [[ "${#CACHE_KEYS[@]}" -eq 0 ]]; then
+              break
+            fi
+
+            for CACHE_KEY in "${CACHE_KEYS[@]}"; do
+                gh actions-cache delete "$CACHE_KEY" --repo "$REPO" --branch "$BRANCH" --confirm
+            done
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
