@@ -40,6 +40,22 @@ jobs:
         with:
           use_qt6: ON
 
+  linux-qt68:
+    name: Linux / Qt 6.8.0
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          use_qt6: ON
+          modules: qtserialport qtwebsockets qtnetworkauth
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+
   linux-qt5:
     name: Linux / Qt 5.15.2
     runs-on: ubuntu-22.04
