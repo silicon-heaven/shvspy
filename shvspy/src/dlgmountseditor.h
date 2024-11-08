@@ -17,10 +17,8 @@ class DlgMountsEditor : public QDialog
 	Q_OBJECT
 
 public:
-	explicit DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
+	explicit DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path);
 	~DlgMountsEditor() override;
-	void init(const std::string &acl_node_path);
-
 private:
 	std::string aclEtcMountsNodePath();
 
@@ -45,7 +43,7 @@ private:
 		RpcCallStatus status = Unfinished;
 	};
 	Ui::DlgMountsEditor *ui;
-	std::string m_aclEtcNodePath;
+	std::string m_aclNodePath;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	QMap<QString, MountPointInfo> m_mountPoints;
 	QString m_lastCurrentId;

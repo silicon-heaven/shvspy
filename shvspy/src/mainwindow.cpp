@@ -367,8 +367,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgRolesEditor (this, cc);
-					dlg->init(nd->shvPath() + "/etc/acl");
+					auto dlg = new DlgRolesEditor (this, cc, nd->shvPath());
 					dlg->open();
 					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}
@@ -378,8 +377,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgMountsEditor(this, cc);
-					dlg->init(nd->shvPath() + "/etc/acl");
+					auto dlg = new DlgMountsEditor(this, cc, nd->shvPath());
 					dlg->open();
 					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 				}

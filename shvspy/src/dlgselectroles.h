@@ -26,17 +26,17 @@ public:
 
 
 private:
-    void contextMenu(const QPoint &glob_pos);
-    void editRole();
-    QStandardItem *findChildItem(QStandardItem *item, const QStringList &path, int ix = 0);
-    QStandardItem *findChildItem(QStandardItem *item, const QString &text);
+	void contextMenu(const QPoint &glob_pos);
+	void editRole();
+	QStandardItem *findChildItem(QStandardItem *item, const QStringList &path, int ix = 0);
+	QStandardItem *findChildItem(QStandardItem *item, const QString &text);
 	std::string aclEtcRolesNodePath();
 
 	std::vector<std::string> m_userRoles;
-    QStringList m_currentItemPath;
+	QStringList m_currentItemPath;
 	RolesTreeModel *m_rolesTreeModel = nullptr;
-    shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
-    std::string m_aclEtcNodePath;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
+	std::string m_aclEtcNodePath;
 
 	Ui::DlgSelectRoles *ui;
 };

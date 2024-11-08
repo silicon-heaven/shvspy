@@ -2,6 +2,7 @@
 #include "ui_dlgmountseditor.h"
 
 #include "dlgaddeditmount.h"
+#include "theapp.h"
 
 #include <shv/core/assert.h>
 #include <shv/iotqt/rpc/rpccall.h>
@@ -14,7 +15,7 @@
 static const std::string METHOD_VALUE = "value";
 static const std::string METHOD_SET_VALUE = "setValue";
 
-DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
+DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path) :
 	QDialog(parent),
 	ui(new Ui::DlgMountsEditor)
 {
@@ -23,6 +24,8 @@ DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	SHV_ASSERT_EX(rpc_connection != nullptr, "RPC connection is NULL");
 
 	m_rpcConnection = rpc_connection;
+
+	m_aclNodePath = TheApp::aclAccessPath(broker_path, m_rpcConnection->shvApiVersion());
 
 	static constexpr double ROW_HEIGHT_RATIO = 1.3;
 	static QStringList INFO_HEADER_NAMES { tr("Device ID"), tr("Mount point"), tr("Description") };
@@ -49,6 +52,8 @@ DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	connect(ui->leFilter, &QLineEdit::textChanged, m_modelProxy, &QSortFilterProxyModel::setFilterFixedString);
 
 	setStatusText(QString());
+
+	listMounts();
 }
 
 DlgMountsEditor::~DlgMountsEditor()
@@ -56,15 +61,9 @@ DlgMountsEditor::~DlgMountsEditor()
 	delete ui;
 }
 
-void DlgMountsEditor::init(const std::string &acl_node_path)
-{
-	m_aclEtcNodePath = acl_node_path;
-	listMounts();
-}
-
 std::string DlgMountsEditor::aclEtcMountsNodePath()
 {
-	return m_aclEtcNodePath + "/mounts";
+	return m_aclNodePath + "/mounts";
 }
 
 QString DlgMountsEditor::selectedMount()
@@ -79,7 +78,7 @@ QString DlgMountsEditor::selectedMount()
 
 void DlgMountsEditor::onAddMountClicked()
 {
-	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Add);
+	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclNodePath, DlgAddEditMount::DialogType::Add);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listMounts();
@@ -135,7 +134,7 @@ void DlgMountsEditor::onEditMountClicked()
 
 	setStatusText(QString());
 
-	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditMount::DialogType::Edit);
+	auto dlg = new DlgAddEditMount(this, m_rpcConnection, m_aclNodePath, DlgAddEditMount::DialogType::Edit);
 	dlg->init(mount);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){

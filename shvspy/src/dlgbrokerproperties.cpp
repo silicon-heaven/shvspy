@@ -50,7 +50,7 @@ DlgBrokerProperties::DlgBrokerProperties(QWidget *parent) :
 	ui->cbxConnectionType->setCurrentIndex(0);
 
 	ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::ChainPack), static_cast<int>(Rpc::ProtocolType::ChainPack));
-	//ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::Cpon), static_cast<int>(Rpc::ProtocolType::Cpon));
+	ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::Cpon), static_cast<int>(Rpc::ProtocolType::Cpon));
 	//ui->rpc_protocolType->addItem(Rpc::protocolTypeToString(Rpc::ProtocolType::JsonRpc), static_cast<int>(Rpc::ProtocolType::JsonRpc));
 	ui->rpc_protocolType->setCurrentIndex(0);
 

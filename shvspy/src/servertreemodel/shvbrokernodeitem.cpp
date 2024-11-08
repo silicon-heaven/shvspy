@@ -278,6 +278,10 @@ void ShvBrokerNodeItem::open()
 	cli->setPassword(pwd);
 	//cli->setSkipLoginPhase(m_brokerPropeties.value("skipLoginPhase").toBool());
 
+	auto protocol_type = static_cast<shv::chainpack::Rpc::ProtocolType>(m_brokerPropeties.value(brokerProperty::RPC_PROTOCOLTYPE, static_cast<int>(shv::chainpack::Rpc::ProtocolType::ChainPack)).toInt());
+	cli->setProtocolType(protocol_type);
+
+
 #if QT_VERSION_MAJOR >= 6 && defined(WITH_AZURE_SUPPORT)
 	bool azure_login = m_brokerPropeties.value(brokerProperty::AZURELOGIN, false).toBool();
 

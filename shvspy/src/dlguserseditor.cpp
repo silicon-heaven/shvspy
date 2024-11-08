@@ -2,6 +2,7 @@
 #include "ui_dlguserseditor.h"
 
 #include "dlgaddedituser.h"
+#include "theapp.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/rpccall.h>
@@ -178,11 +179,7 @@ void DlgUsersEditor::onTableUsersDoubleClicked(QModelIndex ix)
 
 std::string DlgUsersEditor::aclAccessPath()
 {
-	switch (m_rpcConnection->shvApiVersion()) {
-	case shv::chainpack::IRpcConnection::ShvApiVersion::V2: return m_brokerPath + "/etc/acl";
-	case shv::chainpack::IRpcConnection::ShvApiVersion::V3: return m_brokerPath + "/access";
-	}
-	return "";
+	return TheApp::aclAccessPath(m_brokerPath, m_rpcConnection->shvApiVersion());
 }
 
 std::string DlgUsersEditor::aclAccessUsersPath()

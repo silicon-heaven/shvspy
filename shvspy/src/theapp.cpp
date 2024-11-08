@@ -42,3 +42,12 @@ void TheApp::saveSettings(QSettings &settings)
 {
 	m_serverTreeModel->saveSettings(settings);
 }
+
+std::string TheApp::aclAccessPath(const std::string &broker_path, shv::iotqt::rpc::ClientConnection::ShvApiVersion api_version)
+{
+	switch (api_version) {
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V2: return broker_path + "/etc/acl";
+	case shv::chainpack::IRpcConnection::ShvApiVersion::V3: return broker_path + "/access";
+	}
+	return "";
+}

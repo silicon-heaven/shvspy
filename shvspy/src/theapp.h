@@ -2,6 +2,7 @@
 #define THEAPP_H
 
 #include <shv/core/utils/crypt.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QApplication>
 #include <QDateTime>
@@ -35,6 +36,7 @@ public:
 	void loadSettings(QSettings &settings);
 	void saveSettings(QSettings &settings);
 
+	static std::string aclAccessPath(const std::string &broker_path, shv::iotqt::rpc::ClientConnection::ShvApiVersion api_version);
 private:
 	ServerTreeModel *m_serverTreeModel = nullptr;
 	AttributesModel *m_attributesModel = nullptr;

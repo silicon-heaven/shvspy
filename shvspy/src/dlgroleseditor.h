@@ -16,9 +16,8 @@ class DlgRolesEditor : public QDialog
 	Q_OBJECT
 
 public:
-	explicit DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
+	explicit DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path);
 	~DlgRolesEditor() override;
-	void init(const std::string &acl_node_path);
 
 private:
 	std::string aclEtcRolesNodePath();
@@ -33,10 +32,10 @@ private:
 	void onTableRoleDoubleClicked(QModelIndex ix);
 
 	void setStatusText(const QString &txt);
-
+	std::string aclAccessPath();
 private:
 	Ui::DlgRolesEditor *ui;
-	std::string m_aclEtcNodePath;
+	std::string m_brokerPath;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	QStandardItemModel *m_dataModel;
 	QSortFilterProxyModel *m_modelProxy;

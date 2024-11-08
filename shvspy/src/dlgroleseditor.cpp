@@ -2,6 +2,7 @@
 #include "ui_dlgroleseditor.h"
 
 #include "dlgaddeditrole.h"
+#include "theapp.h"
 
 #include <shv/core/assert.h>
 #include <shv/iotqt/rpc/rpccall.h>
@@ -13,9 +14,10 @@
 
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
-	QDialog(parent),
-	ui(new Ui::DlgRolesEditor)
+DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path)
+	: QDialog(parent)
+	, ui(new Ui::DlgRolesEditor)
+	, m_brokerPath(broker_path)
 {
 	ui->setupUi(this);
 
@@ -45,6 +47,8 @@ DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	connect(ui->leFilter, &QLineEdit::textChanged, m_modelProxy, &QSortFilterProxyModel::setFilterFixedString);
 
 	setStatusText(QString());
+
+	listRoles();
 }
 
 DlgRolesEditor::~DlgRolesEditor()
@@ -52,20 +56,14 @@ DlgRolesEditor::~DlgRolesEditor()
 	delete ui;
 }
 
-void DlgRolesEditor::init(const std::string &acl_node_path)
-{
-	m_aclEtcNodePath = acl_node_path;
-	listRoles();
-}
-
 std::string DlgRolesEditor::aclEtcRolesNodePath()
 {
-	return m_aclEtcNodePath + "/roles";
+	return aclAccessPath() + "/roles";
 }
 
 std::string DlgRolesEditor::aclEtcAccessNodePath()
 {
-	return m_aclEtcNodePath + "/access";
+	return aclAccessPath() + "/access";
 }
 
 QString DlgRolesEditor::selectedRole()
@@ -75,7 +73,7 @@ QString DlgRolesEditor::selectedRole()
 
 void DlgRolesEditor::onAddRoleClicked()
 {
-	auto dlg = new DlgAddEditRole(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Add);
+	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath(), DlgAddEditRole::DialogType::Add);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listRoles();
@@ -97,7 +95,7 @@ void DlgRolesEditor::onEditRoleClicked()
 
 	setStatusText(QString());
 
-	auto dlg = new DlgAddEditRole(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Edit);
+	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath(), DlgAddEditRole::DialogType::Edit);
 	dlg->init(role);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
@@ -189,4 +187,9 @@ void DlgRolesEditor::setStatusText(const QString &txt)
 		ui->lblStatus->show();
 		ui->lblStatus->setText(txt);
 	}
+}
+
+std::string DlgRolesEditor::aclAccessPath()
+{
+	return TheApp::aclAccessPath(m_brokerPath, m_rpcConnection->shvApiVersion());
 }
