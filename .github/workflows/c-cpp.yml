@@ -2,59 +2,11 @@
 name: Build
 on:
   push:
-    branches: [ shv2 ]
+    branches: [ shv2-win ]
   pull_request:
-    branches: [ shv2 ]
+    branches: [ shv2-win ]
 
 jobs:
-  build_linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v2
-      with:
-        path: ${{ runner.workspace }}/Qt
-        key: ${{ runner.os }}-Qt
-
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v2
-      with:
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
-        version: '5.15.0'
-        host: 'linux'
-
-    - name: Get app version
-      run: | 
-        echo "VERSION=`grep APP_VERSION shvspy/src/appversion.h | cut -d\\" -f2`" >> $GITHUB_ENV
-
-    - name: Get AppImageTool
-      run: |
-        curl --silent "https://api.github.com/repos/AppImage/AppImageKit/releases/latest" | jq -r '.assets[] | select(.name == "appimagetool-x86_64.AppImage").browser_download_url' | sudo xargs curl -L -o /opt/appimagetool-x86_64.AppImage --create-dirs --url
-        sudo chmod +x /opt/appimagetool-x86_64.AppImage
-
-    - name: Build AppImage
-      run: |
-        mkdir ./build
-        pwd
-        ./make-dist.sh --src-dir . --qt-dir ${Qt5_DIR} --work-dir ./build --appimage-tool /opt/appimagetool-x86_64.AppImage 
-
-    - name: Save AppImage
-      uses: actions/upload-artifact@v2
-      with:
-        name: shvspy-${{ env.VERSION }}-linux64.Appimage
-        path: build/artifacts/shvspy-*-linux64.AppImage
-
-    - name: Save gzip
-      uses: actions/upload-artifact@v2
-      with:
-        name: shvspy-${{ env.VERSION }}-linux64.tgz
-        path: build/artifacts/shvspy-*-linux64.tgz
-
 
   build_windows:
     runs-on: windows-2019
@@ -63,13 +15,13 @@ jobs:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
     - name: Cache Libs
       id: cache-libs
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: |
           C:/msys64/mingw64/bin/libiconv-2.dll
@@ -79,17 +31,11 @@ jobs:
           C:/msys64/mingw64/bin/zlib1.dll
         key: ${{ runner.os }}-Libraries
 
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v2
-      with:
-        path: ${{ runner.workspace }}\Qt
-        key: ${{ runner.os }}-Qt
  
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
       with:
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        cached: false
         version: '5.15.0'
         host: 'windows'
         arch: 'win64_mingw81' 
@@ -121,7 +67,7 @@ jobs:
       shell: cmd
 
     - name: Save setup
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: shvspy-elektroline-${{ env.VERSION }}-setup.exe
         path: _inno\shvspy\shvspy-elektroline-${{ env.VERSION }}-setup.exe
