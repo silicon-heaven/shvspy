@@ -2,9 +2,9 @@
 name: Build
 on:
   push:
-    branches: [ master ]
+    branches: [ shv2 ]
   pull_request:
-    branches: [ master ]
+    branches: [ shv2 ]
 
 jobs:
   build_linux:
