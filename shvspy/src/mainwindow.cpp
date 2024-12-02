@@ -417,7 +417,15 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 		view->setAttribute(Qt::WA_DeleteOnClose);
 		view->setWindowIconText(tr("Result"));
 		view->setReadOnly(true);
-		auto [blob, size] = rv.asData();
+		const char* blob;
+		size_t size;
+		if (rv.isString()) {
+			blob = rv.asString().data();
+			size = rv.asString().size();
+		} else {
+			blob = reinterpret_cast<const char*>(rv.asBlob().data());
+			size = rv.asBlob().size();
+		}
 		auto data = QByteArray::fromRawData(blob, size);
 		if (rv.isString()) {
 			view->setText(QString::fromUtf8(data));
