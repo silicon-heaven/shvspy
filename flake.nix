@@ -7,7 +7,7 @@
     nixpkgs,
   }: let
     inherit (flake-utils.lib) eachDefaultSystem;
-    inherit (nixpkgs.lib) hasSuffix composeManyExtensions;
+    inherit (nixpkgs.lib) assertMsg;
     rev = self.shortRev or self.dirtyShortRev or "unknown";
 
     shvspy = {
@@ -19,49 +19,41 @@
       copyDesktopItems,
       makeDesktopItem,
     }:
-      stdenv.mkDerivation {
-        name = "shvspy-${rev}";
-        src = builtins.path {
-          path = ./.;
-          filter = path: _: ! hasSuffix ".nix" path;
+      assert assertMsg self.submodules
+      "Unable to build without submodules. Append '?submodules=1#' to the URL.";
+        stdenv.mkDerivation {
+          name = "shvspy-${rev}";
+          src = ./.;
+          buildInputs = [
+            qt6.wrapQtAppsHook
+            qt6.qtbase
+            qt6.qtserialport
+            qt6.qtwebsockets
+            qt6.qtsvg
+            qt6.qtnetworkauth
+            doctest
+            openldap
+          ];
+          nativeBuildInputs = [
+            cmake
+            qt6.qttools
+            copyDesktopItems
+          ];
+          desktopItems = [
+            (makeDesktopItem {
+              name = "shvspy";
+              exec = "shvspy";
+              desktopName = "SHVSpy";
+              categories = ["Network" "RemoteAccess"];
+            })
+          ];
+          cmakeFlags = ["-DUSE_QT6=ON"];
+          meta.mainProgram = "shvspy";
         };
-        buildInputs = [
-          qt6.wrapQtAppsHook
-          qt6.qtbase
-          qt6.qtserialport
-          qt6.qtwebsockets
-          qt6.qtsvg
-          qt6.qtnetworkauth
-          doctest
-          openldap
-        ];
-        nativeBuildInputs = [
-          cmake
-          qt6.qttools
-          copyDesktopItems
-        ];
-        desktopItems = [
-          (makeDesktopItem {
-            name = "shvspy";
-            exec = "shvspy";
-            desktopName = "SHVSpy";
-            categories = ["Network" "RemoteAccess"];
-          })
-        ];
-        cmakeFlags = [
-          "-DUSE_QT6=ON"
-        ];
-        meta.mainProgram = "shvspy";
-      };
   in
     {
-      overlays = {
-        pkgs = final: _: {
-          shvspy = final.callPackage shvspy {};
-        };
-        default = composeManyExtensions [
-          self.overlays.pkgs
-        ];
+      overlays.default = final: _: {
+        shvspy = final.callPackage shvspy {};
       };
     }
     // eachDefaultSystem (system: let
