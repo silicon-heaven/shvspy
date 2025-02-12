@@ -158,7 +158,6 @@ const std::string& ShvBrokerNodeItem::shvRoot() const
 
 #if QT_VERSION_MAJOR >= 6 && defined(WITH_AZURE_SUPPORT)
 namespace {
-const auto AZURE_CLIENT_ID = "f6c73b47-914d-4232-bbe9-70495e48b314";
 const auto AZURE_AUTH_URL = QUrl("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
 const auto AZURE_ACCESS_TOKEN_URL = QUrl("https://login.microsoftonline.com/common/oauth2/v2.0/token");
 const auto AZURE_SCOPES = "User.Read";
@@ -167,13 +166,13 @@ const auto AZURE_SCOPES = "User.Read";
 #define azureWarning() shvCWarning("azure")
 #define azureError() shvCError("azure")
 
-auto do_azure_auth(QObject* parent)
+auto do_azure_auth(const QString& client_id, QObject* parent)
 {
 	auto oauth2 = new QOAuth2AuthorizationCodeFlow(parent);
 	auto replyHandler = new QOAuthHttpServerReplyHandler(oauth2);
 	replyHandler->setCallbackText("Azure authentication successful. You can now close this window.");
 	oauth2->setReplyHandler(replyHandler);
-	oauth2->setClientIdentifier(AZURE_CLIENT_ID);
+	oauth2->setClientIdentifier(client_id);
 	oauth2->setAuthorizationUrl(AZURE_AUTH_URL);
 	oauth2->setAccessTokenUrl(AZURE_ACCESS_TOKEN_URL);
 	oauth2->setScope(AZURE_SCOPES);
@@ -291,27 +290,30 @@ void ShvBrokerNodeItem::open()
 			m_openStatus = OpenStatus::Disconnected;
 			return;
 		}
-		do_azure_auth(this).then([this, cli] (const std::variant<QFuture<QString>, QFuture<QString>>& result_or_error) {
-			if (result_or_error.index() == 0) {
-				auto result = std::get<0>(result_or_error);
-				// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
-				if (!result.isValid()) {
-					return;
+
+		cli->setLoginType(cp::IRpcConnection::LoginType::AzureAccessToken);
+		cli->setsetAzurePasswordCallback([this] (const auto& client_id, const auto& azure_access_token_cb) {
+			do_azure_auth(QString::fromStdString(client_id), this).then([this, azure_access_token_cb] (const std::variant<QFuture<QString>, QFuture<QString>>& result_or_error) {
+				if (result_or_error.index() == 0) {
+					auto result = std::get<0>(result_or_error);
+					// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
+					if (!result.isValid()) {
+						return;
+					}
+					azure_access_token_cb(std::get<0>(result_or_error).result().toStdString());
+					emitDataChanged();
 				}
-				cli->setLoginType(shv::iotqt::rpc::ClientConnection::LoginType::AzureAccessToken);
-				cli->setPassword(std::get<0>(result_or_error).result().toStdString());
-				cli->open();
-				emitDataChanged();
-			}
-			else {
-				auto error = std::get<1>(result_or_error);
-				// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
-				if (!error.isValid()) {
-					return;
+				else {
+					auto error = std::get<1>(result_or_error);
+					// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
+					if (!error.isValid()) {
+						return;
+					}
+					onBrokerLoginError(std::get<1>(result_or_error).result());
 				}
-				onBrokerLoginError(std::get<1>(result_or_error).result());
-			}
+			});
 		});
+		cli->open();
 	}
 	else {
 #endif

@@ -24,7 +24,7 @@ runs:
     # Linux deps
     - name: Install apt packages
       if: runner.os != 'Windows'
-      uses: awalsh128/cache-apt-pkgs-action@v1.4.2
+      uses: awalsh128/cache-apt-pkgs-action@v1.4.3
       with:
         packages: ninja-build libgl1-mesa-dev libpulse-dev libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-util1 libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev clazy libfuse-dev
         version: 1.0
