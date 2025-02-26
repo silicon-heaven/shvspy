@@ -33,11 +33,10 @@ qt_add_executable(shvspy
     config/config.qrc
 )
 
-if(SHVSPY_USE_QT6 AND NOT EMSCRIPTEN)
-    target_link_libraries(shvspy PRIVATE libshv::libshvvisu Qt::NetworkAuth)
+target_link_libraries(shvspy PRIVATE libshv::libshvvisu)
+
+if(NOT EMSCRIPTEN)
     target_compile_definitions(shvspy PRIVATE "WITH_AZURE_SUPPORT")
-else()
-    target_link_libraries(shvspy PRIVATE libshv::libshvvisu)
 endif()
 
 target_include_directories(shvspy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
