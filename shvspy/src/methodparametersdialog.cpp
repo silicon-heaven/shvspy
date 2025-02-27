@@ -359,7 +359,13 @@ void MethodParametersDialog::switchToDateTime(QTableWidget *table, int row, int 
 {
 	auto *datetime_widget = new QWidget(this);
 	auto *edit = new QDateTimeEdit(datetime_widget);
+#if !defined(__EMSCRIPTEN__)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+	edit->setTimeZone(QTimeZone::utc());
+#else
 	edit->setTimeSpec(Qt::TimeSpec::UTC);
+#endif
+#endif
 	auto *today = new QPushButton("...", datetime_widget);
 	today->setFixedWidth(20);
 	auto *layout = new QHBoxLayout;
