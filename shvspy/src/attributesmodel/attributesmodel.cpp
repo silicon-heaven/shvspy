@@ -221,8 +221,9 @@ void AttributesModel::load(ShvNodeItem *nd)
 		m_shvTreeNodeItem->disconnect(this);
 	m_shvTreeNodeItem = nd;
 	if(nd) {
-		connect(nd, &ShvNodeItem::methodsLoaded, this, &AttributesModel::onMethodsLoaded, Qt::UniqueConnection);
-		connect(nd, &ShvNodeItem::rpcMethodCallFinished, this, &AttributesModel::onRpcMethodCallFinished, Qt::UniqueConnection);
+		// Clazy false positive https://invent.kde.org/sdk/clazy/-/issues/22
+		connect(nd, &ShvNodeItem::methodsLoaded, this, &AttributesModel::onMethodsLoaded, Qt::UniqueConnection); // clazy:exclude=lambda-unique-connection
+		connect(nd, &ShvNodeItem::rpcMethodCallFinished, this, &AttributesModel::onRpcMethodCallFinished, Qt::UniqueConnection); // clazy:exclude=lambda-unique-connection
 		nd->checkMethodsLoaded();
 	}
 	loadRows();
