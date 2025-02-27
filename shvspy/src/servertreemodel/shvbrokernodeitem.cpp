@@ -243,8 +243,11 @@ void ShvBrokerNodeItem::close()
 {
 	//if(openStatus() == OpenStatus::Disconnected)
 	//	return;
-	if(m_rpcConnection)
+	if(m_rpcConnection) {
 		m_rpcConnection->close();
+		m_rpcConnection->deleteLater();
+		m_rpcConnection = nullptr;
+	}
 	m_openStatus = OpenStatus::Disconnected;
 	deleteChildren();
 	emitDataChanged();
