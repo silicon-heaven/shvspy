@@ -4,10 +4,13 @@ inputs:
   qt_version:
     description: "Specify Qt version to use"
     required: true
-    default: "6.5.3"
+    default: "6.8.2"
   qt_arch:
     description: "Specify Qt arch to use"
-    default: "gcc_64"
+    default: "linux_gcc_64"
+  qt_target:
+    description: "Specify Qt version to use"
+    default: "desktop"
   use_qt6:
     description: "Specify whether we're using Qt 5 or Qt 6"
     required: true
@@ -43,21 +46,35 @@ runs:
 
     # Qt
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: Kidev/install-qt-action@v4.4.2 # Needed for WASM
       with:
         cache: true
+        aqtversion: ">=3.2.0"
+        host: ${{ inputs.qt_target == 'wasm' && 'all_os' || null }}
         version: ${{ inputs.qt_version }}
         arch: ${{ inputs.qt_arch }}
         install-deps: false
         modules: ${{ inputs.modules }}
+        target: ${{ inputs.qt_target }}
         extra: --autodesktop
+
+    - name: MinGW-specific stuff
+      if: inputs.qt_arch == 'win64_mingw'
+      run: |
+        QT_DIR="$(dirname "${QT_ROOT_DIR}")"
+        CMAKE_BIN="${QT_DIR}/mingw_64/bin/qt-cmake.bat"
+        chmod +x "${CMAKE_BIN}"
+        echo CMAKE_BIN="${CMAKE_BIN}" >> "$GITHUB_ENV"
+      shell: bash
 
     - name: WASM-specific stuff
       if: inputs.qt_arch == 'wasm_singlethread'
       run: |
-        chmod +x "${Qt6_DIR}/bin/qt-cmake"
-        echo cmake_extra_args="'-DBUILD_SHARED_LIBS=OFF' '-DQT_HOST_PATH=$(realpath "${Qt6_DIR}/../gcc_64")'" >> "$GITHUB_ENV"
-        echo CMAKE_BIN="${Qt6_DIR}/bin/qt-cmake" >> "$GITHUB_ENV"
+        QT_DIR="$(dirname "${QT_ROOT_DIR}")"
+        CMAKE_BIN="${QT_DIR}/wasm_singlethread/bin/qt-cmake"
+        chmod +x "${CMAKE_BIN}"
+        echo CMAKE_BIN="${CMAKE_BIN}" >> "$GITHUB_ENV"
+        echo cmake_extra_args="'-DBUILD_SHARED_LIBS=OFF' '-DQT_HOST_PATH=$(realpath "${QT_DIR}/gcc_64")'" >> "$GITHUB_ENV"
       shell: bash
 
     - name: ccache
