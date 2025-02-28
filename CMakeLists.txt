@@ -39,6 +39,10 @@ if(EMSCRIPTEN)
     add_link_options("-Os")
 endif()
 
+if(NOT EMSCRIPTEN AND SHVSPY_USE_QT6)
+    set(LIBSHV_WITH_OAUTH2_AZURE ON)
+endif()
+
 if(SHVSPY_USE_LOCAL_NECROLOG)
     find_package(necrolog REQUIRED)
 else()

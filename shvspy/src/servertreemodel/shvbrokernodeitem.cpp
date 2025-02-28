@@ -156,73 +156,6 @@ const std::string& ShvBrokerNodeItem::shvRoot() const
 	return m_shvRoot;
 }
 
-#if QT_VERSION_MAJOR >= 6 && defined(WITH_AZURE_SUPPORT)
-namespace {
-const auto AZURE_AUTH_URL = QUrl("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
-const auto AZURE_ACCESS_TOKEN_URL = QUrl("https://login.microsoftonline.com/common/oauth2/v2.0/token");
-const auto AZURE_SCOPES = "User.Read";
-
-#define azureInfo() shvCInfo("azure")
-#define azureWarning() shvCWarning("azure")
-#define azureError() shvCError("azure")
-
-auto do_azure_auth(const QString& client_id, QObject* parent)
-{
-	auto oauth2 = new QOAuth2AuthorizationCodeFlow(parent);
-	auto replyHandler = new QOAuthHttpServerReplyHandler(oauth2);
-	replyHandler->setCallbackText("Azure authentication successful. You can now close this window.");
-	oauth2->setReplyHandler(replyHandler);
-	oauth2->setClientIdentifier(client_id);
-	oauth2->setAuthorizationUrl(AZURE_AUTH_URL);
-	oauth2->setAccessTokenUrl(AZURE_ACCESS_TOKEN_URL);
-	oauth2->setScope(AZURE_SCOPES);
-	QObject::connect(oauth2, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, [] (const auto& url) {
-		QDesktopServices::openUrl(url);
-	});
-
-	QObject::connect(oauth2, &QOAuth2AuthorizationCodeFlow::statusChanged, [] (const QOAuth2AuthorizationCodeFlow::Status& status) {
-		azureInfo() << "Status changed: " << [status] {
-			using Status = QOAuth2AuthorizationCodeFlow::Status;
-			switch (status) {
-			case Status::NotAuthenticated: return "NotAuthenticated";
-			case Status::TemporaryCredentialsReceived: return "TemporaryCredentialsReceived";
-			case Status::Granted: return "Granted";
-			case Status::RefreshingToken: return "RefreshingToken";
-			}
-			throw std::logic_error{"QOAuth2AuthorizationCodeFlow::statusChanged: unknown status" + std::to_string(static_cast<int>(status))};
-		}();
-	});
-
-	oauth2->grant();
-	return QtFuture::whenAny(
-		QtFuture::connect(oauth2, &QOAuth2AuthorizationCodeFlow::granted).then([oauth2] {
-		return oauth2->token();
-	}), QtFuture::connect(oauth2, &QOAuth2AuthorizationCodeFlow::error).then([] (std::tuple<const QString&, const QString&, const QUrl&> errors) {
-		auto [error, error_description, error_url] = errors;
-		auto res = QStringLiteral("Failed to authenticate with Azure.\n");
-		auto append_error_if_not_empty = [&res] (const auto& error_prefix, const auto& error_str) {
-			if (!error_str.isEmpty()) {
-				res += error_prefix;
-				res += error_str;
-				res += '\n';
-			}
-		};
-		append_error_if_not_empty("Error: ", error);
-		// The error description is a percent encoded string with plus signs instead of spaces.
-		append_error_if_not_empty("Description: ", QUrl::fromPercentEncoding(error_description.toLatin1().replace('+', ' ')));
-		// The error url is actually inside the path the QUrl. Urgh. The reason is that Azure precent-encodes the URL,
-		// and Qt doesn't expect that.
-		append_error_if_not_empty("URL: ", error_url.path());
-		azureWarning() << res;
-		return res;
-	})).then([oauth2] (const std::variant<QFuture<QString>, QFuture<QString>>& result) {
-		oauth2->deleteLater();
-		return result;
-	});
-}
-}
-#endif
-
 void ShvBrokerNodeItem::open()
 {
 	close();
@@ -291,27 +224,9 @@ void ShvBrokerNodeItem::open()
 			return;
 		}
 
-		cli->setLoginType(cp::IRpcConnection::LoginType::AzureAccessToken);
-		cli->setsetAzurePasswordCallback([this] (const auto& client_id, const auto& azure_access_token_cb) {
-			do_azure_auth(QString::fromStdString(client_id), this).then([this, azure_access_token_cb] (const std::variant<QFuture<QString>, QFuture<QString>>& result_or_error) {
-				if (result_or_error.index() == 0) {
-					auto result = std::get<0>(result_or_error);
-					// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
-					if (!result.isValid()) {
-						return;
-					}
-					azure_access_token_cb(std::get<0>(result_or_error).result().toStdString());
-					emitDataChanged();
-				}
-				else {
-					auto error = std::get<1>(result_or_error);
-					// This can happen due to a bug: https://bugreports.qt.io/browse/QTBUG-115580
-					if (!error.isValid()) {
-						return;
-					}
-					onBrokerLoginError(std::get<1>(result_or_error).result());
-				}
-			});
+		cli->setOauth2Azure(true);
+		connect(cli, &shv::iotqt::rpc::ClientConnection::authorizeWithBrowser, this, [] (const auto& url) {
+			QDesktopServices::openUrl(url);
 		});
 		cli->open();
 	}
@@ -328,8 +243,11 @@ void ShvBrokerNodeItem::close()
 {
 	//if(openStatus() == OpenStatus::Disconnected)
 	//	return;
-	if(m_rpcConnection)
+	if(m_rpcConnection) {
 		m_rpcConnection->close();
+		m_rpcConnection->deleteLater();
+		m_rpcConnection = nullptr;
+	}
 	m_openStatus = OpenStatus::Disconnected;
 	deleteChildren();
 	emitDataChanged();
