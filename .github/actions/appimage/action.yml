@@ -8,6 +8,15 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Workaround, we don't have libmimerapi
+    - name: Remove libmimerapi.so
+      run: |
+        if [[ -z "${Qt5_DIR+x}" ]]; then
+          echo Workaround for 'https://github.com/linuxdeploy/linuxdeploy-plugin-qt/issues/153'
+          rm "$(dirname "$QT_ROOT_DIR")/gcc_64/plugins/sqldrivers/libqsqlmimer.so"
+        fi
+      shell: bash
+
     - name: Build
       run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
       shell: bash
