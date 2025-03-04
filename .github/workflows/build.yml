@@ -104,7 +104,7 @@ jobs:
         run: cmake --install '${{ github.workspace }}/build'
 
       - name: Run windeployqt
-        run: windeployqt -websockets -serialport '${{ github.workspace }}/install/bin/shvspy.exe'
+        run: windeployqt -networkauth -websockets -serialport '${{ github.workspace }}/install/bin/shvspy.exe'
 
       - name: Copy MinGW runtime libraries
         # windeployqt is unable to copy those, because it looks for them next to where g++.exe is. On the GitHub runner,
