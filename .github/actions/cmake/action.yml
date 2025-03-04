@@ -67,8 +67,8 @@ runs:
 
     - name: Configure CMake
       run: |
-        CFLAGS="-Werror ${CFLAGS}" \
-        CXXFLAGS="-Werror ${CXXFLAGS}" \
+        CFLAGS="${CFLAGS}" \
+        CXXFLAGS="${CXXFLAGS}" \
         "${CMAKE_BIN:-cmake}" \
           -S '${{github.workspace}}' \
           -B '${{github.workspace}}/build' \
@@ -78,6 +78,7 @@ runs:
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
           -DSHVSPY_USE_QT6=${{ inputs.use_qt6 }} \
+          -DSHVSPY_WITH_WERROR=ON \
           ${{ env.cmake_extra_args }} \
           ${{ inputs.additional_cmake_args }}
       shell: bash

@@ -34,9 +34,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_WIN32_EXECUTABLE ON) # Don't open a console window for Windows apps on Release mode.
 endif()
 
+option(SHVSPY_WITH_WERROR "Build with -Werror. Doesn't enable -Werror on subprojects." OFF)
+
 if(EMSCRIPTEN)
     add_link_options("-sASYNCIFY")
     add_link_options("-Os")
+    set(CMAKE_C_FLAGS "-Wno-limited-postlink-optimizations ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-Wno-limited-postlink-optimizations ${CMAKE_CXX_FLAGS}")
 endif()
 
 if(NOT EMSCRIPTEN AND SHVSPY_USE_QT6)
@@ -59,6 +63,12 @@ endif()
 
 if(NOT TARGET libshv::libshvvisu)
     message(FATAL_ERROR "libshvvisu not found. Including libshv might've failed due to missing Qt dependencies. Please check above for errors.")
+endif()
+
+if(SHVSPY_WITH_WERROR AND (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
+    message(STATUS "Enabling -Werror")
+    set(CMAKE_C_FLAGS "-Werror ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-Werror ${CMAKE_CXX_FLAGS}")
 endif()
 
 if(SHVSPY_USE_QT6)
