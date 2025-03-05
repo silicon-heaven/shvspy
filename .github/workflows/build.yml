@@ -74,6 +74,12 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup MinGW cache
+        uses: actions/cache@v4
+        with:
+          key: x86_64-13.1.0-release-posix-seh-msvcrt-rt_v11-rev1.7z
+          path: ${{github.workspace}}/x86_64-13.1.0-release-posix-seh-msvcrt-rt_v11-rev1.7z
+
       - name: Install MinGW
         # WinMain apps fail to link with the default MinGW compiler on GH actions. I suspect it is because Qt (since
         # 6.8) uses msvcrt, but GH Actions uses the ucrt version. Furthermore, GH Actions might have an older MinGW
@@ -81,7 +87,9 @@ jobs:
         # all that matters for me.
         run: |
           MINGW_FILE_NAME='x86_64-13.1.0-release-posix-seh-msvcrt-rt_v11-rev1.7z'
-          curl -L "https://github.com/niXman/mingw-builds-binaries/releases/download/13.1.0-rt_v11-rev1/$MINGW_FILE_NAME" -o '${{github.workspace}}'/"$MINGW_FILE_NAME"
+          if ! [[ -f '${{github.workspace}}'/"$MINGW_FILE_NAME" ]]; then
+            curl -L "https://github.com/niXman/mingw-builds-binaries/releases/download/13.1.0-rt_v11-rev1/$MINGW_FILE_NAME" -o '${{github.workspace}}'/"$MINGW_FILE_NAME"
+          fi
           7z x '${{github.workspace}}'/"$MINGW_FILE_NAME"
           echo 'CC=${{github.workspace}}/mingw64/bin/gcc.exe' >> "$GITHUB_ENV"
           echo 'CXX=${{github.workspace}}/mingw64/bin/g++.exe' >> "$GITHUB_ENV"
