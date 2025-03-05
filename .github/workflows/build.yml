@@ -15,9 +15,6 @@ permissions:
   id-token: write
   pages: write
 
-env:
-  emsdk_cache_dir: "emsdk-cache"
-
 jobs:
   linux-qt6:
     name: Linux / Qt 6.8.2
@@ -134,6 +131,9 @@ jobs:
   wasm-qt6:
     name: WebAssembly / Qt 6.8.2
     runs-on: ubuntu-22.04
+    env:
+      emsdk_cache_dir: "emsdk-cache"
+      emscripten_version: 3.1.56
     steps:
       - name: Clone the repository
         uses: actions/checkout@v4
@@ -143,12 +143,12 @@ jobs:
       - name: Setup emsdk cache
         uses: actions/cache@v4
         with:
-          key: emsdk-cache
+          key: emsdk-cache-${{env.emscripten_version}}
           path: ${{env.emsdk_cache_dir}}
 
       - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 3.1.56
+          version: ${{env.emscripten_version}}
           actions-cache-folder: ${{env.emsdk_cache_dir}}
 
       - name: Setup CMake
