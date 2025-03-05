@@ -38,4 +38,4 @@ runs:
       shell: bash
       run: |
         readarray -t FILES < <(find '${{github.workspace}}' -name \*.cpp | grep -v 3rdparty/ | grep -v build/ | grep -v emsdk-cache/)
-        printf '%s\n' "${FILES[@]}" | parallel --verbose --jobs "$(nproc)" --plus _=[{#}/{##}] ${{ inputs.lint_program_with_args }} {}
+        printf '%s\n' "${FILES[@]}" | parallel --verbose --jobs "$(nproc)" --plus _=[{#}/{##}] ${{inputs.lint_program_with_args}} {}

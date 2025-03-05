@@ -11,8 +11,8 @@ jobs:
       - name: Cleanup cache
         run: |
           gh extension install actions/gh-actions-cache
-          REPO='${{ github.repository }}'
-          BRANCH='refs/pull/${{ github.event.pull_request.number }}/merge'
+          REPO='${{github.repository}}'
+          BRANCH='refs/pull/${{github.event.pull_request.number}}/merge'
 
           while true; do
             readarray -t CACHE_KEYS < <(gh actions-cache list --repo "$REPO" --branch "$BRANCH" --limit 100 | cut --fields=1)
@@ -25,4 +25,4 @@ jobs:
             done
           done
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}

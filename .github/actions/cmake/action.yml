@@ -50,12 +50,12 @@ runs:
       with:
         cache: true
         aqtversion: ">=3.2.0"
-        host: ${{ inputs.qt_target == 'wasm' && 'all_os' || null }}
-        version: ${{ inputs.qt_version }}
-        arch: ${{ inputs.qt_arch }}
+        host: ${{inputs.qt_target == 'wasm' && 'all_os' || null}}
+        version: ${{inputs.qt_version}}
+        arch: ${{inputs.qt_arch}}
         install-deps: false
-        modules: ${{ inputs.modules }}
-        target: ${{ inputs.qt_target }}
+        modules: ${{inputs.modules}}
+        target: ${{inputs.qt_target}}
         extra: --autodesktop
 
     - name: MinGW-specific stuff
@@ -80,7 +80,7 @@ runs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2.12
       with:
-        key: ${{ github.job }}
+        key: ${{github.job}}
 
     - name: Configure CMake
       run: |
@@ -94,8 +94,8 @@ runs:
           -DCMAKE_C_COMPILER_LAUNCHER=ccache \
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DSHVSPY_USE_QT6=${{ inputs.use_qt6 }} \
+          -DSHVSPY_USE_QT6=${{inputs.use_qt6}} \
           -DSHVSPY_WITH_WERROR=ON \
-          ${{ env.cmake_extra_args }} \
-          ${{ inputs.additional_cmake_args }}
+          ${{env.cmake_extra_args}} \
+          ${{inputs.additional_cmake_args}}
       shell: bash

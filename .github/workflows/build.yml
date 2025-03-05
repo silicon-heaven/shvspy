@@ -1,7 +1,7 @@
 name: Build
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{github.workflow}}-${{github.event.pull_request.number || github.ref}}
   cancel-in-progress: true
 
 on:
@@ -33,7 +33,7 @@ jobs:
         with:
           use_qt6: ON
           modules: qtserialport qtwebsockets qtnetworkauth
-          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install/usr'
 
       - name: Create AppImage
         uses: ./.github/actions/appimage
@@ -58,7 +58,7 @@ jobs:
           qt_arch: gcc_64
           use_qt6: OFF
           modules: ""
-          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install/usr'
 
       - name: Create AppImage
         uses: ./.github/actions/appimage
@@ -93,21 +93,21 @@ jobs:
           qt_arch: win64_mingw
           use_qt6: ON
           modules: qtserialport qtwebsockets qtnetworkauth
-          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install'
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install'
 
       - name: Build
         run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
 
       - name: Install
-        run: cmake --install '${{ github.workspace }}/build'
+        run: cmake --install '${{github.workspace}}/build'
 
       - name: Run windeployqt
-        run: windeployqt -networkauth -websockets -serialport '${{ github.workspace }}/install/bin/shvspy.exe'
+        run: windeployqt -networkauth -websockets -serialport '${{github.workspace}}/install/bin/shvspy.exe'
 
       - name: Copy MinGW runtime libraries
         # windeployqt is unable to copy those, because it looks for them next to where g++.exe is. On the GitHub runner,
         # they are in a different directory.
-        run: cp "${{github.workspace}}"/mingw64/bin/{libstdc++-6.dll,libgcc_s_seh-1.dll,libwinpthread-1.dll} '${{ github.workspace }}/install/bin'
+        run: cp "${{github.workspace}}"/mingw64/bin/{libstdc++-6.dll,libgcc_s_seh-1.dll,libwinpthread-1.dll} '${{github.workspace}}/install/bin'
         shell: bash
 
       - name: Get app version
@@ -115,13 +115,13 @@ jobs:
         shell: bash
 
       - name: Create installer
-        run: iscc "-DBUILD_DIR=${{ github.workspace }}/install" "-DVERSION=${{ env.VERSION }}" shvspy/shvspy.iss
+        run: iscc "-DBUILD_DIR=${{github.workspace}}/install" "-DVERSION=${{env.VERSION}}" shvspy/shvspy.iss
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: shvspy-${{ env.VERSION }}-setup.exe
-          path: ${{ github.workspace }}/install/_inno/shvspy/shvspy-*-setup.exe
+          name: shvspy-${{env.VERSION}}-setup.exe
+          path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
 
   wasm-qt6:
     name: WebAssembly / Qt 6.8.2
@@ -136,12 +136,12 @@ jobs:
         uses: actions/cache@v4
         with:
           key: emsdk-cache
-          path: ${{ env.emsdk_cache_dir }}
+          path: ${{env.emsdk_cache_dir}}
 
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: 3.1.56
-          actions-cache-folder: ${{ env.emsdk_cache_dir }}
+          actions-cache-folder: ${{env.emsdk_cache_dir}}
 
       - name: Setup CMake
         uses: ./.github/actions/cmake
@@ -190,12 +190,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+
       - name: Rename artifacts
         run: |
           mv artifact.tar shvspy-wasm-nightly.tar
           mv shvspy-*-setup.exe shvspy-nightly-setup.exe
           mv shvspy-qt5-*-x86_64.AppImage shvspy-qt5-nightly-x86_64.AppImage
           mv shvspy-qt6-*-x86_64.AppImage shvspy-qt6-nightly-x86_64.AppImage
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -217,13 +219,17 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+
       - name: Install Nix
         uses: cachix/install-nix-action@v30
         with:
           nix_path: nixpkgs=channel:nixos-unstable
+
       - name: Build
         run: nix --experimental-features 'nix-command flakes' build -L "git+file://$(pwd)?submodules=1&rev=$(git rev-parse HEAD)"
+
       - name: Flake check
         run: nix --experimental-features 'nix-command flakes' flake check "git+file://$(pwd)?submodules=1&rev=$(git rev-parse HEAD)"
+
       - name: Format
         run: nix --experimental-features 'nix-command flakes' fmt && git diff --exit-code

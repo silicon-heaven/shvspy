@@ -27,7 +27,7 @@ runs:
 
     - name: Get app version
       run: |
-        if [[ "${{ inputs.use_qt6 }}" = "ON" ]]; then
+        if [[ "${{inputs.use_qt6}}" = "ON" ]]; then
           VERSION=qt6-
         else
           VERSION=qt5-
@@ -45,11 +45,11 @@ runs:
 
     - name: Create AppImage
       run: |
-        LD_LIBRARY_PATH="${{ github.workspace }}/install/usr/lib:$LD_LIBRARY_PATH" \
+        LD_LIBRARY_PATH="${{github.workspace}}/install/usr/lib:$LD_LIBRARY_PATH" \
         ./linuxdeploy-x86_64.AppImage \
-        --appdir '${{ github.workspace }}/install' \
-        --desktop-file '${{ github.workspace }}/distro/shvspy.AppDir/shvspy.desktop' \
-        --icon-file '${{ github.workspace }}/distro/shvspy.AppDir/shvspy.svg' \
+        --appdir '${{github.workspace}}/install' \
+        --desktop-file '${{github.workspace}}/distro/shvspy.AppDir/shvspy.desktop' \
+        --icon-file '${{github.workspace}}/distro/shvspy.AppDir/shvspy.svg' \
         --plugin qt \
         --output appimage
       shell: bash
@@ -57,5 +57,5 @@ runs:
     - name: Upload AppImage
       uses: actions/upload-artifact@v4
       with:
-        name: shvspy-${{ env.VERSION }}-x86_64.Appimage
+        name: shvspy-${{env.VERSION}}-x86_64.Appimage
         path: shvspy-*-x86_64.AppImage
