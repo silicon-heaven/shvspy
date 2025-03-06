@@ -82,13 +82,21 @@ bool TextEditDialog::eventFilter(QObject *o, QEvent *e)
 			}
 		}
 		else if (o == ui->searchEdit) {
-			if ((ke->key() == Qt::Key_Enter || ke->key() == Qt::Key_Return) && ke->modifiers() == Qt::NoModifier) {
+			if ((ke->key() == Qt::Key_Enter || ke->key() == Qt::Key_Return)) {
 				if (ui->searchEdit->isModified()) {
 					ui->plainTextEdit->moveCursor(QTextCursor::MoveOperation::Start);
 					ui->searchEdit->setModified(false);
 				}
-				search();
-				return true;
+				switch (ke->modifiers()) {
+				case Qt::NoModifier:
+					search();
+					return true;
+				case Qt::SHIFT:
+					searchBack();
+					return true;
+				default:
+					break;
+				}
 			}
 			if (ke->key() == Qt::Key_Escape && ke->modifiers() == Qt::NoModifier) {
 				ui->searchWidget->hide();
