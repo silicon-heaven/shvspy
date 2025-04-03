@@ -29,6 +29,7 @@ private:
 
 	void onAddRoleClicked();
 	void onEditRoleClicked();
+	void onDeleteRoleClicked();
 	void onTableRoleDoubleClicked(QModelIndex ix);
 
 	void setStatusText(const QString &txt);
