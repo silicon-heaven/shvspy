@@ -39,6 +39,7 @@ Makefile*
 .idea
 
 _build
+build
 debug
 release
 distr
