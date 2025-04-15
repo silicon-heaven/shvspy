@@ -56,7 +56,7 @@ ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &serv
 	m_brokerId = ++ s_broker_id;
 
 	auto *rpc_rq_timeout = new QTimer(this);
-	rpc_rq_timeout->start(5000);
+	rpc_rq_timeout->start(TheApp::instance()->cliOptions()->requestTimeout());
 	connect(rpc_rq_timeout, &QTimer::timeout, this, [this]() {
 		QElapsedTimer tm2;
 		tm2.start();
