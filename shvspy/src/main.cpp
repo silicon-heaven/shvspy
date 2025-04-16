@@ -13,61 +13,25 @@
 #include <QDateTime>
 #include <QSettings>
 #include <QFile>
+#include <QDebug>
 
 #include <iostream>
 
-//#define PROFILE_SOMETHING
-#ifdef PROFILE_SOMETHING
-#include <shv/core/utils/shvjournalfilereader.h>
-#include <shv/core/utils/shvjournalfilewriter.h>
-#include <shv/core/utils/shvjournalentry.h>
+#ifdef Q_OS_WASM
+#include <emscripten.h>
+#include <emscripten/val.h>
 
-#include <chrono>
-
-void profile_something()
-{
-	using namespace std::string_literals;
-	using namespace std;
-	using namespace std::chrono;
-	static int n = 0;
-	auto file_name = "/tmp/dirty.log"s;
-	int64_t write_time = 0;
-	int64_t read_time = 0;
-	for(int i = 0; i < 1000; i++) {
-		{
-			auto start = high_resolution_clock::now();
-			{
-				auto writer = shv::core::utils::ShvJournalFileWriter(file_name);
-				auto path_without_prefix = "a/b/c"s;
-				auto data_change = shv::chainpack::DataChange::fromRpcValue(++n);
-
-				auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
-														, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
-														, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
-														, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
-														, data_change.epochMSec());
-				writer.append(entry);
-			}
-			auto stop = high_resolution_clock::now();
-			write_time += duration_cast<microseconds>(stop - start).count();
-		}
-		{
-			auto start = high_resolution_clock::now();
-			{
-				shv::core::utils::ShvJournalFileReader reader(file_name);
-				reader.next(); // There must be at least one entry, because I've just written it.
-			}
-			auto stop = high_resolution_clock::now();
-			read_time += duration_cast<microseconds>(stop - start).count();
-		}
-	}
-	shvInfo() << "write time:" << write_time << "usec";
-	shvInfo() << "read time:" << read_time << "usec";
-}
+#include <QUrl>
+#include <QUrlQuery>
 #endif
 
 int main(int argc, char *argv[])
 {
+#ifdef Q_OS_WASM
+	emscripten::val location = emscripten::val::global("location");
+	QUrl url(QString::fromStdString(location["href"].as<std::string>()));
+	qDebug() << "href:" << url;
+#endif
 	// call something from shv::coreqt to avoid linker error:
 	// error while loading shared libraries: libshvcoreqt.so.1: cannot open shared object file: No such file or directory
 	shv::coreqt::Utils::isDefaultQVariantValue(QVariant());
@@ -76,16 +40,13 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvspy");
 	QCoreApplication::setApplicationVersion(APP_VERSION);
+
+	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 #ifdef Q_OS_WASM
 	NecroLog::setColorizedOutputMode(NecroLog::ColorizedOutputMode::No);
 #endif
-	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
 	int ret = 0;
-#ifdef PROFILE_SOMETHING
-	profile_something();
-	return ret;
-#endif
 	AppCliOptions cli_opts;
 	cli_opts.parse(shv_args);
 	if(cli_opts.isParseError()) {

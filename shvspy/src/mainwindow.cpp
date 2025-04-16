@@ -1,12 +1,14 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
 #include "theapp.h"
+#include "appclioptions.h"
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
 #include "log/rpcnotificationsmodel.h"
 #include "dlgbrokerproperties.h"
-//#include "dlgsubscriptionparameters.h"
+#include "brokerproperty.h"
 #include "dlgcallshvmethod.h"
 #include "dlguserseditor.h"
 #include "dlgroleseditor.h"
@@ -33,6 +35,7 @@
 #include <QInputDialog>
 #include <QScrollBar>
 #include <QFileDialog>
+#include <QUrlQuery>
 
 #include <fstream>
 
@@ -169,41 +172,113 @@ void MainWindow::checkSettingsReady()
 	shvInfo() << "Settings initialized OK";
 #endif
 	auto default_config = []() {
-		static bool is_loaded = false;
-		static shv::chainpack::RpcValue config;
-		if(!is_loaded) {
-			is_loaded = true;
-			QFile f(":/shvspy/config/default-config.json");
-			if(f.open(QFile::ReadOnly)) {
-				QByteArray ba = f.readAll();
-				std::string cpon = ba.toStdString();
-				shvInfo() << "Loading resources setting file:" << f.fileName() << ":\n" << cpon;
-				std::string err;
-				config = shv::chainpack::RpcValue::fromCpon(cpon, &err);
-				if(!err.empty()) {
-					shvError() << "Erorr parse config file:" << err;
-				}
+		shvInfo() << "Loading default config";
+		shv::chainpack::RpcValue config;
+		QFile f(":/shvspy/config/default-config.json");
+		if(f.open(QFile::ReadOnly)) {
+			QByteArray ba = f.readAll();
+			std::string cpon = ba.toStdString();
+			shvMessage() << "Loading resources setting file:" << f.fileName() << ":\n" << cpon;
+			std::string err;
+			config = shv::chainpack::RpcValue::fromCpon(cpon, &err);
+			if(!err.empty()) {
+				shvError() << "Erorr parse config file:" << err;
 			}
-			else {
-				shvWarning() << "Cannot read config file:" << f.fileName();
-			}
+		}
+		else {
+			shvWarning() << "Cannot read config file:" << f.fileName();
 		}
 		return config;
 	};
+
 	QString servers_json = m_settings.value("application/servers").toString();
-	if(servers_json.isEmpty()) {
-		const shv::chainpack::RpcValue rv = default_config();
-		const shv::chainpack::RpcValue &m = rv.asMap().value("application").asMap().value("servers");
-		TheApp::instance()->serverTreeModel()->loadSettings(m);
+	// shvMessage() << "servers_json:" << servers_json;
+	shv::chainpack::RpcValue servers;
+	if (!servers_json.isEmpty()) {
+		std::string err;
+		servers = shv::chainpack::RpcValue::fromCpon(servers_json.toStdString(), &err);
+		if(!err.empty()) {
+			shvError() << "Erorr parse server settings:" << err;
+			return;
+		}
 	}
-	else {
-		TheApp::instance()->loadSettings(m_settings);
+
+	shv::chainpack::RpcValue uiconf;
+	bool use_default_config = servers_json.isEmpty();
+	auto connections = QString::fromStdString(TheApp::instance()->cliOptions()->connections()).trimmed();
+	bool is_adhoc_settings = !connections.isEmpty();
+
+	if(use_default_config || is_adhoc_settings) {
+		auto defconf = default_config();
+		uiconf = defconf.asMap().value("ui");
+		servers = defconf.asMap().value("application").asMap().value("servers");
+		// shvMessage() << "severs2:" << servers.toCpon("  ");
+		if (is_adhoc_settings) {
+			shvInfo() << "Createing servers from adhoc settings:" << connections;
+			int n = 0;
+			QVariantList qservers;
+			for (const auto &urlstr : connections.split(',')) {
+				QUrl url(urlstr);
+				if (!url.isValid()) {
+					shvWarning() << "Invalid connection string url:" << urlstr;
+					continue;
+				}
+				QUrlQuery query(url);
+				QVariantMap conprops;
+				auto set_conprop_from_query = [&query, &conprops](const char *key) {
+					if (query.hasQueryItem(key)) {
+						conprops[key] = query.queryItemValue(key);
+					}
+				};
+				using namespace brokerProperty;
+				auto name = query.queryItemValue(NAME);
+				if (name.isEmpty()) {
+					name = QStringLiteral("Connection %1").arg(++n);
+				}
+				conprops[NAME] = name;
+				conprops[SCHEME] = url.scheme();
+				auto host = url.host();
+				if (host.isEmpty()) {
+					host = url.path();
+				}
+				if (host.isEmpty()) {
+					host = "localhost";
+				}
+				conprops[HOST] = host;
+				conprops[PORT] = url.port(3755);
+				set_conprop_from_query(DEVICE_ID);
+				set_conprop_from_query(DEVICE_MOUNTPOINT);
+				set_conprop_from_query(USER);
+				auto password = query.queryItemValue(PASSWORD);
+				if (!password.isEmpty()) {
+					password = QString::fromStdString(TheApp::instance()->crypt().encrypt(password.toStdString()));
+				}
+				conprops[PASSWORD] = password;
+				set_conprop_from_query(CONNECTIONTYPE);
+				set_conprop_from_query(PLAIN_TEXT_PASSWORD);
+				set_conprop_from_query(AZURELOGIN);
+				// conprops[SKIPLOGINPHASE] = query_value(SKIPLOGINPHASE);
+				set_conprop_from_query(SECURITYTYPE);
+				set_conprop_from_query(PEERVERIFY);
+				// conprops[RPC_PROTOCOLTYPE] = query_value(RPC_PROTOCOLTYPE);
+				set_conprop_from_query(RPC_RECONNECTINTERVAL);
+				set_conprop_from_query(RPC_HEARTBEATINTERVAL);
+				set_conprop_from_query(RPC_RPCTIMEOUT);
+				set_conprop_from_query(MUTEHEARTBEATS);
+				set_conprop_from_query(SHVROOT);
+				qservers << conprops;
+			}
+			if (!qservers.isEmpty()) {
+				servers = shv::coreqt::rpc::qVariantToRpcValue(qservers);
+			}
+		}
 	}
+	// shvMessage() << "severs:" << servers.toCpon("  ");
+	TheApp::instance()->serverTreeModel()->loadServers(servers, is_adhoc_settings);
 	restoreGeometry(m_settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
 	QByteArray wstate = m_settings.value(QStringLiteral("ui/mainWindow/state")).toByteArray();
 	if(wstate.isEmpty()) {
-		const shv::chainpack::RpcValue rv = default_config();
-		const std::string &s = rv.asMap().valref("ui")
+		const std::string &s = uiconf
 				.asMap().valref("mainWindow")
 				.asMap().valref("state").asString();
 		//shvInfo() << "default wstate:" << s;
