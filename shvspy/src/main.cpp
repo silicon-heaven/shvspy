@@ -16,54 +16,12 @@
 
 #include <iostream>
 
-//#define PROFILE_SOMETHING
-#ifdef PROFILE_SOMETHING
-#include <shv/core/utils/shvjournalfilereader.h>
-#include <shv/core/utils/shvjournalfilewriter.h>
-#include <shv/core/utils/shvjournalentry.h>
+#ifdef Q_OS_WASM
+#include <emscripten.h>
+#include <emscripten/val.h>
 
-#include <chrono>
-
-void profile_something()
-{
-	using namespace std::string_literals;
-	using namespace std;
-	using namespace std::chrono;
-	static int n = 0;
-	auto file_name = "/tmp/dirty.log"s;
-	int64_t write_time = 0;
-	int64_t read_time = 0;
-	for(int i = 0; i < 1000; i++) {
-		{
-			auto start = high_resolution_clock::now();
-			{
-				auto writer = shv::core::utils::ShvJournalFileWriter(file_name);
-				auto path_without_prefix = "a/b/c"s;
-				auto data_change = shv::chainpack::DataChange::fromRpcValue(++n);
-
-				auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
-														, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
-														, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
-														, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
-														, data_change.epochMSec());
-				writer.append(entry);
-			}
-			auto stop = high_resolution_clock::now();
-			write_time += duration_cast<microseconds>(stop - start).count();
-		}
-		{
-			auto start = high_resolution_clock::now();
-			{
-				shv::core::utils::ShvJournalFileReader reader(file_name);
-				reader.next(); // There must be at least one entry, because I've just written it.
-			}
-			auto stop = high_resolution_clock::now();
-			read_time += duration_cast<microseconds>(stop - start).count();
-		}
-	}
-	shvInfo() << "write time:" << write_time << "usec";
-	shvInfo() << "read time:" << read_time << "usec";
-}
+#include <QUrl>
+#include <QUrlQuery>
 #endif
 
 int main(int argc, char *argv[])
@@ -76,16 +34,31 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvspy");
 	QCoreApplication::setApplicationVersion(APP_VERSION);
+
 #ifdef Q_OS_WASM
 	NecroLog::setColorizedOutputMode(NecroLog::ColorizedOutputMode::No);
-#endif
+
+	std::vector<std::string> shv_args = {"shvspy"};
+
+	emscripten::val location = emscripten::val::global("location");
+	auto urlstr = QString::fromStdString(location["href"].as<std::string>());
+	QUrl url(urlstr);
+	shvInfo() << "url string:" << urlstr;
+	QUrlQuery q(url);
+	shvInfo() << "url:" << url.toString();
+	for (const auto &[k, v] : q.queryItems()) {
+		auto arg = QStringLiteral("--%1").arg(k).toStdString();
+		shvInfo() << "Adding CLI arg:" << arg << v;
+		shv_args.push_back(arg);
+		if (!v.isEmpty()) {
+			shv_args.push_back(v.toStdString());
+		}
+	}
+#else
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
+#endif
 
 	int ret = 0;
-#ifdef PROFILE_SOMETHING
-	profile_something();
-	return ret;
-#endif
 	AppCliOptions cli_opts;
 	cli_opts.parse(shv_args);
 	if(cli_opts.isParseError()) {

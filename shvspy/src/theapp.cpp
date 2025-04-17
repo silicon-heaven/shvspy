@@ -33,11 +33,6 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 
 TheApp::~TheApp() = default;
 
-void TheApp::loadSettings(QSettings &settings)
-{
-	m_serverTreeModel->loadSettings(settings);
-}
-
 void TheApp::saveSettings(QSettings &settings)
 {
 	m_serverTreeModel->saveSettings(settings);

@@ -12,7 +12,7 @@
         "password":"",
         "peerVerify":false,
         "port":3778,
-		"rpc.rpcTimeout":5,
+        "rpc.rpcTimeout":5,
         "rpc.heartbeatInterval":60,
         "rpc.protocolType":1,
         "rpc.reconnectInterval":10,

@@ -1,6 +1,7 @@
 #include "servertreemodel.h"
 #include "shvbrokernodeitem.h"
 
+#include "../brokerproperty.h"
 #include "../theapp.h"
 
 #include <shv/core/utils.h>
@@ -46,7 +47,7 @@ QModelIndex ServerTreeModel::parent(const QModelIndex &child) const
 
 ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
-	auto *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
+	auto *ret = new ShvBrokerNodeItem(this, params.value(brokerProperty::NAME).toString().toStdString(), params.value(brokerProperty::RPC_RPCTIMEOUT).toInt());
 
 	connect(ret, &ShvBrokerNodeItem::subscriptionAdded, this, [this, ret](const std::string &path, const std::string &method){
 		emit ServerTreeModel::subscriptionAdded(ret->brokerId(), path, method);
@@ -60,28 +61,12 @@ ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 		emit ServerTreeModel::brokerConnectedChanged(ret->brokerId(), is_connected);
 	});
 
-	const std::string broker_name = ret->nodeId();
 	ret->setBrokerProperties(params);
 	ShvNodeRootItem *root = invisibleRootItem();
 	root->appendChild(ret);
 	return ret;
 }
-/*
-ServerNode *ServerTreeModel::connectionForOid(int oid)
-{
-	ServerNode *ret = nullptr;
-	QStandardItem *root = invisibleRootItem();
-	for(int i=0; i<root->rowCount(); i++) {
-		ServerNode *nd = dynamic_cast<ServerNode*>(root->child(i));
-		SHV_ASSERT_EX(nd != nullptr, "Internal error");
-		if(nd->oid() == oid) {
-			ret = nd;
-			break;
-		}
-	}
-	return ret;
-}
-*/
+
 int ServerTreeModel::columnCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent);
@@ -175,20 +160,9 @@ ShvBrokerNodeItem *ServerTreeModel::brokerById(int id)
 	return nullptr;
 }
 
-void ServerTreeModel::loadSettings(const QSettings &settings)
+void ServerTreeModel::loadServers(const shv::chainpack::RpcValue &settings, bool is_adhoc_settings)
 {
-	QString servers_json = settings.value("application/servers").toString();
-	std::string err;
-	shv::chainpack::RpcValue rv = shv::chainpack::RpcValue::fromCpon(servers_json.toStdString(), &err);
-	if(!err.empty()) {
-		shvError() << "Erorr parse server settings:" << err;
-		return;
-	}
-	loadSettings(rv);
-}
-
-void ServerTreeModel::loadSettings(const shv::chainpack::RpcValue &settings)
-{
+	m_isAdHocSettings = is_adhoc_settings;
 	for(const auto &rv : settings.asList()) {
 		QVariantMap m = shv::coreqt::Utils::rpcValueToQVariant(rv).toMap();
 		m["password"] = QString::fromStdString(TheApp::instance()->crypt().decrypt(m.value("password").toString().toStdString()));
@@ -198,6 +172,9 @@ void ServerTreeModel::loadSettings(const shv::chainpack::RpcValue &settings)
 
 void ServerTreeModel::saveSettings(QSettings &settings) const
 {
+	if (m_isAdHocSettings) {
+		return;
+	}
 	ShvNodeRootItem *root = invisibleRootItem();
 	QVariantList lst;
 	for(int i=0; i<root->childCount(); i++) {

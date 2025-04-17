@@ -30,8 +30,7 @@ public:
 	ShvNodeRootItem* invisibleRootItem() const {return m_invisibleRoot;}
 	ShvBrokerNodeItem* brokerById(int id);
 
-	void loadSettings(const QSettings &settings);
-	void loadSettings(const shv::chainpack::RpcValue &settings);
+	void loadServers(const shv::chainpack::RpcValue &settings, bool is_adhoc_settings);
 	void saveSettings(QSettings &settings) const;
 public:
 	ShvBrokerNodeItem* createConnection(const QVariantMap &params);
@@ -45,5 +44,6 @@ private:
 	ShvNodeRootItem *m_invisibleRoot;
 	QMap<unsigned, ShvNodeItem*> m_nodes;
 	unsigned m_maxId = 0;
+	bool m_isAdHocSettings = false;
 };
 
