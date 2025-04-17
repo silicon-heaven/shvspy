@@ -214,15 +214,17 @@ void MainWindow::checkSettingsReady()
 		servers = defconf.asMap().value("application").asMap().value("servers");
 		// shvMessage() << "severs2:" << servers.toCpon("  ");
 		if (is_adhoc_settings) {
-			shvInfo() << "Createing servers from adhoc settings:" << connections;
+			shvInfo() << "Creating servers from adhoc settings:" << connections;
 			int n = 0;
 			QVariantList qservers;
 			for (const auto &urlstr : connections.split(',')) {
-				QUrl url(urlstr);
+				auto urlstr_decoded = QUrl::fromPercentEncoding(urlstr.toUtf8());
+				QUrl url(urlstr_decoded);
 				if (!url.isValid()) {
-					shvWarning() << "Invalid connection string url:" << urlstr;
+					shvWarning() << "Invalid connection string url:" << urlstr << "decoded:" << urlstr_decoded;
 					continue;
 				}
+				shvInfo() << "Adding adhoc dserver url:" << url.toString();
 				QUrlQuery query(url);
 				QVariantMap conprops;
 				auto set_conprop_from_query = [&query, &conprops](const char *key) {

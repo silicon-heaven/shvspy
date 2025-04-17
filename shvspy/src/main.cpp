@@ -13,7 +13,6 @@
 #include <QDateTime>
 #include <QSettings>
 #include <QFile>
-#include <QDebug>
 
 #include <iostream>
 
@@ -39,14 +38,21 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_WASM
 	NecroLog::setColorizedOutputMode(NecroLog::ColorizedOutputMode::No);
 
-	std::vector<std::string> shv_args;
+	std::vector<std::string> shv_args = {"shvspy"};
 
 	emscripten::val location = emscripten::val::global("location");
-	QUrl url(QString::fromStdString(location["href"].as<std::string>()));
-	qDebug() << "href:" << url;
+	auto urlstr = QString::fromStdString(location["href"].as<std::string>());
+	QUrl url(urlstr);
+	shvInfo() << "url string:" << urlstr;
 	QUrlQuery q(url);
+	shvInfo() << "url:" << url.toString();
 	for (const auto &[k, v] : q.queryItems()) {
-		shv_args.push_back(QStringLiteral("--%1 %2").arg(k).arg(v).toStdString());
+		auto arg = QStringLiteral("--%1").arg(k).toStdString();
+		shvInfo() << "Adding CLI arg:" << arg << v;
+		shv_args.push_back(arg);
+		if (!v.isEmpty()) {
+			shv_args.push_back(v.toStdString());
+		}
 	}
 #else
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
