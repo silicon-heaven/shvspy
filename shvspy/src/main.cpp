@@ -27,11 +27,6 @@
 
 int main(int argc, char *argv[])
 {
-#ifdef Q_OS_WASM
-	emscripten::val location = emscripten::val::global("location");
-	QUrl url(QString::fromStdString(location["href"].as<std::string>()));
-	qDebug() << "href:" << url;
-#endif
 	// call something from shv::coreqt to avoid linker error:
 	// error while loading shared libraries: libshvcoreqt.so.1: cannot open shared object file: No such file or directory
 	shv::coreqt::Utils::isDefaultQVariantValue(QVariant());
@@ -41,9 +36,20 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationName("shvspy");
 	QCoreApplication::setApplicationVersion(APP_VERSION);
 
-	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 #ifdef Q_OS_WASM
 	NecroLog::setColorizedOutputMode(NecroLog::ColorizedOutputMode::No);
+
+	std::vector<std::string> shv_args;
+
+	emscripten::val location = emscripten::val::global("location");
+	QUrl url(QString::fromStdString(location["href"].as<std::string>()));
+	qDebug() << "href:" << url;
+	QUrlQuery q(url);
+	for (const auto &[k, v] : q.queryItems()) {
+		shv_args.push_back(QStringLiteral("--%1 %2").arg(k).arg(v).toStdString());
+	}
+#else
+	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 #endif
 
 	int ret = 0;
