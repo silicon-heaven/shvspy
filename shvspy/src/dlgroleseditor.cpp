@@ -117,7 +117,7 @@ void DlgRolesEditor::onDeleteRoleClicked()
 		return;
 	}
 
-	ui->lblStatus->setText("");
+	setStatusText({});
 
 	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete role") + " " + role) == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
