@@ -122,7 +122,8 @@ void DlgRolesEditor::onDeleteRoleClicked()
 	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete role") + " " + role) == QMessageBox::Yes){
 		shv::chainpack::RpcValue::List params{role.toStdString(), shv::chainpack::RpcValue()};
 		auto *rpc_call = shv::iotqt::rpc::RpcCall::create(m_rpcConnection)->setShvPath(aclEtcRolesNodePath())->setMethod(SET_VALUE_METHOD)->setParams(params);
-		connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, context, [this](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+		connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+			Q_UNUSED(result)
 			if (error.isValid()) {
 				setStatusText(tr("Failed to delete role. Error: ") + " " + QString::fromStdString(error.toString()));
 			}
