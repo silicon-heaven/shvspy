@@ -120,25 +120,17 @@ void DlgRolesEditor::onDeleteRoleClicked()
 	setStatusText({});
 
 	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete role") + " " + role) == QMessageBox::Yes){
-		int rqid = m_rpcConnection->nextRequestId();
-		auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-			if(response.isValid()){
-				if(response.isError()) {
-					ui->lblStatus->setText(tr("Failed to delete role.") + " " + QString::fromStdString(response.error().toString()));
-				}
-				else{
-					listRoles();
-				}
+		shv::chainpack::RpcValue::List params{role.toStdString(), shv::chainpack::RpcValue()};
+		auto *rpc_call = shv::iotqt::rpc::RpcCall::create(m_rpcConnection)->setShvPath(aclEtcRolesNodePath())->setMethod(SET_VALUE_METHOD)->setParams(params);
+		connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, context, [this](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+			if (error.isValid()) {
+				setStatusText(tr("Failed to delete role. Error: ") + " " + QString::fromStdString(error.toString()));
 			}
-			else{
-				ui->lblStatus->setText(tr("Request timeout expired"));
+			else {
+				listRoles();
 			}
 		});
-
-		shv::chainpack::RpcValue::List params{role.toStdString(), shv::chainpack::RpcValue()};
-		m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), SET_VALUE_METHOD, params);
+		rpc_call->start();
 	}
 }
 
