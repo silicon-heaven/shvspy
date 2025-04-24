@@ -86,7 +86,7 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 			}
 			else{
 				if (response.result().isMap()){
-					shv::iotqt::acl::AclRole r = shv::iotqt::acl::AclRole::fromRpcValue(response.result());
+					shv::iotqt::acl::AclRole r = shv::iotqt::acl::AclRole::fromRpcValue(response.result()).value();
 					m_shvRoles[QString::fromStdString(role_name)] = r.roles;
 				}
 

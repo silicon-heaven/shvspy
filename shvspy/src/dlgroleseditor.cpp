@@ -43,6 +43,7 @@ DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 
 	connect(ui->pbAddRole, &QPushButton::clicked, this, &DlgRolesEditor::onAddRoleClicked);
 	connect(ui->pbEditRole, &QPushButton::clicked, this, &DlgRolesEditor::onEditRoleClicked);
+	connect(ui->pbDeleteRole, &QPushButton::clicked, this, &DlgRolesEditor::onDeleteRoleClicked);
 	connect(ui->twRoles, &QTableView::doubleClicked, this, &DlgRolesEditor::onTableRoleDoubleClicked);
 	connect(ui->leFilter, &QLineEdit::textChanged, m_modelProxy, &QSortFilterProxyModel::setFilterFixedString);
 
@@ -105,6 +106,33 @@ void DlgRolesEditor::onEditRoleClicked()
 		dlg->deleteLater();
 	});
 	dlg->open();
+}
+
+void DlgRolesEditor::onDeleteRoleClicked()
+{
+	QString role = selectedRole();
+
+	if (role.isEmpty()){
+		setStatusText(tr("Select role in the table above."));
+		return;
+	}
+
+	setStatusText({});
+
+	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete role") + " " + role) == QMessageBox::Yes){
+		shv::chainpack::RpcValue::List params{role.toStdString(), shv::chainpack::RpcValue()};
+		auto *rpc_call = shv::iotqt::rpc::RpcCall::create(m_rpcConnection)->setShvPath(aclEtcRolesNodePath())->setMethod(SET_VALUE_METHOD)->setParams(params);
+		connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+			Q_UNUSED(result)
+			if (error.isValid()) {
+				setStatusText(tr("Failed to delete role. Error: ") + " " + QString::fromStdString(error.toString()));
+			}
+			else {
+				listRoles();
+			}
+		});
+		rpc_call->start();
+	}
 }
 
 void DlgRolesEditor::onTableRoleDoubleClicked(QModelIndex ix)
