@@ -33,7 +33,6 @@ public:
 	shv::visu::ErrorLogModel* errorLogModel() {return m_errorLogModel;}
 	const shv::core::utils::Crypt& crypt() {return m_crypt;}
 
-	void loadSettings(QSettings &settings);
 	void saveSettings(QSettings &settings);
 
 	static std::string aclAccessPath(const std::string &broker_path, shv::iotqt::rpc::ClientConnection::ShvApiVersion api_version);

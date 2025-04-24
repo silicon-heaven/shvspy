@@ -12,6 +12,8 @@ private:
 	CLIOPTION_GETTER_SETTER2(bool, "rpc.metaTypeExplicit", is, set, MetaTypeExplicit)
 	CLIOPTION_GETTER_SETTER2(bool, "rawRpcMessageLog", is, set, RawRpcMessageLog)
 	CLIOPTION_GETTER_SETTER2(std::string, "configDir", c, setC, onfigDir)
+	// CLIOPTION_GETTER_SETTER2(int, "requestTimeout", r, setR, equestTimeout)
+	CLIOPTION_GETTER_SETTER2(std::string, "connections", c, setC, onnections)
 public:
 	AppCliOptions();
 	//~AppCliOptions() Q_DECL_OVERRIDE {}

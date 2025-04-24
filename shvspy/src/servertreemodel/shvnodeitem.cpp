@@ -265,7 +265,16 @@ void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_dirRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_DIR, RpcValue::List{std::string(), true});
+	auto dir_param = [srv_nd] () -> RpcValue {
+		switch (srv_nd->clientConnection()->shvApiVersion()) {
+		case shv::chainpack::IRpcConnection::ShvApiVersion::V2:
+			return RpcValue::List{std::string(), true};
+		case shv::chainpack::IRpcConnection::ShvApiVersion::V3:
+			return RpcValue(nullptr);
+		}
+		__builtin_unreachable();
+	}();
+	m_dirRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_DIR, dir_param);
 }
 
 void ShvNodeItem::setMethodParams(int method_ix, const shv::chainpack::RpcValue &params)

@@ -49,21 +49,26 @@ struct ShvBrokerNodeItem::RpcRequestInfo
 	}
 };
 
-ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name)
+ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name, int rpc_timeout_sec)
 	: Super(m, server_name)
 {
 	static int s_broker_id = 0;
 	m_brokerId = ++ s_broker_id;
 
 	auto *rpc_rq_timeout = new QTimer(this);
-	rpc_rq_timeout->start(5000);
-	connect(rpc_rq_timeout, &QTimer::timeout, this, [this]() {
+	auto rpc_timeout_msec = rpc_timeout_sec * 1000;
+	if (rpc_timeout_msec == 0) {
+		rpc_timeout_msec = 5000;
+	}
+	rpc_rq_timeout->start(rpc_timeout_msec);
+	connect(rpc_rq_timeout, &QTimer::timeout, this, [this, server_name, rpc_timeout_msec]() {
 		QElapsedTimer tm2;
 		tm2.start();
 		auto it = m_runningRpcRequests.begin();
 		while (it != m_runningRpcRequests.end()) {
-			if(it->second.startTS.msecsTo(tm2) > shv::iotqt::rpc::ClientConnection::defaultRpcTimeoutMsec()) {
-				shvWarning() << "RPC request timeout expired for node:" << it->second.shvPath;
+			auto elapsed = it->second.startTS.msecsTo(tm2);
+			if(elapsed > rpc_timeout_msec) {
+				shvWarning() << "RPC request timeout expired for node:" << server_name << it->second.shvPath << "after:" << elapsed << "msecs.";
 				it = m_runningRpcRequests.erase(it);
 			}
 			else
