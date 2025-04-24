@@ -178,7 +178,7 @@ void DlgAddEditRole::callGetRoleSettings()
 				setStatusText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				m_role = shv::iotqt::acl::AclRole::fromRpcValue(response.result());
+				m_role = shv::iotqt::acl::AclRole::fromRpcValue(response.result()).value_or(shv::iotqt::acl::AclRole());
 				setRoles(m_role.roles);
 				setProfile(m_role.profile);
 				// libshv no longer supports weight, so we need to handle it manually.
