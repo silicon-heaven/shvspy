@@ -186,6 +186,11 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 {
 	if(msg.isResponse()) {
 		RpcResponse resp(msg);
+		if (resp.delay().has_value()) {
+			// Ignore delay messages for now, they should prolongue method call timeout,
+			// but it is also not implemented yet.
+			return;
+		}
 		int rqid = resp.requestId().toInt();
 		if(rqid == m_loadChildrenRqId) {
 			m_loadChildrenRqId = 0;
@@ -197,14 +202,6 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			for(const auto &dir_entry : res.asList()) {
 				std::string ndid = dir_entry.asString();
 				auto *nd = new ShvNodeItem(m, ndid);
-				//if(!long_dir_entry.empty()) {
-				//	RpcValue has_children = long_dir_entry.value(1);
-				//	if(has_children.isBool()) {
-				//		nd->setHasChildren(has_children.toBool());
-				//		if(!has_children.toBool())
-				//			nd->setChildrenLoaded();
-				//	}
-				//}
 				appendChild(nd);
 			}
 			emitDataChanged();

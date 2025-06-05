@@ -118,7 +118,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		if(ix.column() == AttributesModel::ColBtRun) {
 			try {
 				TheApp::instance()->attributesModel()->callMethod(ix.row(), shv::core::Exception::Throw);
-			}  catch (const std::exception &e) {
+			} catch (const std::exception &e) {
 				QMessageBox::warning(this, tr("Method call error"), tr("Method call error: %1").arg(e.what()));
 			}
 		}

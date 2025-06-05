@@ -405,6 +405,10 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
+		if (resp.delay().has_value()) {
+			// ignore delay messages
+			return;
+		}
 		if(resp.isError())
 			TheApp::instance()->errorLogModel()->addLogRow(
 						NecroLog::Level::Error
@@ -414,7 +418,6 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		int rqid = resp.requestId().toInt();
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
-			//shvWarning() << "unexpected request id:" << rqid;
 			// can be load attributes request
 			return;
 		}
