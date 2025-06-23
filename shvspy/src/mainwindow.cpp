@@ -679,6 +679,12 @@ void MainWindow::onNotificationsDoubleClicked(const QModelIndex &ix)
 void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)
 {
 	Q_UNUSED(prev_ix)
+
+	// This happens when you delete the last server in the server tree.
+	if (!curr_ix.isValid()) {
+		return;
+	}
+
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
 	if(nd) {
 		AttributesModel *m = TheApp::instance()->attributesModel();
