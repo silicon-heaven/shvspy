@@ -223,7 +223,7 @@ void ShvBrokerNodeItem::open()
 	bool azure_login = m_brokerPropeties.value(brokerProperty::AZURELOGIN, false).toBool();
 
 	if (azure_login) {
-		if (scheme_enum != shv::iotqt::rpc::Socket::Scheme::Ssl) {
+		if (scheme_enum != shv::iotqt::rpc::Socket::Scheme::Ssl && scheme_enum != shv::iotqt::rpc::Socket::Scheme::WebSocketSecure) {
 			QMessageBox::warning(nullptr, tr("Alert"), tr("Can't connect via Azure through an unencrypted connection. Please enable SSL."));
 			m_openStatus = OpenStatus::Disconnected;
 			return;
