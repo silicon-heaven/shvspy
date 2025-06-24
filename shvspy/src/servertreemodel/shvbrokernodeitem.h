@@ -18,7 +18,7 @@ public:
 	static const QString SUBSCRIPTIONS;
 	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
 public:
-        explicit ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name, int rpc_timeout_msec);
+	explicit ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name, int rpc_timeout_msec);
 	~ShvBrokerNodeItem() Q_DECL_OVERRIDE;
 
 	QVariant data(int role = Qt::UserRole + 1) const Q_DECL_OVERRIDE;
@@ -28,7 +28,6 @@ public:
 	bool isOpen() const {return openStatus() == OpenStatus::Connected;}
 	void open();
 	void close();
-	//QString connectionErrorString();
 	const std::string &shvRoot() const;
 
 	QVariantMap brokerProperties() const;
