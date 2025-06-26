@@ -78,8 +78,7 @@ void DlgSelectRoles::editRole()
 	QStandardItem *item = m_rolesTreeModel->itemFromIndex(ui->tvRoles->currentIndex());
 	QString role_name = item->data(RolesTreeModel::NameRole).toString();
 
-	auto dlg = new DlgAddEditRole (this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Edit);
-	dlg->init(role_name);
+	auto dlg = new DlgAddEditRole (this, m_rpcConnection, m_aclEtcNodePath, role_name, DlgAddEditRole::DialogType::Edit);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg, item] (int result) mutable {
 		if (result == QDialog::Accepted) {
 			m_currentItemPath << item->text();

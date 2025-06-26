@@ -22,14 +22,14 @@ class DlgAddEditRole : public QDialog
 public:
 	enum class DialogType {Add = 0, Edit, Count};
 
-	explicit DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt = DialogType::Add);
+	explicit DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QString &role_name = {}, DlgAddEditRole::DialogType dt = DialogType::Add);
 	~DlgAddEditRole() override;
 
 	DialogType dialogType();
-	void init(const QString &role_name);
 	void accept() Q_DECL_OVERRIDE;
-
 private:
+	void loadRole(const QString &role_name);
+
 	void callSetRoleSettings();
 	void callGetRoleSettings();
 	void checkExistingRole(std::function<void(bool, bool)> callback);
@@ -48,10 +48,11 @@ private:
 	shv::chainpack::RpcValue profile() const;
 	void setProfile(const shv::chainpack::RpcValue &p);
 
-	std::string aclEtcRoleNodePath();
-	std::string aclEtcAcessNodePath();
+	std::string aclShvPath();
+	std::string rolesShvPath();
 	std::string roleShvPath();
 	std::string accessShvPath();
+	std::string roleAccessShvPath();
 
 	void onAddRowClicked();
 	void onDeleteRowClicked();

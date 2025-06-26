@@ -1,7 +1,5 @@
 #include "accessmodel.h"
 
-#include "../theapp.h"
-
 #include <shv/coreqt/log.h>
 #include <shv/core/exception.h>
 #include <shv/chainpack/rpcvalue.h>

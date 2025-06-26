@@ -16,7 +16,7 @@ using namespace std;
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt)
+DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QString &role_name, DlgAddEditRole::DialogType dt)
 	: QDialog(parent)
 	, ui(new Ui::DlgAddEditRole)
 	, m_aclEtcNodePath(acl_etc_node_path)
@@ -46,6 +46,11 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	m_rpcConnection = rpc_connection;
 
 	setStatusText((m_rpcConnection == nullptr) ? tr("Connection to shv does not exist.") : QString());
+
+	if (dt == DialogType::Edit) {
+		Q_ASSERT(!role_name.isEmpty());
+		loadRole(role_name);
+	}
 }
 
 DlgAddEditRole::~DlgAddEditRole()
@@ -58,7 +63,7 @@ DlgAddEditRole::DialogType DlgAddEditRole::dialogType()
 	return m_dialogType;
 }
 
-void DlgAddEditRole::init(const QString &role_name)
+void DlgAddEditRole::loadRole(const QString &role_name)
 {
 	ui->leRoleName->setText(role_name);
 	callGetRoleSettings();
@@ -126,7 +131,7 @@ void DlgAddEditRole::checkExistingRole(std::function<void(bool, bool)> callback)
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), shv::chainpack::Rpc::METH_LS);
+	m_rpcConnection->callShvMethod(rqid, rolesShvPath(), shv::chainpack::Rpc::METH_LS);
 }
 
 void DlgAddEditRole::callSetRoleSettings()
@@ -160,7 +165,7 @@ void DlgAddEditRole::callSetRoleSettings()
 	}
 
 	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_rpc};
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
+	m_rpcConnection->callShvMethod(rqid, rolesShvPath(), SET_VALUE_METHOD, params);
 }
 
 void DlgAddEditRole::callGetRoleSettings()
@@ -175,7 +180,7 @@ void DlgAddEditRole::callGetRoleSettings()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if (response.isError()) {
-				setStatusText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed to call method %1.").arg(QString::fromStdString(roleShvPath() + ':' + VALUE_METHOD)) + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				m_role = shv::iotqt::acl::AclRole::fromRpcValue(response.result()).value_or(shv::iotqt::acl::AclRole());
@@ -215,7 +220,7 @@ void DlgAddEditRole::callGetAccessRulesForRole()
 			if(response.isError()) {
 				setStatusText(tr("Error: %1").arg(QString::fromStdString(response.error().toString())));
 			}
-			else{
+			else {
 				m_accessModel->setRules(response.result());
 				setStatusText(QString());
 				return;
@@ -227,7 +232,7 @@ void DlgAddEditRole::callGetAccessRulesForRole()
 		m_accessModel->setRules(shv::chainpack::RpcValue());
 	});
 
-	m_rpcConnection->callShvMethod(rqid, accessShvPath(), VALUE_METHOD);
+	m_rpcConnection->callShvMethod(rqid, roleAccessShvPath(), VALUE_METHOD);
 }
 
 void DlgAddEditRole::callSetAccessRulesForRole()
@@ -256,7 +261,7 @@ void DlgAddEditRole::callSetAccessRulesForRole()
 	});
 
 	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_accessModel->rules()};
-	m_rpcConnection->callShvMethod(rqid, aclEtcAcessNodePath(), SET_VALUE_METHOD, params);
+	m_rpcConnection->callShvMethod(rqid, accessShvPath(), SET_VALUE_METHOD, params);
 }
 
 std::vector<std::string> DlgAddEditRole::roles() const
@@ -320,24 +325,29 @@ void DlgAddEditRole::setProfile(const shv::chainpack::RpcValue &p)
 		ui->leProfile->setText(QString());
 }
 
-std::string DlgAddEditRole::aclEtcRoleNodePath()
+std::string DlgAddEditRole::rolesShvPath()
 {
-	return m_aclEtcNodePath + "/roles";
+	return aclShvPath() + "/roles";
 }
 
-std::string DlgAddEditRole::aclEtcAcessNodePath()
+std::string DlgAddEditRole::aclShvPath()
 {
-	return m_aclEtcNodePath + "/access";
+	return m_aclEtcNodePath;
 }
 
 std::string DlgAddEditRole::roleShvPath()
 {
-	return aclEtcRoleNodePath() + '/' + roleName().toStdString();
+	return rolesShvPath() + '/' + roleName().toStdString();
 }
 
-std::string DlgAddEditRole::accessShvPath()
+string DlgAddEditRole::accessShvPath()
 {
-	return aclEtcAcessNodePath() + '/' + roleName().toStdString();
+	return aclShvPath() + "/access";
+}
+
+string DlgAddEditRole::roleAccessShvPath()
+{
+	return accessShvPath() + "/" + roleName().toStdString();
 }
 
 void DlgAddEditRole::onAddRowClicked()

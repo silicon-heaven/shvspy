@@ -64,7 +64,7 @@ std::string DlgRolesEditor::aclEtcRolesNodePath()
 
 std::string DlgRolesEditor::aclEtcAccessNodePath()
 {
-	return aclAccessPath() + "/access";
+	return aclAccessPath();
 }
 
 QString DlgRolesEditor::selectedRole()
@@ -74,7 +74,7 @@ QString DlgRolesEditor::selectedRole()
 
 void DlgRolesEditor::onAddRoleClicked()
 {
-	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath(), DlgAddEditRole::DialogType::Add);
+	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath());
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listRoles();
@@ -96,8 +96,7 @@ void DlgRolesEditor::onEditRoleClicked()
 
 	setStatusText(QString());
 
-	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath(), DlgAddEditRole::DialogType::Edit);
-	dlg->init(role);
+	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath(), role, DlgAddEditRole::DialogType::Edit);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listRoles();
