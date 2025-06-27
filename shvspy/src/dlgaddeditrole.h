@@ -28,7 +28,7 @@ public:
 							QWidget *parent);
 	~DlgAddEditRole() override;
 
-	void accept() Q_DECL_OVERRIDE;
+	void accept() override;
 private:
 	bool isV2() const { return m_shvApiVersion == shv::chainpack::IRpcConnection::ShvApiVersion::V2; }
 	void loadRole(const QString &role_name);

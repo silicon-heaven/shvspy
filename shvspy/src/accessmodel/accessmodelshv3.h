@@ -37,6 +37,8 @@ private:
 	struct Rule {
 		QString shvRI;
 		QString grant; // comma separated list of grants, one must be convertible to access_level
+
+		bool isValid() const;
 	};
 	QList<Rule> m_rules;
 };

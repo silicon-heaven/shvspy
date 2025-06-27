@@ -3,8 +3,7 @@
 #include <shv/coreqt/log.h>
 #include <shv/core/exception.h>
 #include <shv/chainpack/rpcvalue.h>
-
-#include <QBrush>
+#include <shv/iotqt/node/shvnode.h>
 
 using namespace shv::chainpack;
 using namespace std;
@@ -153,7 +152,10 @@ QVariant AccessModelShv3::headerData(int section, Qt::Orientation orientation, i
 void AccessModelShv3::addRule()
 {
 	beginInsertRows(QModelIndex(), rowCount(), rowCount());
-	m_rules << Rule{};
+	m_rules << Rule{
+			   .shvRI = "**:*:*",
+			   .grant = "bws",
+	};
 	endInsertRows();
 }
 
@@ -190,11 +192,20 @@ void AccessModelShv3::deleteRule(int index)
 
 bool AccessModelShv3::isRulesValid()
 {
-	// for (int i = 0; i < rowCount(); i++){
-	// 	if (!m_rules[i].isValid())
-	// 		return false;
-	// }
+	for (int i = 0; i < rowCount(); i++){
+		if (!m_rules[i].isValid())
+			return false;
+	}
 
 	return true;
 }
 
+
+bool AccessModelShv3::Rule::isValid() const
+{
+	auto al = shv::iotqt::node::ShvNode::basicGrantToAccessLevel(grant.toStdString());
+	if (al == shv::chainpack::AccessLevel::None) {
+		return false;
+	}
+	return !shvRI.isEmpty();
+}
