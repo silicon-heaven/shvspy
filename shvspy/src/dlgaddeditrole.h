@@ -33,11 +33,11 @@ private:
 	bool isV2() const { return m_shvApiVersion == shv::chainpack::IRpcConnection::ShvApiVersion::V2; }
 	void loadRole(const QString &role_name);
 
-	void callSetRoleSettings();
+	void saveRoleAndExitIfSuccess();
 	void callGetRoleSettings();
 	void checkExistingRole(std::function<void(bool, bool)> callback);
 
-	void callSetAccessRulesForRole();
+	void saveAccessRulesAndExitIfSuccess();
 	void callGetAccessRulesForRole();
 
 	QString roleName() const;
