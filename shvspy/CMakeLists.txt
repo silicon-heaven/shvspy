@@ -1,6 +1,7 @@
 qt_add_executable(shvspy
-    src/accessmodel/accessitemdelegate.cpp
+    src/accessmodel/accessitemdelegateshv2.cpp
     src/accessmodel/accessmodel.cpp
+    src/accessmodel/accessmodelshv2.cpp
     src/attributesmodel/attributesmodel.cpp
     src/dlgaddeditmount.cpp
     src/dlgaddeditrole.cpp

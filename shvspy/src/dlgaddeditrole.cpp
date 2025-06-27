@@ -1,7 +1,7 @@
 #include "dlgaddeditrole.h"
 #include "ui_dlgaddeditrole.h"
-#include "accessmodel/accessmodel.h"
-#include "accessmodel/accessitemdelegate.h"
+#include "accessmodel/accessmodelshv2.h"
+#include "accessmodel/accessitemdelegateshv2.h"
 
 #include "shv/coreqt/log.h"
 #include <shv/iotqt/rpc/rpccall.h>
@@ -16,14 +16,15 @@ using namespace std;
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QString &role_name, DlgAddEditRole::DialogType dt)
+DlgAddEditRole::DlgAddEditRole(shv::chainpack::IRpcConnection::ShvApiVersion shv_api_version, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QString &role_name, QWidget *parent)
 	: QDialog(parent)
+	, m_shvApiVersion(shv_api_version)
 	, ui(new Ui::DlgAddEditRole)
 	, m_aclEtcNodePath(acl_etc_node_path)
-	, m_accessModel(new AccessModel(this))
+	, m_accessModel(isV2()? new AccessModelShv2(this):  new AccessModelShv2(this))
 {
 	ui->setupUi(this);
-	m_dialogType = dt;
+	m_dialogType = role_name.isEmpty()? DialogType::Add: DialogType::Add;
 	bool edit_mode = (m_dialogType == DialogType::Edit);
 
 	ui->leRoleName->setReadOnly(edit_mode);
@@ -31,12 +32,13 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	setWindowTitle(edit_mode ? tr("Edit role dialog") : tr("New role dialog"));
 
 	ui->tvAccessRules->setModel(m_accessModel);
-	ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tvAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
-	ui->tvAccessRules->setColumnWidth(AccessModel::Columns::ColPath, static_cast<int>(frameGeometry().width() * 0.6));
+	// ui->tvAccessRules->setColumnWidth(AccessModel::Columns::ColPath, static_cast<int>(frameGeometry().width() * 0.6));
 
-	auto *del = new AccessItemDelegate(ui->tvAccessRules);
-	ui->tvAccessRules->setItemDelegate(del);
+	if (isV2()) {
+		auto *del = new AccessItemDelegateShv2(ui->tvAccessRules);
+		ui->tvAccessRules->setItemDelegate(del);
+	}
 
 	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditRole::onAddRowClicked);
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditRole::onDeleteRowClicked);
@@ -47,8 +49,7 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 
 	setStatusText((m_rpcConnection == nullptr) ? tr("Connection to shv does not exist.") : QString());
 
-	if (dt == DialogType::Edit) {
-		Q_ASSERT(!role_name.isEmpty());
+	if (!role_name.isEmpty()) {
 		loadRole(role_name);
 	}
 }
@@ -56,11 +57,6 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 DlgAddEditRole::~DlgAddEditRole()
 {
 	delete ui;
-}
-
-DlgAddEditRole::DialogType DlgAddEditRole::dialogType()
-{
-	return m_dialogType;
 }
 
 void DlgAddEditRole::loadRole(const QString &role_name)
@@ -77,13 +73,13 @@ void DlgAddEditRole::accept()
 		return;
 	}
 	if (!m_accessModel->isRulesValid()){
-		QMessageBox::critical(this, tr("Invalid data"), 	tr("Access rules are invalid."));
+		QMessageBox::critical(this, tr("Invalid data"), tr("Access rules are invalid."));
 		return;
 	}
 
 	setStatusText(QString());
 
-	if (dialogType() == DialogType::Add){
+	if (m_dialogType == DialogType::Add){
 		setStatusText(tr("Checking role existence"));
 		checkExistingRole([this](bool success, bool is_duplicate) {
 			if (success) {
@@ -96,7 +92,7 @@ void DlgAddEditRole::accept()
 			}
 		});
 	}
-	else if (dialogType() == DialogType::Edit){
+	else if (m_dialogType == DialogType::Edit){
 		setStatusText(tr("Updating role ..."));
 		callSetRoleSettings();
 	}
@@ -222,6 +218,7 @@ void DlgAddEditRole::callGetAccessRulesForRole()
 			}
 			else {
 				m_accessModel->setRules(response.result());
+				ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 				setStatusText(QString());
 				return;
 			}
