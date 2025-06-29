@@ -74,7 +74,7 @@ QString DlgRolesEditor::selectedRole()
 
 void DlgRolesEditor::onAddRoleClicked()
 {
-	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath());
+	auto dlg = new DlgAddEditRole(m_rpcConnection->shvApiVersion(), m_rpcConnection, aclAccessPath(), {}, this);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listRoles();
@@ -96,7 +96,7 @@ void DlgRolesEditor::onEditRoleClicked()
 
 	setStatusText(QString());
 
-	auto dlg = new DlgAddEditRole(this, m_rpcConnection, aclAccessPath(), role, DlgAddEditRole::DialogType::Edit);
+	auto dlg = new DlgAddEditRole(m_rpcConnection->shvApiVersion(), m_rpcConnection, aclAccessPath(), role, this);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listRoles();
