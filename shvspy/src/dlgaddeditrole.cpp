@@ -78,30 +78,29 @@ void DlgAddEditRole::loadRole(const QString &role_name)
 		connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const ::RpcValue &result, const RpcError &error) {
 			if (error.isValid()) {
 				setStatusText(tr("Failed to call method %1.").arg(QString::fromStdString(roleShvPath() + ':' + VALUE_METHOD)) + QString::fromStdString(error.toString()));
+				return;
 			}
-			else {
-				/*
-				{
-				  "access":[
-					{"grant":"wr", "shvRI":".broker/currentClient:subscribe"},
-					{"grant":"wr", "shvRI":".broker/currentClient:unsubscribe"}
-				  ],
-				  "roles":[]
-				}
-				*/
-				const auto &role_map = result.asMap();
-				{
-					std::vector<std::string> roles;
-					for (const auto &r : role_map.valref("roles").asList()) {
-						roles.push_back(std::string(r.asString()));
-					}
-					setRoles(roles);
-				}
-				setProfile(role_map.value("profile"));
-				m_accessModel->setRules(role_map.valref("access"));
-				ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-				setStatusText({});
+			/*
+			{
+			  "access":[
+				{"grant":"wr", "shvRI":".broker/currentClient:subscribe"},
+				{"grant":"wr", "shvRI":".broker/currentClient:unsubscribe"}
+			  ],
+			  "roles":[]
 			}
+			*/
+			const auto &role_map = result.asMap();
+			{
+				std::vector<std::string> roles;
+				for (const auto &r : role_map.valref("roles").asList()) {
+					roles.push_back(std::string(r.asString()));
+				}
+				setRoles(roles);
+			}
+			setProfile(role_map.value("profile"));
+			m_accessModel->setRules(role_map.valref("access"));
+			ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+			setStatusText({});
 		});
 		rpc_call->start();
 	}

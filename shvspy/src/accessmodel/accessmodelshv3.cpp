@@ -4,6 +4,7 @@
 #include <shv/core/exception.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/iotqt/node/shvnode.h>
+#include <shv/coreqt/rpc.h>
 
 using namespace shv::chainpack;
 using namespace std;
@@ -29,7 +30,6 @@ AccessModelShv3::~AccessModelShv3() = default;
 
 void AccessModelShv3::setRules(const RpcValue &role_rules)
 {
-	// shvInfo() << __PRETTY_FUNCTION__ << "rules:" << role_rules.toCpon();
 	/*
 	{
 	  "access":[
@@ -42,11 +42,10 @@ void AccessModelShv3::setRules(const RpcValue &role_rules)
 	beginResetModel();
 	m_rules.clear();
 	for (const auto &rv : role_rules.asList()) {
-		// shvInfo() << __PRETTY_FUNCTION__ << "rule:" << rv.toCpon();
 		const auto &m = rv.asMap();
 		m_rules << Rule {
-				   .shvRI = QString::fromStdString(m.value("shvRI").asString()),
-				   .grant = QString::fromStdString(m.value("grant").asString()),
+				   .shvRI = m.value("shvRI").to<QString>(),
+				   .grant = m.value("grant").to<QString>(),
 		};
 	}
 	endResetModel();
@@ -55,11 +54,11 @@ void AccessModelShv3::setRules(const RpcValue &role_rules)
 RpcValue AccessModelShv3::rules()
 {
 	RpcValue::List rules;
-	for (const auto &role : m_rules) {
-		RpcValue::Map rule;
-		rule["shvRI"] = role.shvRI.toStdString();
-		rule["grant"] = role.grant.toStdString();
-		rules.push_back(rule);
+	for (const auto &rule : m_rules) {
+		RpcValue::Map rpcrule;
+		rpcrule["shvRI"] = rule.shvRI.toStdString();
+		rpcrule["grant"] = rule.grant.toStdString();
+		rules.push_back(rpcrule);
 	}
 	return rules;
 }
