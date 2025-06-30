@@ -93,7 +93,7 @@ void DlgAddEditRole::loadRole(const QString &role_name)
 			{
 				std::vector<std::string> roles;
 				for (const auto &r : role_map.valref("roles").asList()) {
-					roles.push_back(std::string(r.asString()));
+					roles.emplace_back(r.asString());
 				}
 				setRoles(roles);
 			}
