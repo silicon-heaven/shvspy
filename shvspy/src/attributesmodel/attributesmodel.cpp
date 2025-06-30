@@ -269,7 +269,7 @@ void AttributesModel::onRpcMethodCallFinished(int method_ix)
 void AttributesModel::emitRowChanged(int row_ix)
 {
 	QModelIndex ix1 = index(row_ix, 0);
-	QModelIndex ix2 = index(row_ix, ColCnt - 1);
+	QModelIndex ix2 = ix1.siblingAtColumn(columnCount() - 1);
 	emit dataChanged(ix1, ix2);
 }
 
