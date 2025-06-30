@@ -98,6 +98,10 @@ jobs:
           echo 'CXX=${{github.workspace}}/mingw64/bin/g++.exe' >> "$GITHUB_ENV"
         shell: bash
 
+      - name: 'Install Inno Setup'
+        run: |
+          choco install innosetup -y
+
       - name: Setup CMake
         uses: ./.github/actions/cmake
         with:
