@@ -184,7 +184,7 @@ void AccessModelShv3::deleteRule(int index)
 {
 	if ((index >= 0) && (index < rowCount())){
 		beginResetModel();
-		m_rules.remove(index);
+		m_rules.removeAt(index);
 		endResetModel();
 	}
 }
