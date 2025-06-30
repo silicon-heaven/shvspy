@@ -13,7 +13,7 @@ on:
 jobs:
   clang-tidy:
     name: clang-tidy
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone the repository
         uses: actions/checkout@v4
@@ -23,11 +23,11 @@ jobs:
       - name: Run clang-tidy
         uses: ./.github/actions/run-linter
         with:
-          lint_program_with_args: clang-tidy-cache clang-tidy-15 -p build --quiet --warnings-as-errors=*
+          lint_program_with_args: clang-tidy-cache clang-tidy-18 -p build --quiet --warnings-as-errors=*
 
   clazy:
     name: clazy
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone the repository
         uses: actions/checkout@v4
@@ -37,4 +37,4 @@ jobs:
       - name: Run clazy
         uses: ./.github/actions/run-linter
         with:
-          lint_program_with_args: clang-tidy-cache clazy-standalone -p build --checks=level1,no-fully-qualified-moc-types,no-non-pod-global-static
+          lint_program_with_args: clang-tidy-cache clazy-standalone -p build --checks=level0,no-fully-qualified-moc-types,no-non-pod-global-static

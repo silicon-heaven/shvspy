@@ -11,17 +11,24 @@ runs:
     - name: Setup CMake
       uses: ./.github/actions/cmake
       env:
-        CC: clang-15
-        CXX: clang++-15
+        CC: clang-18
+        CXX: clang++-18
       with:
         use_qt6: ON
         modules: qtserialport qtwebsockets qtnetworkauth
         additional_cmake_args: -DCMAKE_GLOBAL_AUTOGEN_TARGET=ON -DCMAKE_AUTOGEN_ORIGIN_DEPENDS=OFF
 
+    # https://bugs.launchpad.net/ubuntu/+source/clazy/+bug/2086665/comments/4
+    - name: Workaround for clazy
+      shell: bash
+      run: |
+        sudo apt-get remove gcc-14
+        sudo apt-get autoremove
+
     - uses: mjp41/workaround8649@c8550b715ccdc17f89c8d5c28d7a48eeff9c94a8
       if: runner.os == 'Linux'
       with:
-        os: ubuntu-latest
+        os: ubuntu-24.04
 
     - name: Install ctcache
       uses: syyyr/clang-tidy-cache-action@v1.0.0
