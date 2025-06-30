@@ -2,6 +2,7 @@
 #define DLGADDEDITROLE_H
 
 #include <shv/chainpack/rpcvalue.h>
+#include <shv/chainpack/irpcconnection.h>
 #include <shv/iotqt/acl/aclrole.h>
 
 #include <QDialog>
@@ -20,21 +21,23 @@ class DlgAddEditRole : public QDialog
 	Q_OBJECT
 
 public:
-	enum class DialogType {Add = 0, Edit, Count};
-
-	explicit DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QString &role_name = {}, DlgAddEditRole::DialogType dt = DialogType::Add);
+	explicit DlgAddEditRole(shv::chainpack::IRpcConnection::ShvApiVersion shv_api_version,
+							shv::iotqt::rpc::ClientConnection *rpc_connection,
+							const std::string &acl_etc_node_path,
+							const QString &role_name,
+							QWidget *parent);
 	~DlgAddEditRole() override;
 
-	DialogType dialogType();
-	void accept() Q_DECL_OVERRIDE;
+	void accept() override;
 private:
+	bool isV2() const { return m_shvApiVersion == shv::chainpack::IRpcConnection::ShvApiVersion::V2; }
 	void loadRole(const QString &role_name);
 
-	void callSetRoleSettings();
+	void saveRoleAndExitIfSuccess();
 	void callGetRoleSettings();
 	void checkExistingRole(std::function<void(bool, bool)> callback);
 
-	void callSetAccessRulesForRole();
+	void saveAccessRulesAndExitIfSuccess();
 	void callGetAccessRulesForRole();
 
 	QString roleName() const;
@@ -61,6 +64,9 @@ private:
 
 	void setStatusText(const QString &txt);
 private:
+	enum class DialogType {Add = 0, Edit, Count};
+
+	shv::chainpack::IRpcConnection::ShvApiVersion m_shvApiVersion;
 	Ui::DlgAddEditRole *ui;
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;

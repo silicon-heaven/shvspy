@@ -46,3 +46,6 @@ distr
 
 user.telegram.config
 user.config
+
+.cache
+compile_commands.json
