@@ -31,7 +31,7 @@ qt_add_executable(shvspy
     src/mainwindow.cpp
     src/dlgbrokerproperties.cpp
     src/brokerproperty.cpp
-    src/filedownloader.h src/filedownloader.cpp
+    src/fileloader.cpp
 
     shvspy.qrc
     config/config.qrc

@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include "theapp.h"
-#include "filedownloader.h"
+#include "fileloader.h"
 #include "appclioptions.h"
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
@@ -157,6 +157,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	connect(ui->btLogInspector, &QPushButton::clicked, this, &MainWindow::openLogInspector);
 	connect(ui->btFileDownload, &QPushButton::clicked, this, &MainWindow::fileDownload);
+	connect(ui->btFileUpload, &QPushButton::clicked, this, &MainWindow::fileUpload);
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 	connect(ui->notificationsLogWidget->tableView(), &QTableView::doubleClicked, this, &MainWindow::onNotificationsDoubleClicked);
@@ -793,22 +794,22 @@ void MainWindow::fileDownload()
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 	if(nd) {
 		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
-		auto *fd = new FileDownloader(cc, QString::fromStdString(nd->shvPath()), this);
+		auto *loader = new FileDownloader(cc, QString::fromStdString(nd->shvPath()), this);
 		auto file_name = nd->objectName();
 		auto *dlg = new QProgressDialog(tr("Downloading file %1 ...").arg(file_name), tr("Abort"), 0, 1, this);
-		connect(dlg, &QProgressDialog::canceled, fd, [fd, dlg](){
-			fd->deleteLater();
+		connect(dlg, &QProgressDialog::canceled, loader, [loader, dlg](){
+			loader->deleteLater();
 			dlg->deleteLater();
 		});
-		connect(fd, &FileDownloader::progress, dlg, [dlg](int n, int of) {
-			shvInfo() << "progress:" << n << "of" << of;
+		connect(loader, &FileDownloader::progress, dlg, [dlg](int n, int of) {
+			shvDebug() << "progress:" << n << "of" << of;
 			if (n == 0) {
 				dlg->setMaximum(of);
 				dlg->open();
 			}
 			dlg->setValue(n);
 		});
-		connect(fd, &FileDownloader::finished, this, [dlg, this](auto data, auto error) {
+		connect(loader, &FileDownloader::finished, this, [dlg, this](auto data, auto error) {
 			dlg->deleteLater();
 			if (error.isEmpty()) {
 				showBlob(data);
@@ -820,6 +821,40 @@ void MainWindow::fileDownload()
 				msg.open();
 			}
 		});
+	}
+}
+
+void MainWindow::fileUpload()
+{
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+	if(nd) {
+		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		auto file_content_ready = [this, cc, shv_path = nd->shvPath(), remote_file_name = nd->objectName()](const QString &local_file_name, const QByteArray &data) {
+			if (local_file_name.isEmpty()) {
+				// No file was selected
+				return;
+			}
+			auto *loader = new FileUploader(cc, QString::fromStdString(shv_path), data, this);
+			auto *dlg = new QProgressDialog(tr("Uploading file %1 ...").arg(remote_file_name), tr("Abort"), 0, loader->chunkCnt(), this);
+			dlg->open();
+			connect(dlg, &QProgressDialog::canceled, loader, [loader, dlg](){
+				loader->deleteLater();
+				dlg->deleteLater();
+			});
+			connect(loader, &FileDownloader::progress, dlg, [dlg](int n, int of) {
+				shvDebug() << "progress:" << n << "of" << of;
+				dlg->setValue(n);
+			});
+			connect(loader, &FileDownloader::finished, this, [dlg, this](auto , auto error) {
+				dlg->deleteLater();
+				if (!error.isEmpty()) {
+					shvError() << "Upload file error:" << error;
+					QMessageBox::warning(this, "ShvSpy", tr("File upload error: %1").arg(error));
+				}
+			});
+		};
+		// works also for WASM
+		QFileDialog::getOpenFileContent("All files (*)",  file_content_ready, this);
 	}
 }
 

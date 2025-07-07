@@ -37,6 +37,7 @@ private:
 
 	void openLogInspector();
 	void fileDownload();
+	void fileUpload();
 
 	void gotoShvPath();
 
