@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include "theapp.h"
+#include "filedownloader.h"
 #include "appclioptions.h"
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
@@ -36,6 +37,7 @@
 #include <QScrollBar>
 #include <QFileDialog>
 #include <QUrlQuery>
+#include <QProgressDialog>
 
 #include <fstream>
 
@@ -94,16 +96,37 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(attr_model, &AttributesModel::reloaded, this, [this]() {
-		ui->btLogInspector->setEnabled(false);
+	auto hide_action_buttons = [this]() {
+		ui->btLogInspector->setVisible(false);
+		ui->btFileUpload->setVisible(false);
+		ui->btFileDownload->setVisible(false);
+	};
+	hide_action_buttons();
+	connect(attr_model, &AttributesModel::reloaded, this, [this, hide_action_buttons]() {
+		static constexpr auto get_log_methods = {cp::Rpc::METH_GET_LOG};
+		static constexpr auto ro_file_node_methods = {"size", "stat", "read"};
+		static constexpr auto wr_file_node_methods = {"write"};
+		auto node_has_methods = [](const QVector<ShvMetaMethod>& node_methods, const auto &methods) {
+			for(const auto &m : methods) {
+				for(const auto &nm : node_methods) {
+					if (m == nm.metamethod.name()) {
+						goto found;
+					}
+				}
+				return false;
+				found:
+				continue;
+			}
+			return true;
+		};
+
+		hide_action_buttons();
 		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 		if(nd) {
-			for(const auto &mm : nd->methods()) {
-				if(mm.metamethod.name() == cp::Rpc::METH_GET_LOG) {
-					ui->btLogInspector->setEnabled(true);
-					break;
-				}
-			}
+			const auto node_methods = nd->methods();
+			ui->btLogInspector->setVisible(node_has_methods(node_methods, get_log_methods));
+			ui->btFileDownload->setVisible(node_has_methods(node_methods, ro_file_node_methods));
+			ui->btFileUpload->setVisible(ui->btFileDownload->isVisible() && node_has_methods(node_methods, wr_file_node_methods));
 		}
 	});
 
@@ -133,6 +156,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	}, Qt::QueuedConnection);
 
 	connect(ui->btLogInspector, &QPushButton::clicked, this, &MainWindow::openLogInspector);
+	connect(ui->btFileDownload, &QPushButton::clicked, this, &MainWindow::fileDownload);
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 	connect(ui->notificationsLogWidget->tableView(), &QTableView::doubleClicked, this, &MainWindow::onNotificationsDoubleClicked);
@@ -499,8 +523,8 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 		}
 		else {
 			const auto &blob = rv.asBlob();
-			auto data = QByteArray::fromRawData(reinterpret_cast<const char*>(blob.data()), blob.size());
-			view->setBlob(data);
+			auto data = QByteArrayView(blob);
+			view->setBlob(data.toByteArray());
 		}
 		view->show();
 	}
@@ -515,6 +539,17 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 		view->setText(cpon);
 		view->show();
 	}
+}
+
+void MainWindow::showBlob(const QByteArray &blob)
+{
+	auto *view = new TextEditDialog(this);
+	view->setModal(false);
+	view->setAttribute(Qt::WA_DeleteOnClose);
+	view->setWindowIconText(tr("Result"));
+	view->setReadOnly(true);
+	view->setBlob(blob);
+	view->show();
 }
 
 void MainWindow::editMethodParameters(const QModelIndex &ix)
@@ -750,6 +785,41 @@ void MainWindow::openLogInspector()
 		connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 		dlg->setRpcConnection(cc);
 		dlg->open();
+	}
+}
+
+void MainWindow::fileDownload()
+{
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+	if(nd) {
+		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		auto *fd = new FileDownloader(cc, QString::fromStdString(nd->shvPath()), this);
+		auto file_name = nd->objectName();
+		auto *dlg = new QProgressDialog(tr("Downloading file %1 ...").arg(file_name), tr("Abort"), 0, 1, this);
+		connect(dlg, &QProgressDialog::canceled, fd, [fd, dlg](){
+			fd->deleteLater();
+			dlg->deleteLater();
+		});
+		connect(fd, &FileDownloader::progress, dlg, [dlg](int n, int of) {
+			shvInfo() << "progress:" << n << "of" << of;
+			if (n == 0) {
+				dlg->setMaximum(of);
+				dlg->open();
+			}
+			dlg->setValue(n);
+		});
+		connect(fd, &FileDownloader::finished, this, [dlg, this](auto data, auto error) {
+			dlg->deleteLater();
+			if (error.isEmpty()) {
+				showBlob(data);
+			}
+			else {
+				QMessageBox msg(this);
+				msg.setIcon(QMessageBox::Warning);
+				msg.setText(error);
+				msg.open();
+			}
+		});
 	}
 }
 
