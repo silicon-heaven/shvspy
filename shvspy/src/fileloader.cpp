@@ -66,7 +66,7 @@ void FileDownloader::downloadChunk()
 				emit finished({}, tr("Blob should be received"));
 				return;
 			}
-			auto chunk = result.asBlob();
+			const auto &chunk = result.asBlob();
 			m_data.append(QByteArrayView(chunk));
 			downloadChunk();
 		});
@@ -94,7 +94,7 @@ FileUploader::FileUploader(shv::iotqt::rpc::ClientConnection *conn, const QStrin
 
 void FileUploader::uploadChunk()
 {
-	shvInfo() << m_bytesWritten << "/" << m_data.size();
+	shvDebug() << m_bytesWritten << "/" << m_data.size();
 	if (m_bytesWritten < m_data.size()) {
 		emit progress(static_cast<int>(m_bytesWritten / CHUNK_SIZE), chunkCnt());
 		auto bytes_to_write = std::min(m_data.size() - m_bytesWritten, CHUNK_SIZE);
