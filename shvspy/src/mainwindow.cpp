@@ -836,13 +836,17 @@ void MainWindow::fileUpload()
 				return;
 			}
 			auto *loader = new FileUploader(cc, QString::fromStdString(shv_path), data, this);
-			auto *dlg = new QProgressDialog(tr("Uploading file %1 ...").arg(remote_file_name), tr("Abort"), 0, loader->chunkCnt(), this);
+			auto *dlg = new QProgressDialog(tr("Uploading file %1 ...").arg(remote_file_name), tr("Abort"), 0, 1, this);
 			connect(dlg, &QProgressDialog::canceled, loader, [loader, dlg](){
 				loader->deleteLater();
 				dlg->deleteLater();
 			});
 			connect(loader, &FileDownloader::progress, dlg, [dlg](int n, int of) {
 				shvDebug() << "progress:" << n << "of" << of;
+				if (n == 0) {
+					dlg->setMaximum(of);
+					dlg->open();
+				}
 				dlg->setValue(n);
 			});
 			connect(loader, &FileDownloader::finished, this, [dlg, this](auto , auto error) {

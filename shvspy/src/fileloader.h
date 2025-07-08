@@ -40,11 +40,12 @@ class FileUploader : public AbstractFileLoader
 	using Super = AbstractFileLoader;
 public:
 	FileUploader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QByteArray data, QObject *parent);
-	int chunkCnt() const;
 	void start();
 private:
+	int chunkCnt() const;
 	void uploadChunk();
 private:
 	qsizetype m_bytesWritten = 0;
+	qsizetype m_chunkSize = 0;
 };
 
