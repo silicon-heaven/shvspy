@@ -55,7 +55,7 @@
       <item>
        <spacer name="horizontalSpacer_3">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -71,19 +71,6 @@
          <string>Save to file</string>
         </property>
        </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
       </item>
       <item>
        <widget class="QPushButton" name="btSave">
@@ -115,7 +102,7 @@ color: white;</string>
       <string>Error</string>
      </property>
      <property name="textFormat">
-      <enum>Qt::PlainText</enum>
+      <enum>Qt::TextFormat::PlainText</enum>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -190,7 +177,7 @@ color: white;</string>
         <item>
          <spacer name="horizontalSpacer_2">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>

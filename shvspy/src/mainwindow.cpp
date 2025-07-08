@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include "theapp.h"
+#include "fileloader.h"
 #include "appclioptions.h"
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
@@ -36,6 +37,7 @@
 #include <QScrollBar>
 #include <QFileDialog>
 #include <QUrlQuery>
+#include <QProgressDialog>
 
 #include <fstream>
 
@@ -94,16 +96,31 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(attr_model, &AttributesModel::reloaded, this, [this]() {
-		ui->btLogInspector->setEnabled(false);
+	auto hide_action_buttons = [this]() {
+		ui->btLogInspector->setVisible(false);
+		ui->btFileUpload->setVisible(false);
+		ui->btFileDownload->setVisible(false);
+	};
+	hide_action_buttons();
+	connect(attr_model, &AttributesModel::reloaded, this, [this, hide_action_buttons]() {
+		static constexpr auto get_log_methods = {cp::Rpc::METH_GET_LOG};
+		static constexpr auto ro_file_node_methods = {"size", "stat", "read"};
+		static constexpr auto wr_file_node_methods = {"write"};
+		auto node_has_methods = [](const QVector<ShvMetaMethod>& node_methods, const auto &methods) {
+			return std::all_of(methods.begin(), methods.end(), [&node_methods](const auto &method) {
+				return std::find_if(node_methods.begin(), node_methods.end(), [&method](const auto &node_method){
+							return method == node_method.metamethod.name();
+						}) != node_methods.end();
+			});
+		};
+
+		hide_action_buttons();
 		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 		if(nd) {
-			for(const auto &mm : nd->methods()) {
-				if(mm.metamethod.name() == cp::Rpc::METH_GET_LOG) {
-					ui->btLogInspector->setEnabled(true);
-					break;
-				}
-			}
+			const auto node_methods = nd->methods();
+			ui->btLogInspector->setVisible(node_has_methods(node_methods, get_log_methods));
+			ui->btFileDownload->setVisible(node_has_methods(node_methods, ro_file_node_methods));
+			ui->btFileUpload->setVisible(ui->btFileDownload->isVisible() && node_has_methods(node_methods, wr_file_node_methods));
 		}
 	});
 
@@ -133,6 +150,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	}, Qt::QueuedConnection);
 
 	connect(ui->btLogInspector, &QPushButton::clicked, this, &MainWindow::openLogInspector);
+	connect(ui->btFileDownload, &QPushButton::clicked, this, &MainWindow::fileDownload);
+	connect(ui->btFileUpload, &QPushButton::clicked, this, &MainWindow::fileUpload);
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 	connect(ui->notificationsLogWidget->tableView(), &QTableView::doubleClicked, this, &MainWindow::onNotificationsDoubleClicked);
@@ -486,23 +505,32 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	displayValue(rv);
 }
 
+namespace {
+auto* create_text_view(QWidget *parent)
+{
+	auto *view = new TextEditDialog(parent);
+	view->setModal(false);
+	view->setAttribute(Qt::WA_DeleteOnClose);
+	// view->setWindowIconText("Result");
+	view->setReadOnly(true);
+	return view;
+}
+}
 void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 {
-	if(rv.isString() || rv.isBlob()) {
-		auto *view = new TextEditDialog(this);
-		view->setModal(false);
-		view->setAttribute(Qt::WA_DeleteOnClose);
+	if(rv.isString()) {
+		auto *view = create_text_view(this);
 		view->setWindowIconText(tr("Result"));
-		view->setReadOnly(true);
-		if (rv.isString()) {
-			view->setText(QString::fromStdString(rv.asString()));
-		}
-		else {
-			const auto &blob = rv.asBlob();
-			auto data = QByteArray::fromRawData(reinterpret_cast<const char*>(blob.data()), blob.size());
-			view->setBlob(data);
-		}
 		view->show();
+	}
+	else if (rv.isBlob()) {
+		const auto &blob = rv.asBlob();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		auto data = QByteArray::fromRawData(reinterpret_cast<const char*>(blob.data()), blob.size());
+#else
+		auto data = QByteArrayView(blob).toByteArray();
+#endif
+		showBlob(data);
 	}
 	else {
 		auto *view = new CponEditDialog(this);
@@ -515,6 +543,14 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 		view->setText(cpon);
 		view->show();
 	}
+}
+
+void MainWindow::showBlob(const QByteArray &blob)
+{
+	auto *view = create_text_view(this);
+	view->setWindowIconText(tr("Result"));
+	view->setBlob(blob);
+	view->show();
 }
 
 void MainWindow::editMethodParameters(const QModelIndex &ix)
@@ -753,6 +789,89 @@ void MainWindow::openLogInspector()
 	}
 }
 
+void MainWindow::fileDownload()
+{
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+	if(nd) {
+		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		auto *loader = new FileDownloader(cc, QString::fromStdString(nd->shvPath()), this);
+		auto file_name = nd->objectName();
+		auto *dlg = new QProgressDialog(tr("Downloading file %1 ...").arg(file_name), tr("Abort"), 0, 1, this);
+		connect(dlg, &QProgressDialog::canceled, loader, [loader, dlg](){
+			loader->deleteLater();
+			dlg->deleteLater();
+		});
+		connect(loader, &FileDownloader::progress, dlg, [dlg](int n, int of) {
+			shvDebug() << "progress:" << n << "of" << of;
+			if (n == 0) {
+				dlg->setMaximum(of);
+				dlg->open();
+			}
+			dlg->setValue(n);
+		});
+		connect(loader, &FileDownloader::finished, this, [dlg, this](auto data, auto error) {
+			dlg->deleteLater();
+			if (error.isEmpty()) {
+				showBlob(data);
+			}
+			else {
+				QMessageBox msg(this);
+				msg.setIcon(QMessageBox::Warning);
+				msg.setText(error);
+				msg.open();
+			}
+		});
+		loader->start();
+	}
+}
+
+void MainWindow::fileUpload()
+{
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+	if(nd) {
+		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		auto file_content_ready = [this, cc, shv_path = nd->shvPath(), remote_file_name = nd->objectName()](const QString &local_file_name, const QByteArray &data) {
+			if (local_file_name.isEmpty()) {
+				// No file was selected
+				return;
+			}
+			auto *loader = new FileUploader(cc, QString::fromStdString(shv_path), data, this);
+			auto *dlg = new QProgressDialog(tr("Uploading file %1 ...").arg(remote_file_name), tr("Abort"), 0, loader->chunkCnt(), this);
+			connect(dlg, &QProgressDialog::canceled, loader, [loader, dlg](){
+				loader->deleteLater();
+				dlg->deleteLater();
+			});
+			connect(loader, &FileDownloader::progress, dlg, [dlg](int n, int of) {
+				shvDebug() << "progress:" << n << "of" << of;
+				dlg->setValue(n);
+			});
+			connect(loader, &FileDownloader::finished, this, [dlg, this](auto , auto error) {
+				dlg->deleteLater();
+				if (!error.isEmpty()) {
+					shvError() << "Upload file error:" << error;
+					QMessageBox::warning(this, "ShvSpy", tr("File upload error: %1").arg(error));
+				}
+			});
+			loader->start();
+			dlg->open();
+		};
+#if QT_VERSION < QT_VERSION_CHECK(5, 13, 0)
+		if (auto fn = QFileDialog::getOpenFileName(this, tr("Select  file to upload"), tr("All files (*)")); !fn.isEmpty()) {
+			QFile f(fn);
+			if (f.open(QFile::ReadOnly)) {
+				auto data = f.readAll();
+				file_content_ready(fn, data);
+			}
+		}
+#elif QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
+		QFileDialog::getOpenFileContent("All files (*)",  file_content_ready);
+#else
+		// works also for WASM
+		QFileDialog::getOpenFileContent("All files (*)",  file_content_ready, this);
+#endif
+	}
+}
+
 class NodeChildLoader : public QObject
 {
 	Q_OBJECT
@@ -849,10 +968,10 @@ void MainWindow::onActHelpAbout_triggered()
 #ifdef Q_OS_WASM
 	// Can't use QMessageBox::about here, because of it uses exec().
 	auto* msgBox = new QMessageBox(QMessageBox::Information, title, text, QMessageBox::NoButton, this);
-    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-    QIcon icon = msgBox->windowIcon();
-    QSize size = icon.actualSize(QSize(64, 64));
-    msgBox->setIconPixmap(icon.pixmap(size));
+	msgBox->setAttribute(Qt::WA_DeleteOnClose);
+	QIcon icon = msgBox->windowIcon();
+	QSize size = icon.actualSize(QSize(64, 64));
+	msgBox->setIconPixmap(icon.pixmap(size));
 	msgBox->open();
 #else
 	QMessageBox::about(this, title, text);

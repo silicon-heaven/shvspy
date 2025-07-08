@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <shv/chainpack/rpcvalue.h>
+
 #include <QMainWindow>
 #include <QSettings>
 
@@ -12,8 +14,6 @@ class QStandardItemModel;
 
 class ShvBrokerNodeItem;
 
-namespace shv::chainpack { class RpcValue; }
-
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
@@ -22,7 +22,8 @@ private:
 public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow() override;
-protected:
+
+private:
 	Q_SLOT void onActAddServer_triggered();
 	Q_SLOT void onActEditServer_triggered();
 	Q_SLOT void onActCopyServer_triggered();
@@ -35,6 +36,9 @@ protected:
 	Q_SLOT void onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix);
 
 	void openLogInspector();
+	void fileDownload();
+	void fileUpload();
+
 	void gotoShvPath();
 
 	void resizeAttributesViewSectionsToFit();
@@ -43,6 +47,7 @@ protected:
 	void openNode(const QModelIndex &ix);
 	void displayResult(const QModelIndex &ix);
 	void displayValue(const shv::chainpack::RpcValue &rv);
+	void showBlob(const QByteArray &blob);
 	void editMethodParameters(const QModelIndex &ix);
 	void editStringParameter(const QModelIndex &ix);
 	void editCponParameters(const QModelIndex &ix);
@@ -52,9 +57,8 @@ protected:
 
 	void closeEvent(QCloseEvent *ev) Q_DECL_OVERRIDE;
 	void saveSettings();
-private:
-	void checkSettingsReady();
 
+	void checkSettingsReady();
 private:
 	Ui::MainWindow *ui;
 	QStandardItemModel *m_opcObjects;

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1414</width>
-    <height>948</height>
+    <width>1896</width>
+    <height>1348</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -42,10 +42,10 @@
     <item>
      <widget class="QFrame" name="frame">
       <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
+       <enum>QFrame::Shape::StyledPanel</enum>
       </property>
       <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
+       <enum>QFrame::Shadow::Raised</enum>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <property name="spacing">
@@ -80,7 +80,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1414</width>
+     <width>1896</width>
      <height>30</height>
     </rect>
    </property>
@@ -110,7 +110,7 @@
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockServers">
    <property name="allowedAreas">
-    <set>Qt::BottomDockWidgetArea</set>
+    <set>Qt::DockWidgetArea::BottomDockWidgetArea</set>
    </property>
    <property name="windowTitle">
     <string>Servers</string>
@@ -138,10 +138,10 @@
      <item>
       <widget class="ServerTreeView" name="treeServers">
        <property name="contextMenuPolicy">
-        <enum>Qt::CustomContextMenu</enum>
+        <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
        </property>
        <property name="editTriggers">
-        <set>QAbstractItemView::NoEditTriggers</set>
+        <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
        </property>
        <attribute name="headerVisible">
         <bool>false</bool>
@@ -153,7 +153,7 @@
   </widget>
   <widget class="QDockWidget" name="dockAttributes">
    <property name="allowedAreas">
-    <set>Qt::BottomDockWidgetArea</set>
+    <set>Qt::DockWidgetArea::BottomDockWidgetArea</set>
    </property>
    <property name="windowTitle">
     <string>Attributes</string>
@@ -202,9 +202,23 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="btFileUpload">
+         <property name="text">
+          <string>Upload</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btFileDownload">
+         <property name="text">
+          <string>Download</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="btLogInspector">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Log inspector</string>
@@ -216,7 +230,7 @@
      <item>
       <widget class="QTableView" name="tblAttributes">
        <property name="editTriggers">
-        <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+        <set>QAbstractItemView::EditTrigger::AnyKeyPressed|QAbstractItemView::EditTrigger::EditKeyPressed|QAbstractItemView::EditTrigger::SelectedClicked</set>
        </property>
        <property name="alternatingRowColors">
         <bool>true</bool>
@@ -228,7 +242,7 @@
   </widget>
   <widget class="QDockWidget" name="dockNotifications">
    <property name="allowedAreas">
-    <set>Qt::BottomDockWidgetArea</set>
+    <set>Qt::DockWidgetArea::BottomDockWidgetArea</set>
    </property>
    <property name="windowTitle">
     <string>Notifications</string>

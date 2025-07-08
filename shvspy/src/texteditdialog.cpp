@@ -50,11 +50,49 @@ void TextEditDialog::setText(const QString &s)
 {
 	ui->plainTextEdit->setPlainText(s);
 }
+namespace {
+bool is_valid_utf8(const QByteArray& data)
+{
+	auto* bytes = reinterpret_cast<const unsigned char*>(data.data());
+	auto len = data.size();
+	qsizetype i = 0;
 
+	while (i < len) {
+		if (bytes[i] <= 0x7F) {
+			// ASCII (1-byte)
+			i += 1;
+		} else if ((bytes[i] >> 5) == 0x6 && i + 1 < len &&
+				   (bytes[i + 1] >> 6) == 0x2) {
+			// 2-byte sequence
+			i += 2;
+		} else if ((bytes[i] >> 4) == 0xE && i + 2 < len &&
+				   (bytes[i + 1] >> 6) == 0x2 &&
+				   (bytes[i + 2] >> 6) == 0x2) {
+			// 3-byte sequence
+			i += 3;
+		} else if ((bytes[i] >> 3) == 0x1E && i + 3 < len &&
+				   (bytes[i + 1] >> 6) == 0x2 &&
+				   (bytes[i + 2] >> 6) == 0x2 &&
+				   (bytes[i + 3] >> 6) == 0x2) {
+			// 4-byte sequence
+			i += 4;
+		} else {
+			return false; // Invalid UTF-8 sequence
+		}
+	}
+
+	return true;
+}
+}
 void TextEditDialog::setBlob(const QByteArray &s)
 {
 	m_blobData = s;
-	ui->plainTextEdit->setPlainText(QString::fromUtf8(s));
+	if (is_valid_utf8(s)) {
+		ui->plainTextEdit->setPlainText(QString::fromUtf8(s));
+	}
+	else {
+		ui->plainTextEdit->setPlainText(tr("Binary data"));
+	}
 }
 
 QString TextEditDialog::text() const
