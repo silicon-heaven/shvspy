@@ -821,6 +821,7 @@ void MainWindow::fileDownload()
 				msg.open();
 			}
 		});
+		loader->start();
 	}
 }
 
@@ -836,7 +837,6 @@ void MainWindow::fileUpload()
 			}
 			auto *loader = new FileUploader(cc, QString::fromStdString(shv_path), data, this);
 			auto *dlg = new QProgressDialog(tr("Uploading file %1 ...").arg(remote_file_name), tr("Abort"), 0, loader->chunkCnt(), this);
-			dlg->open();
 			connect(dlg, &QProgressDialog::canceled, loader, [loader, dlg](){
 				loader->deleteLater();
 				dlg->deleteLater();
@@ -852,6 +852,8 @@ void MainWindow::fileUpload()
 					QMessageBox::warning(this, "ShvSpy", tr("File upload error: %1").arg(error));
 				}
 			});
+			loader->start();
+			dlg->open();
 		};
 #if QT_VERSION < QT_VERSION_CHECK(5, 13, 0)
 		// works also for WASM

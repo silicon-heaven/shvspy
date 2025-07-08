@@ -27,6 +27,10 @@ AbstractFileLoader::AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, 
 FileDownloader::FileDownloader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QObject *parent)
 	: Super(conn, shv_path, {}, parent)
 {
+}
+
+void FileDownloader::start()
+{
 	auto rpc_call = shv::iotqt::rpc::RpcCall::create(m_connection)
 			->setShvPath(m_shvPath)
 			->setMethod("size");
@@ -86,7 +90,6 @@ int FileDownloader::chunkCnt() const
 FileUploader::FileUploader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QByteArray data, QObject *parent)
 	: Super(conn, shv_path, data, parent)
 {
-	uploadChunk();
 }
 
 void FileUploader::uploadChunk()
@@ -121,5 +124,10 @@ void FileUploader::uploadChunk()
 int FileUploader::chunkCnt() const
 {
 	return static_cast<int>(m_data.size() / CHUNK_SIZE) + 1;
+}
+
+void FileUploader::start()
+{
+	uploadChunk();
 }
 

@@ -25,6 +25,7 @@ class FileDownloader : public AbstractFileLoader
 	using Super = AbstractFileLoader;
 public:
 	FileDownloader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QObject *parent);
+	void start();
 private:
 	void downloadChunk();
 	int chunkCnt() const;
@@ -40,6 +41,7 @@ class FileUploader : public AbstractFileLoader
 public:
 	FileUploader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QByteArray data, QObject *parent);
 	int chunkCnt() const;
+	void start();
 private:
 	void uploadChunk();
 private:
