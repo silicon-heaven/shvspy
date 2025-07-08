@@ -16,12 +16,15 @@ using namespace std;
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgAddEditRole::DlgAddEditRole(IRpcConnection::ShvApiVersion shv_api_version, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QString &role_name, QWidget *parent)
+DlgAddEditRole::DlgAddEditRole(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QString &role_name, QWidget *parent)
 	: QDialog(parent)
-	, m_shvApiVersion(shv_api_version)
+	, m_shvApiVersion(rpc_connection->shvApiVersion())
 	, ui(new Ui::DlgAddEditRole)
+	, m_rpcConnection(rpc_connection)
 	, m_aclEtcNodePath(acl_etc_node_path)
 {
+	Q_ASSERT(m_rpcConnection);
+
 	ui->setupUi(this);
 
 	if (isV2()) {
@@ -50,10 +53,6 @@ DlgAddEditRole::DlgAddEditRole(IRpcConnection::ShvApiVersion shv_api_version, sh
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditRole::onDeleteRowClicked);
 	connect(ui->tbMoveRowUp, &QToolButton::clicked, this, &DlgAddEditRole::onMoveRowUpClicked);
 	connect(ui->tbMoveRowDown, &QToolButton::clicked, this, &DlgAddEditRole::onMoveRowDownClicked);
-
-	m_rpcConnection = rpc_connection;
-
-	setStatusText((m_rpcConnection == nullptr) ? tr("Connection to shv does not exist.") : QString());
 
 	if (!role_name.isEmpty()) {
 		loadRole(role_name);

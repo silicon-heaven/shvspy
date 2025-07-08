@@ -102,7 +102,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclAccessPath(), DlgAddEditUser::DialogType::Add);
+	auto dlg = new DlgAddEditUser(m_rpcConnection, aclAccessPath(), {}, this);
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){
 			listUsers();
@@ -158,8 +158,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	auto dlg = new DlgAddEditUser(this, m_rpcConnection, aclAccessPath(), DlgAddEditUser::DialogType::Edit);
-	dlg->setUser(user);
+	auto dlg = new DlgAddEditUser(m_rpcConnection, aclAccessPath(), user, this);
 
 	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
 		if (result == QDialog::Accepted){

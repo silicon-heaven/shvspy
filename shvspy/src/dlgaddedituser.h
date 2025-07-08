@@ -3,8 +3,7 @@
 
 #include <QDialog>
 
-#include "shv/chainpack/rpcvalue.h"
-
+#include <shv/chainpack/irpcconnection.h>
 #include <shv/iotqt/acl/acluser.h>
 
 namespace Ui {
@@ -18,28 +17,30 @@ class DlgAddEditUser : public QDialog
 	Q_OBJECT
 
 public:
-	enum class DialogType {Add = 0, Edit, Count};
-	explicit DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditUser::DialogType dt = DialogType::Add);
+	explicit DlgAddEditUser(
+			shv::iotqt::rpc::ClientConnection *rpc_connection,
+			const std::string &acl_etc_node_path,
+			const QString &user,
+			QWidget *parent
+			);
 	~DlgAddEditUser() override;
 
-	DialogType dialogType();
 	std::string user();
-	void setUser(const QString &user);
 	QString password();
 
-	void accept() Q_DECL_OVERRIDE;
+	void accept() override;
 
 private:
 	void onShowPasswordClicked();
 	void onSelectRolesClicked();
-    void execSelectRolesDialog();
+	void execSelectRolesDialog();
 
 	void callCreateRole(const std::string &role_name, std::function<void()> callback);
 	void callSetUserSettings();
 	void callGetUserSettings();
 	void checkExistingUser(std::function<void(bool, bool)> callback);
 
-    std::string aclEtcUsersNodePath();
+	std::string aclEtcUsersNodePath();
 	std::string aclEtcRolesNodePath();
 	std::string userShvPath();
 
@@ -47,8 +48,16 @@ private:
 	void setRoles(const std::vector<std::string> &roles);
 	void setRoles(const shv::chainpack::RpcValue::List &roles);
 
-	Ui::DlgAddEditUser *ui;
+	bool isShv3() const { return m_shvApiVersion == shv::chainpack::IRpcConnection::ShvApiVersion::V3; }
+	static shv::iotqt::acl::AclUser shv3AclUserFromRpcValue(const shv::chainpack::RpcValue &v);
+	shv::chainpack::RpcValue shv3AclUserToRpcValue(const shv::iotqt::acl::AclUser &user);
+
+private:
+	enum class DialogType {Add = 0, Edit, Count};
 	DialogType m_dialogType;
+	shv::chainpack::IRpcConnection::ShvApiVersion m_shvApiVersion;
+
+	Ui::DlgAddEditUser *ui;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;
 	shv::iotqt::acl::AclUser m_user;
