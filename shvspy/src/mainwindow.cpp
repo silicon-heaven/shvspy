@@ -853,8 +853,19 @@ void MainWindow::fileUpload()
 				}
 			});
 		};
+#if QT_VERSION < QT_VERSION_CHECK(5, 13, 0)
+		// works also for WASM
+		if (auto fn = QFileDialog::getOpenFileName(this, tr("Select  file to upload"), tr("All files (*)")); !fn.isEmpty()) {
+			QFile f(fn);
+			if (f.open(QFile::ReadOnly)) {
+				auto data = f.readAll();
+				file_content_ready(fn, data);
+			}
+		}
+#else
 		// works also for WASM
 		QFileDialog::getOpenFileContent("All files (*)",  file_content_ready, this);
+#endif
 	}
 }
 

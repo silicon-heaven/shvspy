@@ -55,7 +55,7 @@ void FileDownloader::downloadChunk()
 				->setParams(params);
 		connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
 			if (error.isValid()) {
-				emit finished({}, tr("Get file chunk error: %1").arg(error.toString()));
+				emit finished({}, tr("Get file chunk error: %1").arg(QString::fromStdString(error.toString())));
 				return;
 			}
 			if (!result.isBlob()) {
