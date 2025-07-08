@@ -21,8 +21,7 @@ class DlgAddEditRole : public QDialog
 	Q_OBJECT
 
 public:
-	explicit DlgAddEditRole(shv::chainpack::IRpcConnection::ShvApiVersion shv_api_version,
-							shv::iotqt::rpc::ClientConnection *rpc_connection,
+	explicit DlgAddEditRole(shv::iotqt::rpc::ClientConnection *rpc_connection,
 							const std::string &acl_etc_node_path,
 							const QString &role_name,
 							QWidget *parent);
@@ -65,10 +64,11 @@ private:
 	void setStatusText(const QString &txt);
 private:
 	enum class DialogType {Add = 0, Edit, Count};
-
-	shv::chainpack::IRpcConnection::ShvApiVersion m_shvApiVersion;
-	Ui::DlgAddEditRole *ui;
 	DialogType m_dialogType;
+	shv::chainpack::IRpcConnection::ShvApiVersion m_shvApiVersion;
+
+	Ui::DlgAddEditRole *ui;
+
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;
 	AccessModel *m_accessModel = nullptr;

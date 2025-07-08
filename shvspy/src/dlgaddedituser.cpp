@@ -10,16 +10,29 @@
 #include <QCryptographicHash>
 #include <QMessageBox>
 
+using namespace shv::chainpack;
+
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditUser::DialogType dt)
+DlgAddEditUser::DlgAddEditUser(
+		shv::iotqt::rpc::ClientConnection *rpc_connection,
+		const std::string &acl_etc_node_path,
+		const QString &user,
+		QWidget *parent
+	)
 	: QDialog(parent)
 	, ui(new Ui::DlgAddEditUser)
+	, m_rpcConnection(rpc_connection)
 	, m_aclEtcNodePath(acl_etc_node_path)
 {
+	Q_ASSERT(m_rpcConnection);
+
 	ui->setupUi(this);
-	m_dialogType = dt;
+
+	m_shvApiVersion = m_rpcConnection->shvApiVersion();
+
+	m_dialogType = user.isEmpty()? DialogType::Add: DialogType::Edit;
 	bool edit_mode = (m_dialogType == DialogType::Edit);
 
 	ui->leUserName->setReadOnly(edit_mode);
@@ -29,12 +42,13 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 
 	m_rpcConnection = rpc_connection;
 
-	if(m_rpcConnection == nullptr){
-		ui->lblStatus->setText(tr("Connection to shv does not exist."));
-	}
-
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, &DlgAddEditUser::onShowPasswordClicked);
 	connect(ui->pbSelectRoles, &QAbstractButton::clicked, this, &DlgAddEditUser::onSelectRolesClicked);
+
+	if (edit_mode) {
+		ui->leUserName->setText(user);
+		callGetUserSettings();
+	}
 }
 
 DlgAddEditUser::~DlgAddEditUser()
@@ -55,20 +69,9 @@ std::string sha1_hex(const std::string &s)
 }
 }
 
-DlgAddEditUser::DialogType DlgAddEditUser::dialogType()
-{
-	return m_dialogType;
-}
-
 std::string DlgAddEditUser::user()
 {
 	return ui->leUserName->text().toStdString();
-}
-
-void DlgAddEditUser::setUser(const QString &user)
-{
-	ui->leUserName->setText(user);
-	callGetUserSettings();
 }
 
 QString DlgAddEditUser::password()
@@ -78,7 +81,7 @@ QString DlgAddEditUser::password()
 
 void DlgAddEditUser::accept()
 {
-	if (dialogType() == DialogType::Add){
+	if (m_dialogType == DialogType::Add) {
 		if ((!user().empty()) && (!password().isEmpty())){
 			ui->lblStatus->setText(tr("Checking user name existence"));
 			checkExistingUser([this](bool success, bool is_duplicate) {
@@ -104,13 +107,11 @@ void DlgAddEditUser::accept()
 			ui->lblStatus->setText(tr("User name or password is empty."));
 		}
 	}
-	else if (dialogType() == DialogType::Edit){
+	else if (m_dialogType == DialogType::Edit) {
 		ui->lblStatus->setText(tr("Updating user ...") + QString::fromStdString(aclEtcUsersNodePath()));
 
-		if (ui->chbCreateRole->isChecked()){
-			callCreateRole(user(), [this]() {
-				callSetUserSettings();
-			});
+		if (ui->chbCreateRole->isChecked()) {
+			callCreateRole(user(), [this]() { callSetUserSettings(); });
 		}
 		else{
 			callSetUserSettings();
@@ -222,9 +223,6 @@ void DlgAddEditUser::callCreateRole(const std::string &role_name, std::function<
 
 void DlgAddEditUser::callGetUserSettings()
 {
-	if (m_rpcConnection == nullptr)
-		return;
-
 	ui->lblStatus->setText(tr("Getting settings ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
@@ -235,8 +233,13 @@ void DlgAddEditUser::callGetUserSettings()
 			if(response.isError()) {
 				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
 			}
-			else{
-				m_user = shv::iotqt::acl::AclUser::fromRpcValue(response.result());
+			else {
+				if (isShv3()) {
+					m_user = shv3AclUserFromRpcValue(response.result());
+				}
+				else {
+					m_user = shv::iotqt::acl::AclUser::fromRpcValue(response.result());
+				}
 				setRoles(m_user.roles);
 				ui->lblStatus->setText("");
 			}
@@ -246,6 +249,7 @@ void DlgAddEditUser::callGetUserSettings()
 		}
 	});
 
+	ui->lePassword->setText({});
 	m_rpcConnection->callShvMethod(rqid, userShvPath(), VALUE_METHOD);
 }
 
@@ -275,12 +279,20 @@ void DlgAddEditUser::callSetUserSettings()
 
 	m_user.roles = roles();
 
-	if (!password().isEmpty()){
+	if (!password().isEmpty()) {
+		// user wants to change password
 		m_user.password.format = shv::iotqt::acl::AclPassword::Format::Sha1;
 		m_user.password.password = sha1_hex(password().toStdString());
 	}
 
-	shv::chainpack::RpcValue::List params{user(), m_user.toRpcValue()};
+	RpcValue password_rv;
+	if (isShv3()) {
+		password_rv = shv3AclUserToRpcValue(m_user);
+	} else {
+		password_rv = m_user.toRpcValue();
+	}
+
+	shv::chainpack::RpcValue::List params{user(), password_rv};
 	m_rpcConnection->callShvMethod(rqid, aclEtcUsersNodePath(), SET_VALUE_METHOD, params);
 }
 
@@ -339,4 +351,58 @@ void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)
 	}
 
 	ui->leRoles->setText(roles_list.join(","));
+}
+
+namespace {
+constexpr auto PASSWORD = "password";
+constexpr auto PLAIN = "Plain";
+constexpr auto SHA1 = "Sha1";
+}
+shv::iotqt::acl::AclUser DlgAddEditUser::shv3AclUserFromRpcValue(const shv::chainpack::RpcValue &v)
+{
+	/*
+	SHV3
+	{
+	  "password":{"Plain":"viewer"},
+	  "roles":["subscribe", "browse"]
+	}
+	*/
+	using namespace shv::iotqt::acl;
+	AclUser ret;
+	const auto &m = v.asMap();
+	{
+		const auto &pass = m.valref(PASSWORD).asMap();
+		if (pass.hasKey(SHA1)) {
+			ret.password.password = pass.value(SHA1).asString();
+			ret.password.format = AclPassword::Format::Sha1;
+		}
+		else if (pass.hasKey(PLAIN)) {
+			ret.password.password = pass.value(PLAIN).asString();
+			ret.password.format = AclPassword::Format::Plain;
+		}
+	}
+	std::vector<std::string> roles;
+	for(const auto &lst : m.valref("roles").asList()) {
+		roles.push_back(lst.toString());
+	}
+	ret.roles = roles;
+	return ret;
+}
+
+shv::chainpack::RpcValue DlgAddEditUser::shv3AclUserToRpcValue(const shv::iotqt::acl::AclUser &user)
+{
+	using namespace shv::iotqt::acl;
+	RpcValue::Map ret;
+	switch (user.password.format) {
+	case shv::iotqt::acl::AclPassword::Format::Invalid:
+		break;
+	case shv::iotqt::acl::AclPassword::Format::Plain:
+		ret[PASSWORD] = RpcValue::Map{{PLAIN, user.password.password}};
+		break;
+	case shv::iotqt::acl::AclPassword::Format::Sha1:
+		ret[PASSWORD] = RpcValue::Map{{SHA1, user.password.password}};
+		break;
+	}
+	ret["roles"] = user.roles;
+	return ret;
 }
