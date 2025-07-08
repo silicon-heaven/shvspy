@@ -107,17 +107,11 @@ MainWindow::MainWindow(QWidget *parent) :
 		static constexpr auto ro_file_node_methods = {"size", "stat", "read"};
 		static constexpr auto wr_file_node_methods = {"write"};
 		auto node_has_methods = [](const QVector<ShvMetaMethod>& node_methods, const auto &methods) {
-			for(const auto &m : methods) {
-				for(const auto &nm : node_methods) {
-					if (m == nm.metamethod.name()) {
-						goto found;
-					}
-				}
-				return false;
-				found:
-				continue;
-			}
-			return true;
+			return std::all_of(methods.begin(), methods.end(), [&node_methods](const auto &method) {
+				return std::find_if(node_methods.begin(), node_methods.end(), [&method](const auto &node_method){
+							return method == node_method.metamethod.name();
+						}) != node_methods.end();
+			});
 		};
 
 		hide_action_buttons();
@@ -511,28 +505,32 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	displayValue(rv);
 }
 
+namespace {
+auto* create_text_view(QWidget *parent)
+{
+	auto *view = new TextEditDialog(parent);
+	view->setModal(false);
+	view->setAttribute(Qt::WA_DeleteOnClose);
+	// view->setWindowIconText("Result");
+	view->setReadOnly(true);
+	return view;
+}
+}
 void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 {
-	if(rv.isString() || rv.isBlob()) {
-		auto *view = new TextEditDialog(this);
-		view->setModal(false);
-		view->setAttribute(Qt::WA_DeleteOnClose);
+	if(rv.isString()) {
+		auto *view = create_text_view(this);
 		view->setWindowIconText(tr("Result"));
-		view->setReadOnly(true);
-		if (rv.isString()) {
-			view->setText(QString::fromStdString(rv.asString()));
-		}
-		else {
-			const auto &blob = rv.asBlob();
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-			auto data = QByteArray::fromRawData(reinterpret_cast<const char*>(blob.data()), blob.size());
-			view->setBlob(data);
-#else
-			auto data = QByteArrayView(blob);
-			view->setBlob(data.toByteArray());
-#endif
-		}
 		view->show();
+	}
+	else if (rv.isBlob()) {
+		const auto &blob = rv.asBlob();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		auto data = QByteArray::fromRawData(reinterpret_cast<const char*>(blob.data()), blob.size());
+#else
+		auto data = QByteArrayView(blob).toByteArray();
+#endif
+		showBlob(data);
 	}
 	else {
 		auto *view = new CponEditDialog(this);
@@ -549,11 +547,8 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 
 void MainWindow::showBlob(const QByteArray &blob)
 {
-	auto *view = new TextEditDialog(this);
-	view->setModal(false);
-	view->setAttribute(Qt::WA_DeleteOnClose);
+	auto *view = create_text_view(this);
 	view->setWindowIconText(tr("Result"));
-	view->setReadOnly(true);
 	view->setBlob(blob);
 	view->show();
 }
