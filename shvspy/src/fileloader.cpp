@@ -12,11 +12,10 @@ constexpr qsizetype CHUNK_SIZE = 16 * 1024;
 //=========================================================
 // AbstractFileLoader
 //=========================================================
-AbstractFileLoader::AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QByteArray data, QObject *parent)
+AbstractFileLoader::AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QObject *parent)
 	: QObject(parent)
 	, m_connection(conn)
 	, m_shvPath(shv_path)
-	, m_data(data)
 {
 	connect(this, &FileDownloader::finished, this, &FileDownloader::deleteLater);
 }
@@ -25,7 +24,7 @@ AbstractFileLoader::AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, 
 // FileDownloader
 //=========================================================
 FileDownloader::FileDownloader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QObject *parent)
-	: Super(conn, shv_path, {}, parent)
+	: Super(conn, shv_path, parent)
 {
 }
 
@@ -88,8 +87,9 @@ int FileDownloader::chunkCnt() const
 // FileUploader
 //=========================================================
 FileUploader::FileUploader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QByteArray data, QObject *parent)
-	: Super(conn, shv_path, data, parent)
+	: Super(conn, shv_path, parent)
 {
+	m_data = data;
 }
 
 void FileUploader::uploadChunk()

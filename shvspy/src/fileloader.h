@@ -8,7 +8,7 @@ class AbstractFileLoader : public QObject
 {
 	Q_OBJECT
 public:
-	AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QByteArray data, QObject *parent);
+	AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QObject *parent);
 
 	Q_SIGNAL void progress(int n, int of);
 	Q_SIGNAL void finished(QByteArray data, QString error);
