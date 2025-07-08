@@ -524,8 +524,13 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 		}
 		else {
 			const auto &blob = rv.asBlob();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+			auto data = QByteArray::fromRawData(reinterpret_cast<const char*>(blob.data()), blob.size());
+			view->setBlob(data);
+#else
 			auto data = QByteArrayView(blob);
 			view->setBlob(data.toByteArray());
+#endif
 		}
 		view->show();
 	}
@@ -856,7 +861,6 @@ void MainWindow::fileUpload()
 			dlg->open();
 		};
 #if QT_VERSION < QT_VERSION_CHECK(5, 13, 0)
-		// works also for WASM
 		if (auto fn = QFileDialog::getOpenFileName(this, tr("Select  file to upload"), tr("All files (*)")); !fn.isEmpty()) {
 			QFile f(fn);
 			if (f.open(QFile::ReadOnly)) {
@@ -864,6 +868,8 @@ void MainWindow::fileUpload()
 				file_content_ready(fn, data);
 			}
 		}
+#elif QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
+		QFileDialog::getOpenFileContent("All files (*)",  file_content_ready);
 #else
 		// works also for WASM
 		QFileDialog::getOpenFileContent("All files (*)",  file_content_ready, this);
@@ -967,10 +973,10 @@ void MainWindow::onActHelpAbout_triggered()
 #ifdef Q_OS_WASM
 	// Can't use QMessageBox::about here, because of it uses exec().
 	auto* msgBox = new QMessageBox(QMessageBox::Information, title, text, QMessageBox::NoButton, this);
-    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-    QIcon icon = msgBox->windowIcon();
-    QSize size = icon.actualSize(QSize(64, 64));
-    msgBox->setIconPixmap(icon.pixmap(size));
+	msgBox->setAttribute(Qt::WA_DeleteOnClose);
+	QIcon icon = msgBox->windowIcon();
+	QSize size = icon.actualSize(QSize(64, 64));
+	msgBox->setIconPixmap(icon.pixmap(size));
 	msgBox->open();
 #else
 	QMessageBox::about(this, title, text);

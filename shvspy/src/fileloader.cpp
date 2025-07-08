@@ -66,7 +66,12 @@ void FileDownloader::downloadChunk()
 				return;
 			}
 			const auto &chunk = result.asBlob();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+			auto data = QByteArray::fromRawData(reinterpret_cast<const char*>(chunk.data()), chunk.size());
+			m_data.append(data);
+#else
 			m_data.append(QByteArrayView(chunk));
+#endif
 			downloadChunk();
 		});
 		rpc_call->start();
