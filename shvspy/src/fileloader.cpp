@@ -5,13 +5,13 @@
 
 using namespace shv::chainpack;
 
+namespace {
+constexpr qsizetype DEFAULT_CHUNK_SIZE = 16 * 1024;
+}
+
 //=========================================================
 // AbstractFileLoader
 //=========================================================
-namespace {
-constexpr qsizetype DOWNLOAD_CHUNK_SIZE = 16 * 1024;
-}
-
 AbstractFileLoader::AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QObject *parent)
 	: QObject(parent)
 	, m_connection(conn)
@@ -47,11 +47,11 @@ void FileDownloader::start()
 void FileDownloader::downloadChunk()
 {
 	if (m_data.size() < m_fileSize) {
-		emit progress(static_cast<int>(m_data.size() / DOWNLOAD_CHUNK_SIZE), chunkCnt());
+		emit progress(static_cast<int>(m_data.size() / DEFAULT_CHUNK_SIZE), chunkCnt());
 		auto bytes_to_read = m_fileSize - m_data.size();
 		// Cap bytes to read by file size
 		// PLC can return more than file_size bytes if requested
-		RpcValue::List params{{m_data.size(), std::min(bytes_to_read, DOWNLOAD_CHUNK_SIZE)}};
+		RpcValue::List params{{m_data.size(), std::min(bytes_to_read, DEFAULT_CHUNK_SIZE)}};
 		auto rpc_call = shv::iotqt::rpc::RpcCall::create(m_connection)
 				->setShvPath(m_shvPath)
 				->setMethod("read")
@@ -85,7 +85,7 @@ void FileDownloader::downloadChunk()
 
 int FileDownloader::chunkCnt() const
 {
-	return static_cast<int>(m_fileSize / DOWNLOAD_CHUNK_SIZE) + 1;
+	return static_cast<int>(m_fileSize / DEFAULT_CHUNK_SIZE) + 1;
 }
 
 //=========================================================
@@ -144,8 +144,7 @@ void FileUploader::start()
 		static constexpr int MAX_WRITE = 5;
 		m_chunkSize = result.asIMap().value(MAX_WRITE).toInt();
 		if (m_chunkSize <= 0) {
-			emit finished({}, tr("Get file stat MaxWrite error."));
-			return;
+			m_chunkSize = DEFAULT_CHUNK_SIZE;
 		}
 		uploadChunk();
 	});

@@ -221,6 +221,59 @@ void DlgAddEditUser::callCreateRole(const std::string &role_name, std::function<
 	m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), SET_VALUE_METHOD, params);
 }
 
+namespace {
+constexpr auto PASSWORD = "password";
+constexpr auto PLAIN = "Plain";
+constexpr auto SHA1 = "Sha1";
+
+shv::iotqt::acl::AclUser shv3AclUserFromRpcValue(const shv::chainpack::RpcValue &v)
+{
+	// SHV3
+	// {
+	//   "password":{"Plain":"viewer"},
+	//   "roles":["subscribe", "browse"]
+	// }
+	using namespace shv::iotqt::acl;
+	AclUser ret;
+	const auto &m = v.asMap();
+	{
+		const auto &pass = m.valref(PASSWORD).asMap();
+		if (pass.hasKey(SHA1)) {
+			ret.password.password = pass.value(SHA1).asString();
+			ret.password.format = AclPassword::Format::Sha1;
+		}
+		else if (pass.hasKey(PLAIN)) {
+			ret.password.password = pass.value(PLAIN).asString();
+			ret.password.format = AclPassword::Format::Plain;
+		}
+	}
+	std::vector<std::string> roles;
+	for(const auto &lst : m.valref("roles").asList()) {
+		roles.push_back(lst.toString());
+	}
+	ret.roles = roles;
+	return ret;
+}
+
+shv::chainpack::RpcValue shv3AclUserToRpcValue(const shv::iotqt::acl::AclUser &user)
+{
+	using namespace shv::iotqt::acl;
+	RpcValue::Map ret;
+	switch (user.password.format) {
+	case AclPassword::Format::Invalid:
+		break;
+	case AclPassword::Format::Plain:
+		ret[PASSWORD] = RpcValue::Map{{PLAIN, user.password.password}};
+		break;
+	case AclPassword::Format::Sha1:
+		ret[PASSWORD] = RpcValue::Map{{SHA1, user.password.password}};
+		break;
+	}
+	ret["roles"] = user.roles;
+	return ret;
+}
+}
+
 void DlgAddEditUser::callGetUserSettings()
 {
 	ui->lblStatus->setText(tr("Getting settings ..."));
@@ -351,58 +404,4 @@ void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)
 	}
 
 	ui->leRoles->setText(roles_list.join(","));
-}
-
-namespace {
-constexpr auto PASSWORD = "password";
-constexpr auto PLAIN = "Plain";
-constexpr auto SHA1 = "Sha1";
-}
-shv::iotqt::acl::AclUser DlgAddEditUser::shv3AclUserFromRpcValue(const shv::chainpack::RpcValue &v)
-{
-	/*
-	SHV3
-	{
-	  "password":{"Plain":"viewer"},
-	  "roles":["subscribe", "browse"]
-	}
-	*/
-	using namespace shv::iotqt::acl;
-	AclUser ret;
-	const auto &m = v.asMap();
-	{
-		const auto &pass = m.valref(PASSWORD).asMap();
-		if (pass.hasKey(SHA1)) {
-			ret.password.password = pass.value(SHA1).asString();
-			ret.password.format = AclPassword::Format::Sha1;
-		}
-		else if (pass.hasKey(PLAIN)) {
-			ret.password.password = pass.value(PLAIN).asString();
-			ret.password.format = AclPassword::Format::Plain;
-		}
-	}
-	std::vector<std::string> roles;
-	for(const auto &lst : m.valref("roles").asList()) {
-		roles.push_back(lst.toString());
-	}
-	ret.roles = roles;
-	return ret;
-}
-
-shv::chainpack::RpcValue DlgAddEditUser::shv3AclUserToRpcValue(const shv::iotqt::acl::AclUser &user)
-{
-	using namespace shv::iotqt::acl;
-	RpcValue::Map ret;
-	switch (user.password.format) {
-	case shv::iotqt::acl::AclPassword::Format::Invalid:
-		break;
-	case shv::iotqt::acl::AclPassword::Format::Plain:
-		ret[PASSWORD] = RpcValue::Map{{PLAIN, user.password.password}};
-		break;
-	case shv::iotqt::acl::AclPassword::Format::Sha1:
-		ret[PASSWORD] = RpcValue::Map{{SHA1, user.password.password}};
-		break;
-	}
-	ret["roles"] = user.roles;
-	return ret;
 }
