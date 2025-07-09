@@ -203,6 +203,8 @@ jobs:
     if: github.ref == 'refs/heads/master'
     needs: [linux-qt6, linux-qt5, windows-qt6, wasm-qt6]
     runs-on: ubuntu-24.04
+    env:
+      HASH_FOR_FILENAMES: ${{github.event.pull_request.head.sha || github.sha}}
     steps:
       # Needed for action-create-tag
       - name: Checkout code
@@ -221,9 +223,10 @@ jobs:
       - name: Rename artifacts
         run: |
           mv artifact.tar shvspy-wasm-nightly.tar
-          mv shvspy-*-setup.exe shvspy-nightly-setup.exe
-          mv shvspy-qt5-*-x86_64.AppImage shvspy-qt5-nightly-x86_64.AppImage
-          mv shvspy-qt6-*-x86_64.AppImage shvspy-qt6-nightly-x86_64.AppImage
+          SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
+          mv shvspy-*-setup.exe "shvspy-$SHVSPY_HASH-setup.exe"
+          mv shvspy-qt5-*-x86_64.AppImage "shvspy-qt5-$SHVSPY_HASH-x86_64.AppImage"
+          mv shvspy-qt6-*-x86_64.AppImage "shvspy-qt6-$SHVSPY_HASH-x86_64.AppImage"
 
       - name: Delete previous nightly release
         env:
