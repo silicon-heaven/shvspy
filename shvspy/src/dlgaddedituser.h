@@ -49,9 +49,6 @@ private:
 	void setRoles(const shv::chainpack::RpcValue::List &roles);
 
 	bool isShv3() const { return m_shvApiVersion == shv::chainpack::IRpcConnection::ShvApiVersion::V3; }
-	static shv::iotqt::acl::AclUser shv3AclUserFromRpcValue(const shv::chainpack::RpcValue &v);
-	shv::chainpack::RpcValue shv3AclUserToRpcValue(const shv::iotqt::acl::AclUser &user);
-
 private:
 	enum class DialogType {Add = 0, Edit, Count};
 	DialogType m_dialogType;
