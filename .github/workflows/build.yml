@@ -204,6 +204,15 @@ jobs:
     needs: [linux-qt6, linux-qt5, windows-qt6, wasm-qt6]
     runs-on: ubuntu-24.04
     steps:
+      # Needed for action-create-tag
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: rickstaa/action-create-tag@v1
+        with:
+          tag: "nightly"
+          force_push_tag: true
+
       - name: Consolidate artifacts
         uses: actions/download-artifact@v4
         with:
