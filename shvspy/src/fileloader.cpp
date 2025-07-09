@@ -5,13 +5,13 @@
 
 using namespace shv::chainpack;
 
-namespace {
-constexpr qsizetype CHUNK_SIZE = 16 * 1024;
-}
-
 //=========================================================
 // AbstractFileLoader
 //=========================================================
+namespace {
+constexpr qsizetype DOWNLOAD_CHUNK_SIZE = 16 * 1024;
+}
+
 AbstractFileLoader::AbstractFileLoader(shv::iotqt::rpc::ClientConnection *conn, const QString &shv_path, QObject *parent)
 	: QObject(parent)
 	, m_connection(conn)
@@ -47,11 +47,11 @@ void FileDownloader::start()
 void FileDownloader::downloadChunk()
 {
 	if (m_data.size() < m_fileSize) {
-		emit progress(static_cast<int>(m_data.size() / CHUNK_SIZE), chunkCnt());
+		emit progress(static_cast<int>(m_data.size() / DOWNLOAD_CHUNK_SIZE), chunkCnt());
 		auto bytes_to_read = m_fileSize - m_data.size();
 		// Cap bytes to read by file size
 		// PLC can return more than file_size bytes if requested
-		RpcValue::List params{{m_data.size(), std::min(bytes_to_read, CHUNK_SIZE)}};
+		RpcValue::List params{{m_data.size(), std::min(bytes_to_read, DOWNLOAD_CHUNK_SIZE)}};
 		auto rpc_call = shv::iotqt::rpc::RpcCall::create(m_connection)
 				->setShvPath(m_shvPath)
 				->setMethod("read")
@@ -85,7 +85,7 @@ void FileDownloader::downloadChunk()
 
 int FileDownloader::chunkCnt() const
 {
-	return static_cast<int>(m_fileSize / CHUNK_SIZE) + 1;
+	return static_cast<int>(m_fileSize / DOWNLOAD_CHUNK_SIZE) + 1;
 }
 
 //=========================================================
@@ -101,8 +101,8 @@ void FileUploader::uploadChunk()
 {
 	shvDebug() << m_bytesWritten << "/" << m_data.size();
 	if (m_bytesWritten < m_data.size()) {
-		emit progress(static_cast<int>(m_bytesWritten / CHUNK_SIZE), chunkCnt());
-		auto bytes_to_write = std::min(m_data.size() - m_bytesWritten, CHUNK_SIZE);
+		emit progress(static_cast<int>(m_bytesWritten / m_chunkSize), chunkCnt());
+		auto bytes_to_write = std::min(m_data.size() - m_bytesWritten, m_chunkSize);
 		RpcValue::Blob blob(m_data.constData() + m_bytesWritten, m_data.constData() + m_bytesWritten + bytes_to_write);
 		RpcValue::List params{{RpcValue(m_bytesWritten), blob}};
 		auto rpc_call = shv::iotqt::rpc::RpcCall::create(m_connection)
@@ -128,11 +128,27 @@ void FileUploader::uploadChunk()
 
 int FileUploader::chunkCnt() const
 {
-	return static_cast<int>(m_data.size() / CHUNK_SIZE) + 1;
+	return static_cast<int>(m_data.size() / m_chunkSize) + 1;
 }
 
 void FileUploader::start()
 {
-	uploadChunk();
+	auto rpc_call = shv::iotqt::rpc::RpcCall::create(m_connection)
+			->setShvPath(m_shvPath)
+			->setMethod("stat");
+	connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+		if (error.isValid()) {
+			emit finished({}, tr("Get file size error: %1").arg(QString::fromStdString(error.toString())));
+			return;
+		}
+		static constexpr int MAX_WRITE = 5;
+		m_chunkSize = result.asIMap().value(MAX_WRITE).toInt();
+		if (m_chunkSize <= 0) {
+			emit finished({}, tr("Get file stat MaxWrite error."));
+			return;
+		}
+		uploadChunk();
+	});
+	rpc_call->start();
 }
 
