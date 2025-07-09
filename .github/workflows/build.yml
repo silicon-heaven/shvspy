@@ -225,6 +225,13 @@ jobs:
           mv shvspy-qt5-*-x86_64.AppImage shvspy-qt5-nightly-x86_64.AppImage
           mv shvspy-qt6-*-x86_64.AppImage shvspy-qt6-nightly-x86_64.AppImage
 
+      - name: Delete previous nightly release
+        env:
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run:
+          # Deleting the release refreshes the release date.
+          gh release delete nightly
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
