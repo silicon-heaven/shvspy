@@ -124,11 +124,11 @@ MainWindow::MainWindow(QWidget *parent) :
 		}
 	});
 
-	connect(attr_model, &AttributesModel::reloaded, this, &MainWindow::resizeAttributesViewSectionsToFit);
-	connect(TheApp::instance()->attributesModel(), &AttributesModel::methodCallResultChanged, this, [this](int method_ix) {
-		Q_UNUSED(method_ix)
-		this->resizeAttributesViewSectionsToFit();
-	});
+	connect(ui->btResizeColumns, &QAbstractButton::clicked, this, &MainWindow::resizeAttributesViewSectionsToFit);
+	// connect(TheApp::instance()->attributesModel(), &AttributesModel::methodCallResultChanged, this, [this](int method_ix) {
+	// 	Q_UNUSED(method_ix)
+	// 	this->resizeAttributesViewSectionsToFit();
+	// });
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::onAttributesTableContextMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, this, [this](const QModelIndex &ix) {
@@ -321,16 +321,21 @@ void MainWindow::resizeAttributesViewSectionsToFit()
 		sum_section_w += hh->sectionSize(i);
 
 	int widget_w = ui->tblAttributes->geometry().size().width();
-	if(sum_section_w - widget_w > 0) {
+	if(sum_section_w > widget_w) {
+		int w_param_type = hh->sectionSize(AttributesModel::ColParamType);
+		int w_result_type = hh->sectionSize(AttributesModel::ColResultType);
 		int w_params = hh->sectionSize(AttributesModel::ColParams);
 		int w_result = hh->sectionSize(AttributesModel::ColResult);
-		int w_run = hh->sectionSize(AttributesModel::ColBtRun);
-		int w_section_rest = sum_section_w - w_params - w_result + w_run;
-		int w_params2 = w_params * (widget_w - w_section_rest) / (w_params + w_result);
-		int w_result2 = w_result * (widget_w - w_section_rest) / (w_params + w_result);
-		//shvDebug() << "widget:" << widget_w << "com col w:" << sum_section_w << "params section size:" << w_params << "result section size:" << w_result;
-		hh->resizeSection(AttributesModel::ColParams, w_params2);
-		hh->resizeSection(AttributesModel::ColResult, w_result2);
+		// int w_run = hh->sectionSize(AttributesModel::ColBtRun);
+		int w_section_rest = sum_section_w - w_params - w_result - w_param_type - w_result_type;
+		int w = (widget_w - w_section_rest) / 4;
+		if (w < 0) {
+			w = 20;
+		}
+		hh->resizeSection(AttributesModel::ColParamType, w);
+		hh->resizeSection(AttributesModel::ColResultType, w);
+		hh->resizeSection(AttributesModel::ColParams, w);
+		hh->resizeSection(AttributesModel::ColResult, w);
 	}
 }
 

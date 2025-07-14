@@ -202,6 +202,20 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="btResizeColumns">
+         <property name="toolTip">
+          <string>Go to shv path</string>
+         </property>
+         <property name="icon">
+          <iconset resource="../shvspy.qrc">
+           <normaloff>:/shvspy/images/fit-width.svg</normaloff>:/shvspy/images/fit-width.svg</iconset>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="btFileUpload">
          <property name="text">
           <string>Upload</string>
