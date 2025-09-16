@@ -82,12 +82,14 @@ runs:
         key: ${{github.job}}
 
     - name: Configure CMake
+      env:
+        GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
         CFLAGS="${CFLAGS}" \
         CXXFLAGS="${CXXFLAGS}" \
         "${CMAKE_BIN:-cmake}" \
-          -S '${{github.workspace}}' \
-          -B '${{github.workspace}}/build' \
+          -S "$GITHUB_WORKSPACE" \
+          -B "$GITHUB_WORKSPACE/build" \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_TESTING=OFF \
           -DCMAKE_C_COMPILER_LAUNCHER=ccache \
