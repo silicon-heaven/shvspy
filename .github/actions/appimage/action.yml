@@ -18,11 +18,15 @@ runs:
       shell: bash
 
     - name: Build
-      run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
+      env:
+        GITHUB_WORKSPACE: ${{ github.workspace }}
+      run: cmake --build "$GITHUB_WORKSPACE/build" --parallel "$(nproc)"
       shell: bash
 
     - name: Install
-      run: cmake --install '${{github.workspace}}/build'
+      env:
+        GITHUB_WORKSPACE: ${{ github.workspace }}
+      run: cmake --install "$GITHUB_WORKSPACE/build"
       shell: bash
 
     - name: Get app version
@@ -44,12 +48,14 @@ runs:
       shell: bash
 
     - name: Create AppImage
+      env:
+        GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
-        LD_LIBRARY_PATH="${{github.workspace}}/install/usr/lib:$LD_LIBRARY_PATH" \
+        LD_LIBRARY_PATH="$GITHUB_WORKSPACE/install/usr/lib:$LD_LIBRARY_PATH" \
         ./linuxdeploy-x86_64.AppImage \
-        --appdir '${{github.workspace}}/install' \
-        --desktop-file '${{github.workspace}}/distro/shvspy.AppDir/shvspy.desktop' \
-        --icon-file '${{github.workspace}}/distro/shvspy.AppDir/shvspy.svg' \
+        --appdir "$GITHUB_WORKSPACE/install" \
+        --desktop-file "$GITHUB_WORKSPACE/distro/shvspy.AppDir/shvspy.desktop" \
+        --icon-file "$GITHUB_WORKSPACE/distro/shvspy.AppDir/shvspy.svg" \
         --plugin qt \
         --output appimage
       shell: bash
