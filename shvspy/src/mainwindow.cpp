@@ -526,6 +526,7 @@ void MainWindow::displayValue(const shv::chainpack::RpcValue &rv)
 	if(rv.isString()) {
 		auto *view = create_text_view(this);
 		view->setWindowIconText(tr("Result"));
+		view->setText(QString::fromStdString(rv.asString()));
 		view->show();
 	}
 	else if (rv.isBlob()) {
