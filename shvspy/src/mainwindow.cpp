@@ -122,6 +122,8 @@ MainWindow::MainWindow(QWidget *parent) :
 			ui->btFileDownload->setVisible(node_has_methods(node_methods, ro_file_node_methods));
 			ui->btFileUpload->setVisible(ui->btFileDownload->isVisible() && node_has_methods(node_methods, wr_file_node_methods));
 		}
+
+		ui->tblAttributes->resizeColumnToContents(AttributesModel::ColMethodName);
 	});
 
 	connect(ui->btResizeColumns, &QAbstractButton::clicked, this, &MainWindow::resizeAttributesViewSectionsToFit);

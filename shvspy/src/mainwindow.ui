@@ -204,7 +204,7 @@
        <item>
         <widget class="QPushButton" name="btResizeColumns">
          <property name="toolTip">
-          <string>Go to shv path</string>
+          <string>Resize columns to fit</string>
          </property>
          <property name="icon">
           <iconset resource="../shvspy.qrc">
