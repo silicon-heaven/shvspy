@@ -246,7 +246,7 @@ jobs:
 
             This is a nightly release. If you find any bugs, please report them to the repository's issue tracker.
           files: |
-             shvspy-*
+            shvspy-*
 
   nix:
     name: NixOS / Qt 6.6.2
