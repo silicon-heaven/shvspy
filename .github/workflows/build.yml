@@ -189,6 +189,25 @@ jobs:
         with:
           path: 'gh-sources/'
 
+  check-version-bump:
+    name: Check version bump
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Get appversion.h changes
+        id: changed-appversion-h
+        uses: tj-actions/changed-files@v47
+        with:
+          files: |
+            shvspy/src/appversion.h
+
+      - name: Check if appversion.h was changed
+        run: |
+          if [[ '${{steps.changed-appversion-h.outputs.any_changed}}' != 'true' ]]; then
+            echo No version bump detected. Please increase version.
+            exit 1
+          fi
+
+
   deploy-github-pages:
     name: Deploy GitHub Pages
     if: github.ref == 'refs/heads/master'
