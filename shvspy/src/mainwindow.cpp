@@ -81,8 +81,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(tree_model, &ServerTreeModel::brokerLoginError, this, [this](int broker_id, const QString &error_message, int err_cnt) {
 		Q_UNUSED(broker_id);
 		TheApp::instance()->errorLogModel()->addLogRow(NecroLogLevel::Error, error_message.toStdString(), err_cnt);
-		if(err_cnt == 1)
+		if(err_cnt == 1) {
 			QMessageBox::critical(this, tr("Login error"), error_message);
+		}
 	});
 	connect(tree_model, &ServerTreeModel::subscriptionAddError, this, [this](int broker_id, const std::string &shv_path, const std::string &error_msg) {
 		QString msg = tr("Add subscription error:") + " " + QString::fromStdString(error_msg) + " " + QString::number(broker_id) + " " + tr("shv path:") + " " + QString::fromStdString(shv_path);

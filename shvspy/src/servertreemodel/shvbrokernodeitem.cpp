@@ -318,7 +318,7 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 			auto err_msg = QString::fromStdString(err.toString());
 			onBrokerLoginError(err_msg);
 		});
-		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketError, this, &ShvBrokerNodeItem::onBrokerLoginError);
+		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketError, this, &ShvBrokerNodeItem::close);
 	}
 	return m_rpcConnection;
 }
@@ -439,9 +439,14 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			do {
 				const auto shv_path = rq.shvPath().asString();
 				const auto method = rq.method().asString();
-				if(shv_path == shv::chainpack::Rpc::DIR_BROKER_APP) {
-						resp.setResult(true);
-						break;
+				if(shv_path == shv::chainpack::Rpc::DIR_BROKER_CURRENTCLIENT || shv_path == shv::chainpack::Rpc::DIR_BROKER_APP) {
+					if(method == cp::Rpc::METH_DIR) {
+						if(rq.params().asString() == cp::Rpc::METH_SUBSCRIBE) {
+							// SHV3 broker device type discovery
+							resp.setResult(false);
+							break;
+						}
+					}
 				}
 				if(shv_path.empty()) {
 					if(method == cp::Rpc::METH_DIR) {
