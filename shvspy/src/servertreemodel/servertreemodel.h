@@ -39,7 +39,6 @@ public:
 	Q_SIGNAL void subscriptionAdded(int broker_id, const std::string &path, const std::string &method);
 	Q_SIGNAL void subscriptionAddError(int broker_id, const std::string &shv_path, const std::string &error_msg);
 	Q_SIGNAL void brokerConnectedChanged(int broker_id, bool is_connected);
-	Q_SIGNAL void brokerLoginError(int broker_id, const QString &error_message, int err_count);
 private:
 	ShvNodeRootItem *m_invisibleRoot;
 	QMap<unsigned, ShvNodeItem*> m_nodes;
