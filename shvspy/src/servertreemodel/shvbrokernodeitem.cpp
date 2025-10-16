@@ -345,7 +345,18 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 
 void ShvBrokerNodeItem::onBrokerLoginError(const QString &err)
 {
-	emit treeModel()->brokerLoginError(brokerId(), err, ++m_brokerLoginErrorCount);
+	++m_brokerLoginErrorCount;
+	TheApp::instance()->errorLogModel()->addLogRow(NecroLogLevel::Error, err.toStdString(), m_brokerLoginErrorCount);
+	if(m_brokerLoginErrorCount == 1) {
+		QWidget *parent_widget = nullptr;
+		for (QObject *o = this; o != nullptr; o = o->parent()) {
+			parent_widget = qobject_cast<QWidget*>(o);
+			if (parent_widget) {
+				break;
+			}
+		}
+		QMessageBox::critical(parent_widget, tr("Login error"), err);
+	}
 }
 
 ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path_)
