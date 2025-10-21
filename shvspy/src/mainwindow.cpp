@@ -99,7 +99,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(attr_model, &AttributesModel::reloaded, this, [this, hide_action_buttons]() {
 		static constexpr auto get_log_methods = {cp::Rpc::METH_GET_LOG};
 		static constexpr auto ro_file_node_methods = {"size", "stat", "read"};
-		static constexpr auto wr_file_node_methods = {"write"};
+		static constexpr auto wr_file_node_methods = {"size", "stat", "write"};
 		auto node_has_methods = [](const QVector<ShvMetaMethod>& node_methods, const auto &methods) {
 			return std::all_of(methods.begin(), methods.end(), [&node_methods](const auto &method) {
 				return std::find_if(node_methods.begin(), node_methods.end(), [&method](const auto &node_method){
@@ -114,7 +114,7 @@ MainWindow::MainWindow(QWidget *parent) :
 			const auto node_methods = nd->methods();
 			ui->btLogInspector->setVisible(node_has_methods(node_methods, get_log_methods));
 			ui->btFileDownload->setVisible(node_has_methods(node_methods, ro_file_node_methods));
-			ui->btFileUpload->setVisible(ui->btFileDownload->isVisible() && node_has_methods(node_methods, wr_file_node_methods));
+			ui->btFileUpload->setVisible(node_has_methods(node_methods, wr_file_node_methods));
 		}
 
 		ui->tblAttributes->resizeColumnToContents(AttributesModel::ColMethodName);
