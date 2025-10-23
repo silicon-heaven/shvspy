@@ -246,6 +246,7 @@ jobs:
           mv shvspy-*-setup.exe "shvspy-$SHVSPY_HASH-setup.exe"
           mv shvspy-qt5-*-x86_64.AppImage "shvspy-qt5-$SHVSPY_HASH-x86_64.AppImage"
           mv shvspy-qt6-*-x86_64.AppImage "shvspy-qt6-$SHVSPY_HASH-x86_64.AppImage"
+          mv shvspy-wasm-nightly.tar "shvspy-wasm-$SHVSPY_HASH-nightly.tar"
 
       - name: Delete previous nightly release
         env:
