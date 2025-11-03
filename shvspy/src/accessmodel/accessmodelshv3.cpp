@@ -162,9 +162,7 @@ void AccessModelShv3::moveRuleUp(int index)
 {
 	if (index > 0) {
 		beginMoveRows(QModelIndex(), index, index, QModelIndex(), index - 1);
-		auto rule = m_rules.at(index);
-		m_rules[index] = m_rules.at(index - 1);
-		m_rules[index - 1] = rule;
+		std::swap(m_rules[index], m_rules[index - 1]);
 		endMoveRows();
 	}
 }
@@ -172,10 +170,8 @@ void AccessModelShv3::moveRuleUp(int index)
 void AccessModelShv3::moveRuleDown(int index)
 {
 	if ((index >= 0) && (index < rowCount() - 1)) {
-		beginMoveRows(QModelIndex(), index, index, QModelIndex(), index + 1);
-		auto rule = m_rules.at(index);
-		m_rules[index] = m_rules.at(index + 1);
-		m_rules[index + 1] = rule;
+		beginMoveRows(QModelIndex(), index, index, QModelIndex(), index + 2);
+		std::swap(m_rules[index], m_rules[index + 1]);
 		endMoveRows();
 	}
 }
