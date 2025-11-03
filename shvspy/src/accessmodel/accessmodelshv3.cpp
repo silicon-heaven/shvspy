@@ -170,7 +170,7 @@ void AccessModelShv3::moveRuleUp(int index)
 void AccessModelShv3::moveRuleDown(int index)
 {
 	if ((index >= 0) && (index < rowCount() - 1)) {
-		beginMoveRows(QModelIndex(), index, index, QModelIndex(), index + 1);
+		beginMoveRows(QModelIndex(), index, index, QModelIndex(), index + 2);
 		std::swap(m_rules[index], m_rules[index + 1]);
 		endMoveRows();
 	}
