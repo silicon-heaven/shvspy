@@ -201,12 +201,40 @@ jobs:
             shvspy/src/appversion.h
 
       - name: Check if appversion.h was changed
+        id: version-check
+        continue-on-error: ${{startsWith(github.head_ref, 'dependabot/')}}
         run: |
           if [[ '${{steps.changed-appversion-h.outputs.any_changed}}' != 'true' ]]; then
             echo No version bump detected. Please increase version.
             exit 1
           fi
 
+      - name: Checkout code
+        if: steps.version-check.outcome == 'failure'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{github.head_ref}}
+
+      - name: Bump version
+        if: steps.version-check.outcome == 'failure'
+        run: |
+          [[ "$(grep 'APP_VERSION' shvspy/src/appversion.h | head -n1)" =~ ([0-9]+\.[0-9]+\.)([0-9]+) ]]
+          NEW_VERSION="${BASH_REMATCH[1]}$((BASH_REMATCH[2] + 1))"
+          echo Bumping "${BASH_REMATCH[0]} -> $NEW_VERSION"
+          sed -i "s/${BASH_REMATCH[0]}/$NEW_VERSION/" shvspy/src/appversion.h
+          git diff
+          git config --global user.name "Login will be determined by the Github API based on the creator of the token"
+          git config --global user.email ""
+          git commit -am '[dependabot-skip] Bump version'
+
+      - name: Push changes
+        if: steps.version-check.outcome == 'failure'
+        uses: Asana/push-signed-commits@v1
+        with:
+          github-token: ${{ secrets.DEPENDABOT_GITHUB_TOKEN }}
+          local_branch_name: ${{github.head_ref}}
+          remote_branch_name: ${{github.head_ref}}
 
   deploy-github-pages:
     name: Deploy GitHub Pages
