@@ -322,4 +322,4 @@ jobs:
         run: nix --experimental-features 'nix-command flakes' flake check "git+file://$(pwd)?submodules=1&rev=$(git rev-parse HEAD)"
 
       - name: Format
-        run: nix --experimental-features 'nix-command flakes' fmt && git diff --exit-code
+        run: nix --experimental-features 'nix-command flakes' fmt . && git diff --exit-code
