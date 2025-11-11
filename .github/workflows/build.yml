@@ -271,7 +271,7 @@ jobs:
           merge-multiple: true
 
       - name: Compress WASM build
-        run: gzip artifact.tar > shvspy-wasm-nightly.tar.gz
+        run: gzip --to-stdout artifact.tar > shvspy-wasm-nightly.tar.gz
 
       - name: Rename artifacts
         run: |
