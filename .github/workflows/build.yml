@@ -133,7 +133,7 @@ jobs:
         run: iscc "-DBUILD_DIR=${{github.workspace}}/install" "-DVERSION=${{env.VERSION}}" shvspy/shvspy.iss
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: shvspy-${{env.VERSION}}-setup.exe
           path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
