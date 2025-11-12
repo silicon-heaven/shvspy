@@ -27,7 +27,7 @@ runs:
     # Linux deps
     - name: Install apt packages
       if: runner.os != 'Windows'
-      uses: awalsh128/cache-apt-pkgs-action@v1.4.3
+      uses: awalsh128/cache-apt-pkgs-action@v1.6.0
       with:
         packages: ninja-build libgl1-mesa-dev libpulse-dev libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-util1 libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev clazy libfuse-dev
         version: 1.0
@@ -45,7 +45,7 @@ runs:
 
     # Qt
     - name: Install Qt
-      uses: Kidev/install-qt-action@v4.4.2 # Needed for WASM
+      uses: Kidev/install-qt-action@v4.6.0 # Needed for WASM
       with:
         cache: true
         aqtversion: ">=3.2.0"
@@ -77,7 +77,7 @@ runs:
       shell: bash
 
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.12
+      uses: hendrikmuhs/ccache-action@v1.2.19
       with:
         key: ${{github.job}}
 
