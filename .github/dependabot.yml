@@ -10,3 +10,8 @@ updates:
           - '*'
     schedule:
       interval: weekly
+  - package-ecosystem: gitsubmodule
+    directories:
+      - /
+    schedule:
+      interval: weekly
