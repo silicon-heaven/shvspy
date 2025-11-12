@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Add reviewers for Github Actions dependencies
-        if: contains(github.event.pull_request.labels.*.name, 'github_actions') || contains(github.event.pull_request.labels.*.name, 'gitsubmodule')
+        if: contains(github.event.pull_request.labels.*.name, 'github_actions') || contains(github.event.pull_request.labels.*.name, 'submodules')
         uses: actions/github-script@v8
         with:
           script: |
