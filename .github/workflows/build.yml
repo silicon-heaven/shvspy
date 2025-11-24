@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   linux-qt6:
-    name: Linux / Qt 6.9.1
+    name: Linux / Qt 6.10.0
     runs-on: ubuntu-22.04
     env:
       # Workaround for what's probably a false positive introduced when updating to 6.9.1
@@ -66,7 +66,7 @@ jobs:
           use_qt6: OFF
 
   windows-qt6:
-    name: Windows / Qt 6.9.1
+    name: Windows / Qt 6.10.0
     runs-on: windows-2025
     env:
       # Workaround for what's probably a false positive introduced when updating to 6.9.1
@@ -139,11 +139,11 @@ jobs:
           path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
 
   wasm-qt6:
-    name: WebAssembly / Qt 6.9.1
+    name: WebAssembly / Qt 6.10.0
     runs-on: ubuntu-24.04
     env:
       emsdk_cache_dir: "emsdk-cache"
-      emscripten_version: 3.1.70
+      emscripten_version: 4.0.7
     steps:
       - name: Clone the repository
         uses: actions/checkout@v6
