@@ -4,7 +4,7 @@ inputs:
   qt_version:
     description: "Specify Qt version to use"
     required: true
-    default: "6.9.1"
+    default: "6.10.0"
   qt_arch:
     description: "Specify Qt arch to use"
     default: "linux_gcc_64"
