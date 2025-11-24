@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   linux-qt6:
-    name: Linux / Qt 6.10.0
+    name: Linux / Qt 6
     runs-on: ubuntu-22.04
     env:
       # Workaround for what's probably a false positive introduced when updating to 6.9.1
@@ -41,7 +41,7 @@ jobs:
           use_qt6: ON
 
   linux-qt5:
-    name: Linux / Qt 5.15.2
+    name: Linux / Qt 5
     runs-on: ubuntu-24.04
     env:
       CXXFLAGS: -Wno-stringop-overflow
@@ -66,7 +66,7 @@ jobs:
           use_qt6: OFF
 
   windows-qt6:
-    name: Windows / Qt 6.10.0
+    name: Windows / Qt 6
     runs-on: windows-2025
     env:
       # Workaround for what's probably a false positive introduced when updating to 6.9.1
@@ -139,7 +139,7 @@ jobs:
           path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
 
   wasm-qt6:
-    name: WebAssembly / Qt 6.10.0
+    name: WebAssembly / Qt 6
     runs-on: ubuntu-24.04
     env:
       emsdk_cache_dir: "emsdk-cache"
