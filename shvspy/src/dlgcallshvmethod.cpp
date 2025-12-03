@@ -8,7 +8,14 @@
 #include <QCoreApplication>
 #include <QLineEdit>
 
-namespace cp = shv::chainpack;
+using namespace shv::chainpack;
+
+namespace {
+const auto Key_shvPaths = "DlgCallShvMethod/shvPaths";
+const auto Key_methods = "DlgCallShvMethod/methods";
+const auto Key_params = "DlgCallShvMethod/params";
+const auto Key_userIds = "DlgCallShvMethod/userIds";
+}
 
 DlgCallShvMethod::DlgCallShvMethod(shv::iotqt::rpc::ClientConnection *connection, QWidget *parent)
 	: QDialog(parent)
@@ -19,9 +26,14 @@ DlgCallShvMethod::DlgCallShvMethod(shv::iotqt::rpc::ClientConnection *connection
 	connect(ui->btCall, &QPushButton::clicked, this, &DlgCallShvMethod::callShvMethod);
 
 	QCoreApplication *app = QCoreApplication::instance();
-	ui->edShvPath->addItems(app->property("DlgCallShvMethod/shvPaths").toStringList());
-	ui->edMethod->addItems(app->property("DlgCallShvMethod/methods").toStringList());
-	ui->edParams->addItems(app->property("DlgCallShvMethod/params").toStringList());
+	ui->edShvPath->addItems(app->property(Key_shvPaths).toStringList());
+	ui->edShvPath->lineEdit()->setClearButtonEnabled(true);
+	ui->edMethod->addItems(app->property(Key_methods).toStringList());
+	ui->edMethod->lineEdit()->setClearButtonEnabled(true);
+	ui->edParams->addItems(app->property(Key_params).toStringList());
+	ui->edParams->lineEdit()->setClearButtonEnabled(true);
+	ui->edUserId->addItems(app->property(Key_userIds).toStringList());
+	ui->edUserId->lineEdit()->setClearButtonEnabled(true);
 }
 
 DlgCallShvMethod::~DlgCallShvMethod()
@@ -30,13 +42,21 @@ DlgCallShvMethod::~DlgCallShvMethod()
 	{
 		QCoreApplication *app = QCoreApplication::instance();
 		QStringList sl;
-		for (int i = 0; i < combo->count(); ++i)
-			sl << combo->itemText(i);
+		if (auto s = combo->currentText().trimmed(); !s.isEmpty()) {
+			sl << s;
+		}
+		for (int i = 0; i < combo->count(); ++i) {
+			auto s = combo->itemText(i);
+			if (!sl.contains(s)) {
+				sl << s;
+			}
+		}
 		app->setProperty(prop_name, sl);
 	};
-	save_list("DlgCallShvMethod/shvPaths", ui->edShvPath);
-	save_list("DlgCallShvMethod/methods", ui->edMethod);
-	save_list("DlgCallShvMethod/params", ui->edParams);
+	save_list(Key_shvPaths, ui->edShvPath);
+	save_list(Key_methods, ui->edMethod);
+	save_list(Key_params, ui->edParams);
+	save_list(Key_userIds, ui->edUserId);
 	delete ui;
 }
 
@@ -47,41 +67,32 @@ void DlgCallShvMethod::setShvPath(const std::string &path)
 
 void DlgCallShvMethod::callShvMethod()
 {
-	std::string shv_path = ui->edShvPath->currentText().toStdString();
-	/*
-	if(shv_path.empty()) {
-		ui->txtResponse->setPlainText(tr("SHV path cannot be empty!"));
-		return;
-	}
-	*/
-	std::string method = ui->edMethod->currentText().toStdString();
-	/*
-	if(method.empty()) {
-		ui->txtResponse->setPlainText(tr("Method cannot be empty!"));
-		return;
-	}
-	*/
-	cp::RpcValue params;
-	std::string str = ui->edParams->currentText().toStdString();
+	std::string shv_path = ui->edShvPath->currentText().trimmed().toStdString();
+	std::string method = ui->edMethod->currentText().trimmed().toStdString();
+	RpcValue params;
+	std::string str = ui->edParams->currentText().trimmed().toStdString();
 	std::string err;
 	if(!str.empty())
-		params = cp::RpcValue::fromCpon(str, &err);
+		params = RpcValue::fromCpon(str, &err);
 	if(!err.empty()) {
 		ui->txtResponse->setPlainText(QString::fromStdString(err));
 		return;
 	}
-	int rq_id = m_connection->nextRequestId();
-	auto *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_connection, rq_id, this);
-	cb->start(this, [this](const cp::RpcResponse &resp) {
-		if(resp.isValid()) {
-			if(resp.isError())
-				ui->txtResponse->setPlainText(tr("RPC request error: %1").arg(QString::fromStdString(resp.error().toString())));
-			else
-				ui->txtResponse->setPlainText(QString::fromStdString(resp.result().toCpon()));
-		}
-		else {
-			ui->txtResponse->setPlainText(tr("RPC request timeout"));
+	std::string user_id = ui->edUserId->currentText().trimmed().toStdString();
+
+	auto *rpc_call = shv::iotqt::rpc::RpcCall::create(m_connection)
+			->setShvPath(shv_path)
+			->setMethod(method)
+			->setParams(params);
+	if (!user_id.empty()) {
+		rpc_call->setUserId(user_id);
+	}
+	connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const RpcValue &result, const RpcError &error) {
+		if (error.isValid()) {
+			ui->txtResponse->setPlainText(tr("RPC request error: %1").arg(QString::fromStdString(error.toString())));
+		} else {
+			ui->txtResponse->setPlainText(QString::fromStdString(result.toCpon()));
 		}
 	});
-	m_connection->callShvMethod(rq_id, shv_path, method, params);
+	rpc_call->start();
 }
