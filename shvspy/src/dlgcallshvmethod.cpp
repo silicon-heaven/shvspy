@@ -14,7 +14,6 @@ namespace {
 const auto Key_shvPaths = "DlgCallShvMethod/shvPaths";
 const auto Key_methods = "DlgCallShvMethod/methods";
 const auto Key_params = "DlgCallShvMethod/params";
-const auto Key_userIds = "DlgCallShvMethod/userIds";
 }
 
 DlgCallShvMethod::DlgCallShvMethod(shv::iotqt::rpc::ClientConnection *connection, QWidget *parent)
@@ -32,8 +31,6 @@ DlgCallShvMethod::DlgCallShvMethod(shv::iotqt::rpc::ClientConnection *connection
 	ui->edMethod->lineEdit()->setClearButtonEnabled(true);
 	ui->edParams->addItems(app->property(Key_params).toStringList());
 	ui->edParams->lineEdit()->setClearButtonEnabled(true);
-	ui->edUserId->addItems(app->property(Key_userIds).toStringList());
-	ui->edUserId->lineEdit()->setClearButtonEnabled(true);
 }
 
 DlgCallShvMethod::~DlgCallShvMethod()
@@ -56,7 +53,6 @@ DlgCallShvMethod::~DlgCallShvMethod()
 	save_list(Key_shvPaths, ui->edShvPath);
 	save_list(Key_methods, ui->edMethod);
 	save_list(Key_params, ui->edParams);
-	save_list(Key_userIds, ui->edUserId);
 	delete ui;
 }
 
@@ -78,14 +74,12 @@ void DlgCallShvMethod::callShvMethod()
 		ui->txtResponse->setPlainText(QString::fromStdString(err));
 		return;
 	}
-	std::string user_id = ui->edUserId->currentText().trimmed().toStdString();
-
 	auto *rpc_call = shv::iotqt::rpc::RpcCall::create(m_connection)
 			->setShvPath(shv_path)
 			->setMethod(method)
 			->setParams(params);
-	if (!user_id.empty()) {
-		rpc_call->setUserId(user_id);
+	if (ui->cbxUserId->isChecked()) {
+		rpc_call->setUserId({});
 	}
 	connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const RpcValue &result, const RpcError &error) {
 		if (error.isValid()) {

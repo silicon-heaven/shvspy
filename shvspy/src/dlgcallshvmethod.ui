@@ -83,23 +83,10 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>&amp;User ID</string>
-       </property>
-       <property name="buddy">
-        <cstring>edUserId</cstring>
-       </property>
-      </widget>
-     </item>
      <item row="3" column="1">
-      <widget class="QComboBox" name="edUserId">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-       <property name="insertPolicy">
-        <enum>QComboBox::InsertPolicy::InsertAtTop</enum>
+      <widget class="QCheckBox" name="cbxUserId">
+       <property name="text">
+        <string>Use User ID</string>
        </property>
       </widget>
      </item>
@@ -121,7 +108,6 @@
   <tabstop>edShvPath</tabstop>
   <tabstop>edMethod</tabstop>
   <tabstop>edParams</tabstop>
-  <tabstop>edUserId</tabstop>
   <tabstop>btCall</tabstop>
   <tabstop>txtResponse</tabstop>
  </tabstops>
