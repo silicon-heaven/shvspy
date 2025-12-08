@@ -245,7 +245,7 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_LS, {});
+	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_LS, {}, RequestUserID::No);
 	//emitDataChanged();
 }
 
@@ -271,7 +271,7 @@ void ShvNodeItem::loadMethods()
 		}
 		__builtin_unreachable();
 	}();
-	m_dirRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_DIR, dir_param);
+	m_dirRqId = srv_nd->callNodeRpcMethod(shvPath(), Rpc::METH_DIR, dir_param, RequestUserID::No);
 }
 
 void ShvNodeItem::setMethodParams(int method_ix, const shv::chainpack::RpcValue &params)
@@ -292,7 +292,8 @@ unsigned ShvNodeItem::callMethod(int method_ix, bool throw_exc)
 		return 0;
 	mtd.response = RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.metamethod.name(), mtd.params, throw_exc);
+	auto request_user_id = (mtd.metamethod.flags() & shv::chainpack::MetaMethod::Flag::UserIDRequired) != 0 ? RequestUserID::Yes : RequestUserID::No;
+	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.metamethod.name(), mtd.params, request_user_id, throw_exc);
 	return mtd.rpcRequestId;
 }
 
