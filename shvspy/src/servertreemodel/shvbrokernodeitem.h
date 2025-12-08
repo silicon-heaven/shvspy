@@ -8,6 +8,10 @@
 
 namespace shv::chainpack { class RpcValue; class RpcMessage; }
 namespace shv::iotqt::rpc { class ClientConnection; }
+enum class RequestUserID {
+	Yes,
+	No,
+};
 
 class ShvBrokerNodeItem : public ShvNodeItem
 {
@@ -39,7 +43,7 @@ public:
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
-	int callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params, bool throw_exc = false);
+	int callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const RequestUserID req_user_id, bool throw_exc = false);
 
 	ShvNodeItem *findNode(const std::string &path);
 

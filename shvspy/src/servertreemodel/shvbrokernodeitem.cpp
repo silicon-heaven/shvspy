@@ -401,13 +401,13 @@ int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, const std::s
 	return rqid;
 }
 
-int ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params, bool throw_exc)
+int ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params, const RequestUserID req_user_id, bool throw_exc)
 {
 	shvLogFuncFrame() << calling_node_shv_path;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	if(throw_exc && !cc->isBrokerConnected())
 		SHV_EXCEPTION("Broker is not connected.");
-	int rqid = cc->callShvMethod(calling_node_shv_path, method, params);
+	int rqid = cc->callShvMethod(calling_node_shv_path, method, params, req_user_id == RequestUserID::Yes ? cp::RpcValue{""} : cp::RpcValue{});
 	m_runningRpcRequests[rqid].shvPath = calling_node_shv_path;
 	return rqid;
 }
