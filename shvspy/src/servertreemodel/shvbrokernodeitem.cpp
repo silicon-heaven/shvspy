@@ -299,12 +299,12 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 				opts.setMountPoint(mount_point.toStdString());
 		}
 		if(conn_type == "device") {
-			auto *c = new shv::iotqt::rpc::DeviceConnection(nullptr);
+			auto *c = new shv::iotqt::rpc::DeviceConnection("shvspy " + QCoreApplication::applicationVersion().toStdString());
 			c->setCliOptions(&opts);
 			m_rpcConnection = c;
 		}
 		else {
-			m_rpcConnection = new shv::iotqt::rpc::ClientConnection(nullptr);
+			m_rpcConnection = new shv::iotqt::rpc::ClientConnection("shvspy " + QCoreApplication::applicationVersion().toStdString());
 			m_rpcConnection->setCliOptions(&opts);
 		}
 		if(brokerProperties().value(brokerProperty::MUTEHEARTBEATS).toBool()) {
