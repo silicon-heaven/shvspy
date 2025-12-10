@@ -9,7 +9,6 @@
 #include <shv/coreqt/utils.h>
 
 #include <QTextStream>
-#include <QTranslator>
 #include <QDateTime>
 #include <QSettings>
 #include <QFile>
