@@ -62,6 +62,75 @@ jobs:
         with:
           use_qt6: OFF
 
+  windows-qt6-static:
+    name: Windows Static / Qt 6
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-ccache
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-harfbuzz
+            mingw-w64-x86_64-libpng
+            mingw-w64-x86_64-libwebp
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pcre2
+            mingw-w64-x86_64-qt6-static
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-vulkan-headers
+
+      # This plugin doesn't work well with static linking. libtiff.a does not properly bring its static dependencies.
+      - name: Remove QTiffPlugin
+        run: |
+          rm /mingw64/qt6-static/lib/cmake/Qt6Gui/Qt6QTiffPlugin*
+
+      - name: Clone the repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2.20
+        with:
+          key: ${{ github.workflow }}-${{ github.job }}
+          max-size: 50M
+
+      - name: Build shvspy.exe
+        run: |
+          WORKSPACE="$(cygpath -u '${{github.workspace}}')"
+          FLAGS_FOR_CMAKE=(
+            -G Ninja
+            -S "$WORKSPACE"
+            -B "$WORKSPACE/build"
+            -DCMAKE_BUILD_TYPE=Release
+            -DBUILD_SHARED_LIBS=OFF
+            -DBUILD_TESTING=OFF
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache.exe
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache.exe
+            -DFREETYPE_DEPENDENCIES="-lbz2;-lharfbuzz;-lfreetype"
+            -DHARFBUZZ_DEPENDENCIES="-lglib-2.0;-lintl;-lws2_32;-lole32;-lwinmm;-lshlwapi;-lm;-lintl;-lm;-lfreetype;-lgraphite2;-lrpcrt4"
+            -DCMAKE_DISABLE_FIND_PACKAGE_harfbuzz=ON
+            -DSHVSPY_WITH_WERROR=ON
+          )
+          cmake.exe "${FLAGS_FOR_CMAKE[@]}"
+          cmake.exe --build "$WORKSPACE/build"
+
+      - name: Get app version
+        run: echo "VERSION=$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)" >> "$GITHUB_ENV"
+
+      - name: Upload shvspy.exe
+        uses: actions/upload-artifact@v5
+        with:
+          name: shvspy-static-${{env.VERSION}}.exe
+          path: ${{github.workspace}}/build/shvspy/shvspy.exe
+
   windows-qt6:
     name: Windows / Qt 6
     runs-on: windows-2025
@@ -271,6 +340,7 @@ jobs:
         run: |
           SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
           mv shvspy-*-setup.exe "shvspy-$SHVSPY_HASH-setup.exe"
+          mv shvspy-static-*.exe "shvspy-static-$SHVSPY_HASH.exe"
           mv shvspy-qt5-*-x86_64.AppImage "shvspy-qt5-$SHVSPY_HASH-x86_64.AppImage"
           mv shvspy-qt6-*-x86_64.AppImage "shvspy-qt6-$SHVSPY_HASH-x86_64.AppImage"
           mv shvspy-wasm-nightly.tar.gz "shvspy-wasm-$SHVSPY_HASH-nightly.tar.gz"
