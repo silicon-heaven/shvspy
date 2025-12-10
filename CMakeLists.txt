@@ -3,6 +3,10 @@ project(shvspy LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(DEFINED BUILD_SHARED_LIBS AND NOT BUILD_SHARED_LIBS AND WIN32)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a;.lib")
+endif()
+
 set(SHVSPY_USE_QT6 ON CACHE BOOL "Qt6 build")
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -56,7 +60,11 @@ endif()
 if(SHVSPY_USE_LOCAL_LIBSHV)
     find_package(libshv REQUIRED)
 else()
-    set(WITH_BROKER OFF CACHE BOOL "")
+    set(LIBSHV_WITH_BROKER OFF CACHE BOOL "")
+    if(NOT BUILD_SHARED_LIBS)
+        # These are not useful for a static build.
+        set(BUILD_SHV_UTILS OFF CACHE BOOL "")
+    endif()
     set(LIBSHV_USE_QT6 "${SHVSPY_USE_QT6}" CACHE BOOL "")
     add_subdirectory(3rdparty/libshv SYSTEM)
 endif()
