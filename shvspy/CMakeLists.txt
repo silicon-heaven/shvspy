@@ -43,6 +43,9 @@ if(NOT EMSCRIPTEN)
     target_compile_definitions(shvspy PRIVATE "WITH_AZURE_SUPPORT")
 endif()
 
+if(NOT BUILD_SHARED_LIBS)
+    target_compile_definitions(shvspy PRIVATE "SHVSPY_STATIC_BUILD")
+endif()
 target_include_directories(shvspy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS shvspy)
