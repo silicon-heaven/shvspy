@@ -325,7 +325,7 @@ jobs:
   create-nightly-release:
     name: Create nightly
     if: github.ref == 'refs/heads/master'
-    needs: [linux-qt6, linux-qt5, windows-qt6, wasm-qt6]
+    needs: [linux, build-static, wasm-qt6]
     runs-on: ubuntu-24.04
     env:
       HASH_FOR_FILENAMES: ${{github.event.pull_request.head.sha || github.sha}}
