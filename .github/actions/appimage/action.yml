@@ -8,12 +8,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Build
-      env:
-        GITHUB_WORKSPACE: ${{ github.workspace }}
-      run: cmake --build "$GITHUB_WORKSPACE/build" --parallel "$(nproc)"
-      shell: bash
-
     - name: Install
       env:
         GITHUB_WORKSPACE: ${{ github.workspace }}
