@@ -18,7 +18,7 @@ permissions:
 jobs:
   linux:
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runner || 'ubuntu-24.04' }}
+    runs-on: ubuntu-latest
     env:
       emsdk_cache_dir: emsdk-cache
       emscripten_version: 4.0.7
@@ -28,7 +28,6 @@ jobs:
         include:
           - id: linux-qt6
             name: Linux / Qt 6
-            runner: ubuntu-22.04
             qt_arch: linux_gcc_64
             qt_modules: qtserialport qtwebsockets qtnetworkauth
 
@@ -125,7 +124,7 @@ jobs:
 
           - id: windows-qt6-static
             name: Windows Static / Qt 6
-            runner: windows-2025
+            runner: windows-latest
             shell: msys2 {0}
             cmake_cmd: cmake.exe
             artifact_ext: ".exe"
@@ -240,7 +239,7 @@ jobs:
 
   windows-qt6:
     name: Windows / Qt 6
-    runs-on: windows-2025
+    runs-on: windows-latest
     steps:
       - name: Clone the repository
         uses: actions/checkout@v6
@@ -312,7 +311,7 @@ jobs:
     name: Deploy GitHub Pages
     if: github.ref == 'refs/heads/master'
     needs: [linux]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
@@ -321,7 +320,7 @@ jobs:
     name: Create nightly
     if: github.ref == 'refs/heads/master'
     needs: [linux, build-static, windows-qt6]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       HASH_FOR_FILENAMES: ${{github.event.pull_request.head.sha || github.sha}}
     steps:
@@ -374,7 +373,7 @@ jobs:
 
   nix:
     name: NixOS / Qt 6
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
