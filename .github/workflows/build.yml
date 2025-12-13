@@ -373,7 +373,7 @@ jobs:
             shvspy-*
 
   nix:
-    name: NixOS / Qt 6.6.2
+    name: NixOS / Qt 6
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
