@@ -16,9 +16,27 @@ permissions:
   pages: write
 
 jobs:
-  linux-qt6:
-    name: Linux / Qt 6
-    runs-on: ubuntu-22.04
+  linux:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: linux-qt6
+            name: Linux / Qt 6
+            runner: ubuntu-22.04
+            use_qt6: ON
+            modules: qtserialport qtwebsockets qtnetworkauth
+
+          - id: linux-qt5
+            name: Linux / Qt 5
+            runner: ubuntu-24.04
+            use_qt6: OFF
+            qt_version: 5.15.2
+            qt_arch: gcc_64
+            modules: ""
+
     steps:
       - name: Clone the repository
         uses: actions/checkout@v6
@@ -28,39 +46,16 @@ jobs:
       - name: Setup CMake
         uses: ./.github/actions/cmake
         with:
-          use_qt6: ON
-          modules: qtserialport qtwebsockets qtnetworkauth
-          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install/usr'
+          use_qt6: ${{ matrix.use_qt6 }}
+          qt_version: ${{ matrix.qt_version || '6.10.1' }}
+          qt_arch: ${{ matrix.qt_arch || 'linux_gcc_64' }}
+          modules: ${{ matrix.modules }}
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
 
       - name: Create AppImage
         uses: ./.github/actions/appimage
         with:
-          use_qt6: ON
-
-  linux-qt5:
-    name: Linux / Qt 5
-    runs-on: ubuntu-24.04
-    env:
-      CXXFLAGS: -Wno-stringop-overflow
-    steps:
-      - name: Clone the repository
-        uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Setup CMake
-        uses: ./.github/actions/cmake
-        with:
-          qt_version: 5.15.2
-          qt_arch: gcc_64
-          use_qt6: OFF
-          modules: ""
-          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install/usr'
-
-      - name: Create AppImage
-        uses: ./.github/actions/appimage
-        with:
-          use_qt6: OFF
+          use_qt6: ${{ matrix.use_qt6 }}
 
   build-static:
     name: ${{ matrix.name }}
@@ -79,8 +74,8 @@ jobs:
             container: archlinux:latest
             cmake_cmd: static-compat-cmake
             artifact_ext: ""
-            additional_cmake_args: >-
-              -DGLIB2_DEPENDENCIES='-lgobject-2.0;-lgmodule-2.0;-lglib-2.0;-lmount;-lblkid;-lffi'
+            additional_cmake_args: |
+              -DGLIB2_DEPENDENCIES=-lgobject-2.0;-lgmodule-2.0;-lglib-2.0;-lmount;-lblkid;-lffi
 
           - id: windows-qt6-static
             name: Windows Static / Qt 6
@@ -88,9 +83,9 @@ jobs:
             shell: msys2 {0}
             cmake_cmd: cmake.exe
             artifact_ext: ".exe"
-            additional_cmake_args: >-
-              -DFREETYPE_DEPENDENCIES='-lbz2;-lharfbuzz;-lfreetype'
-              -DHARFBUZZ_DEPENDENCIES='-lglib-2.0;-lintl;-lws2_32;-lole32;-lwinmm;-lshlwapi;-lm;-lintl;-lm;-lfreetype;-lgraphite2;-lrpcrt4'
+            additional_cmake_args: |
+              -DFREETYPE_DEPENDENCIES=-lbz2;-lharfbuzz;-lfreetype
+              -DHARFBUZZ_DEPENDENCIES=-lglib-2.0;-lintl;-lws2_32;-lole32;-lwinmm;-lshlwapi;-lm;-lintl;-lm;-lfreetype;-lgraphite2;-lrpcrt4
 
     steps:
       - name: Install dependencies (Linux)
