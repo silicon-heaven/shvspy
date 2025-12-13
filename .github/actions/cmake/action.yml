@@ -14,7 +14,7 @@ inputs:
   use_qt6:
     description: "Specify whether we're using Qt 5 or Qt 6"
     required: true
-  modules:
+  qt_modules:
     description: "Specify which modules should be installed"
     required: true
   additional_cmake_args:
@@ -53,7 +53,7 @@ runs:
         version: ${{inputs.qt_version}}
         arch: ${{inputs.qt_arch}}
         install-deps: false
-        modules: ${{inputs.modules}}
+        modules: ${{inputs.qt_modules}}
         target: ${{inputs.qt_target}}
         extra: --autodesktop
 
