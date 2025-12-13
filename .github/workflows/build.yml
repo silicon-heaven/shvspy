@@ -16,58 +16,125 @@ permissions:
   pages: write
 
 jobs:
-  linux-qt6:
-    name: Linux / Qt 6
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Clone the repository
-        uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Setup CMake
-        uses: ./.github/actions/cmake
-        with:
-          use_qt6: ON
-          modules: qtserialport qtwebsockets qtnetworkauth
-          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install/usr'
-
-      - name: Create AppImage
-        uses: ./.github/actions/appimage
-        with:
-          use_qt6: ON
-
-  linux-qt5:
-    name: Linux / Qt 5
-    runs-on: ubuntu-24.04
-    env:
-      CXXFLAGS: -Wno-stringop-overflow
-    steps:
-      - name: Clone the repository
-        uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Setup CMake
-        uses: ./.github/actions/cmake
-        with:
-          qt_version: 5.15.2
-          qt_arch: gcc_64
-          use_qt6: OFF
-          modules: ""
-          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install/usr'
-
-      - name: Create AppImage
-        uses: ./.github/actions/appimage
-        with:
-          use_qt6: OFF
-
-  linux-qt6-static:
-    name: Linux Static / Qt 6
+  linux:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    container: archlinux:latest
+    env:
+      emsdk_cache_dir: emsdk-cache
+      emscripten_version: 4.0.7
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: linux-qt6
+            name: Linux / Qt 6
+            qt_arch: linux_gcc_64
+            qt_modules: qtserialport qtwebsockets qtnetworkauth
+
+          - id: linux-qt5
+            name: Linux / Qt 5
+            use_qt6: OFF
+            qt_arch: gcc_64
+            qt_version: 5.15.2
+
+          - id: wasm-qt6
+            name: WebAssembly / Qt 6
+            qt_arch: wasm_singlethread
+            qt_modules: qtwebsockets
+            qt_target: wasm
+
     steps:
-      - name: Install dependencies
+      - name: Clone the repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Setup emsdk cache
+        if: matrix.id == 'wasm-qt6'
+        uses: actions/cache@v4
+        with:
+          key: emsdk-cache-${{ env.emscripten_version }}
+          path: ${{ env.emsdk_cache_dir }}
+
+      - name: Setup emsdk
+        if: matrix.id == 'wasm-qt6'
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: ${{ env.emscripten_version }}
+          actions-cache-folder: ${{ env.emsdk_cache_dir }}
+
+      - name: Setup CMake
+        uses: ./.github/actions/cmake
+        with:
+          use_qt6: ${{ matrix.use_qt6 || 'ON' }}
+          qt_version: ${{ matrix.qt_version || '6.10.1' }}
+          qt_arch: ${{ matrix.qt_arch }}
+          qt_target: ${{ matrix.qt_target || 'desktop' }}
+          qt_modules: ${{ matrix.qt_modules || '' }}
+          additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
+
+      - name: Build
+        run: cmake --build '${{ github.workspace }}/build'
+        shell: bash
+
+      - name: Create AppImage
+        if: matrix.id != 'wasm-qt6'
+        uses: ./.github/actions/appimage
+        with:
+          use_qt6: ${{ matrix.use_qt6 || 'ON' }}
+
+      - name: Consolidate WebAssembly artifacts
+        if: matrix.id == 'wasm-qt6'
+        run: |
+          mkdir gh-sources
+          cp '${{ github.workspace }}/build/shvspy/'*.{js,wasm,html} gh-sources/
+          mv gh-sources/shvspy.html gh-sources/index.html
+          cp '${{ github.workspace }}'/distro/shvspy.AppDir/shvspy.svg gh-sources/qtlogo.svg
+        shell: bash
+
+      - name: Setup Pages
+        if: matrix.id == 'wasm-qt6'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: matrix.id == 'wasm-qt6'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: gh-sources/
+
+  build-static:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container || null }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell || 'bash' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: linux-qt6-static
+            name: Linux Static / Qt 6
+            runner: ubuntu-latest
+            container: archlinux:latest
+            cmake_cmd: static-compat-cmake
+            artifact_ext: ""
+            additional_cmake_args: |
+              -DGLIB2_DEPENDENCIES=-lgobject-2.0;-lgmodule-2.0;-lglib-2.0;-lmount;-lblkid;-lffi
+
+          - id: windows-qt6-static
+            name: Windows Static / Qt 6
+            runner: windows-latest
+            shell: msys2 {0}
+            cmake_cmd: cmake.exe
+            artifact_ext: ".exe"
+            additional_cmake_args: |
+              -DFREETYPE_DEPENDENCIES=-lbz2;-lharfbuzz;-lfreetype
+              -DHARFBUZZ_DEPENDENCIES=-lglib-2.0;-lintl;-lws2_32;-lole32;-lwinmm;-lshlwapi;-lm;-lintl;-lm;-lfreetype;-lgraphite2;-lrpcrt4
+
+    steps:
+      - name: Install dependencies (Linux)
+        if: matrix.id == 'linux-qt6-static'
         run: |
           tee -a /etc/pacman.conf <<EOF
           [ownstuff]
@@ -77,7 +144,6 @@ jobs:
 
           pacman-key --init
           pacman-key --keyserver keyserver.ubuntu.com --recv-keys B9E36A7275FC61B464B67907E06FE8F53CDC6A4C
-          pacman-key --finger B9E36A7275FC61B464B67907E06FE8F53CDC6A4C
           pacman-key --lsign-key B9E36A7275FC61B464B67907E06FE8F53CDC6A4C
 
           PACKAGES=(
@@ -95,7 +161,7 @@ jobs:
             static-compat-qt6-tools
             static-compat-qt6-websockets
           )
-          pacman -Syu  --noconfirm "${PACKAGES[@]}"
+          pacman -Syu --noconfirm "${PACKAGES[@]}"
 
           curl --create-dirs --remote-name --location --output-dir static-compat-qt6-serialport \
             https://raw.githubusercontent.com/syyyr/PKGBUILDs/27b299330f3e3636e9a063b6531bc5c408868a3a/qt6-serialport/static-compat/PKGBUILD
@@ -105,49 +171,8 @@ jobs:
           su build-user -c 'makepkg --syncdeps --noconfirm --dir static-compat-qt6-serialport'
           pacman -U --noconfirm static-compat-qt6-serialport/static-compat-qt6-serialport-*.pkg.tar.zst
 
-      - name: Clone the repository
-        uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2.20
-        with:
-          key: ${{ github.workflow }}-${{ github.job }}
-          max-size: 50M
-
-      - name: Build shvspy
-        run: |
-          FLAGS_FOR_CMAKE=(
-            -G Ninja
-            -S "$GITHUB_WORKSPACE"
-            -B "$GITHUB_WORKSPACE/build"
-            -DCMAKE_BUILD_TYPE=Release
-            -DCMAKE_DISABLE_FIND_PACKAGE_harfbuzz=ON
-            -DGLIB2_DEPENDENCIES='-lgobject-2.0;-lgmodule-2.0;-lglib-2.0;-lmount;-lblkid;-lffi'
-            -DBUILD_TESTING=OFF
-            -DSHVSPY_WITH_WERROR=ON
-          )
-          static-compat-cmake "${FLAGS_FOR_CMAKE[@]}"
-          cmake --build "$GITHUB_WORKSPACE/build"
-
-      - name: Get app version
-        run: echo "VERSION=$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)" >> "$GITHUB_ENV"
-
-      - name: Upload shvspy
-        uses: actions/upload-artifact@v5
-        with:
-          name: shvspy-static-${{env.VERSION}}
-          path: ${{github.workspace}}/build/shvspy/shvspy
-
-  windows-qt6-static:
-    name: Windows Static / Qt 6
-    runs-on: windows-2025
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - name: Setup MSYS2
+      - name: Setup MSYS2 (Windows)
+        if: matrix.id == 'windows-qt6-static'
         uses: msys2/setup-msys2@v2
         with:
           update: true
@@ -165,9 +190,9 @@ jobs:
             mingw-w64-x86_64-vulkan-headers
 
       # This plugin doesn't work well with static linking. libtiff.a does not properly bring its static dependencies.
-      - name: Remove QTiffPlugin
-        run: |
-          rm /mingw64/qt6-static/lib/cmake/Qt6Gui/Qt6QTiffPlugin*
+      - name: Remove QTiffPlugin (Windows)
+        if: matrix.id == 'windows-qt6-static'
+        run: rm /mingw64/qt6-static/lib/cmake/Qt6Gui/Qt6QTiffPlugin*
 
       - name: Clone the repository
         uses: actions/checkout@v6
@@ -177,41 +202,44 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2.20
         with:
-          key: ${{ github.workflow }}-${{ github.job }}
+          key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.id }}
           max-size: 50M
 
-      - name: Build shvspy.exe
+      - name: Build
         run: |
-          WORKSPACE="$(cygpath -u '${{github.workspace}}')"
-          FLAGS_FOR_CMAKE=(
+          WORKSPACE="$GITHUB_WORKSPACE"
+          if [ "${{ matrix.id }}" = "windows-qt6-static" ]; then
+            WORKSPACE="$(cygpath -u "$WORKSPACE")"
+          fi
+
+          readarray -t EXTRA_FLAGS <<< "${{ matrix.additional_cmake_args }}"
+          CMAKE_FLAGS=(
             -G Ninja
-            -S "$WORKSPACE"
-            -B "$WORKSPACE/build"
             -DCMAKE_BUILD_TYPE=Release
             -DBUILD_SHARED_LIBS=OFF
             -DBUILD_TESTING=OFF
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache.exe
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache.exe
-            -DFREETYPE_DEPENDENCIES="-lbz2;-lharfbuzz;-lfreetype"
-            -DHARFBUZZ_DEPENDENCIES="-lglib-2.0;-lintl;-lws2_32;-lole32;-lwinmm;-lshlwapi;-lm;-lintl;-lm;-lfreetype;-lgraphite2;-lrpcrt4"
-            -DCMAKE_DISABLE_FIND_PACKAGE_harfbuzz=ON
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             -DSHVSPY_WITH_WERROR=ON
+            -DCMAKE_DISABLE_FIND_PACKAGE_harfbuzz=ON
+            "${EXTRA_FLAGS[@]}"
           )
-          cmake.exe "${FLAGS_FOR_CMAKE[@]}"
-          cmake.exe --build "$WORKSPACE/build"
+
+          ${{ matrix.cmake_cmd }} -S "$WORKSPACE" -B "$WORKSPACE/build" "${CMAKE_FLAGS[@]}"
+          cmake --build "$WORKSPACE/build"
 
       - name: Get app version
         run: echo "VERSION=$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)" >> "$GITHUB_ENV"
 
-      - name: Upload shvspy.exe
+      - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: shvspy-static-${{env.VERSION}}.exe
-          path: ${{github.workspace}}/build/shvspy/shvspy.exe
+          name: shvspy-static-${{ env.VERSION }}${{ matrix.artifact_ext }}
+          path: ${{ github.workspace }}/build/shvspy/shvspy${{ matrix.artifact_ext }}
 
   windows-qt6:
     name: Windows / Qt 6
-    runs-on: windows-2025
+    runs-on: windows-latest
     steps:
       - name: Clone the repository
         uses: actions/checkout@v6
@@ -248,11 +276,11 @@ jobs:
         with:
           qt_arch: win64_mingw
           use_qt6: ON
-          modules: qtserialport qtwebsockets qtnetworkauth
+          qt_modules: qtserialport qtwebsockets qtnetworkauth
           additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install'
 
       - name: Build
-        run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
+        run: cmake --build '${{github.workspace}}/build'
 
       - name: Install
         run: cmake --install '${{github.workspace}}/build'
@@ -279,112 +307,11 @@ jobs:
           name: shvspy-${{env.VERSION}}-setup.exe
           path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
 
-  wasm-qt6:
-    name: WebAssembly / Qt 6
-    runs-on: ubuntu-24.04
-    env:
-      emsdk_cache_dir: "emsdk-cache"
-      emscripten_version: 4.0.7
-    steps:
-      - name: Clone the repository
-        uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Setup emsdk cache
-        uses: actions/cache@v4
-        with:
-          key: emsdk-cache-${{env.emscripten_version}}
-          path: ${{env.emsdk_cache_dir}}
-
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: ${{env.emscripten_version}}
-          actions-cache-folder: ${{env.emsdk_cache_dir}}
-
-      - name: Setup CMake
-        uses: ./.github/actions/cmake
-        with:
-          qt_arch: wasm_singlethread
-          qt_target: wasm
-          use_qt6: ON
-          modules: qtwebsockets
-
-      - name: Build
-        run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
-        shell: bash
-
-      - name: Consolidate WebAssembly artifacts
-        run: |
-          mkdir gh-sources
-          cp '${{github.workspace}}'/build/shvspy/*.{js,wasm,html} gh-sources/
-          mv gh-sources/shvspy.html gh-sources/index.html
-          cp '${{github.workspace}}'/distro/shvspy.AppDir/shvspy.svg gh-sources/qtlogo.svg
-        shell: bash
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: 'gh-sources/'
-
-  check-version-bump:
-    name: Check version bump
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Check if appversion.h was changed
-        id: version-check
-        continue-on-error: ${{startsWith(github.head_ref, 'dependabot/')}}
-        run: |
-          PREVIOUS_COMMIT="${{github.event.pull_request.base.sha || github.event.before}}"
-          git fetch origin "$PREVIOUS_COMMIT"
-          echo Comparing version bump against "$PREVIOUS_COMMIT"
-          DEFAULT_BRANCH_VERSION="$(git show "$PREVIOUS_COMMIT:shvspy/src/appversion.h" | grep 'APP_VERSION' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
-          CURRENT_BRANCH_VERSION="$(git show "HEAD:shvspy/src/appversion.h" | grep 'APP_VERSION' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
-          if [[ "$DEFAULT_BRANCH_VERSION" = "$CURRENT_BRANCH_VERSION" ]]; then
-            echo "Error: No version bump detected ($DEFAULT_BRANCH_VERSION" = "$CURRENT_BRANCH_VERSION)."
-            exit 1
-          else
-            echo Version bump detected: "$DEFAULT_BRANCH_VERSION -> $CURRENT_BRANCH_VERSION"
-          fi
-
-      - name: Checkout code
-        if: steps.version-check.outcome == 'failure'
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          ref: ${{github.head_ref}}
-
-      - name: Bump version
-        if: steps.version-check.outcome == 'failure'
-        run: |
-          [[ "$(grep 'APP_VERSION' shvspy/src/appversion.h | head -n1)" =~ ([0-9]+\.[0-9]+\.)([0-9]+) ]]
-          NEW_VERSION="${BASH_REMATCH[1]}$((BASH_REMATCH[2] + 1))"
-          echo Bumping "${BASH_REMATCH[0]} -> $NEW_VERSION"
-          sed -i "s/${BASH_REMATCH[0]}/$NEW_VERSION/" shvspy/src/appversion.h
-          git diff
-          git config --global user.name "Login will be determined by the Github API based on the creator of the token"
-          git config --global user.email ""
-          git commit -am '[dependabot-skip] Bump version'
-
-      - name: Push changes
-        if: steps.version-check.outcome == 'failure'
-        uses: Asana/push-signed-commits@v1
-        with:
-          github-token: ${{ secrets.DEPENDABOT_GITHUB_TOKEN }}
-          local_branch_name: ${{github.head_ref}}
-          remote_branch_name: ${{github.head_ref}}
-
   deploy-github-pages:
     name: Deploy GitHub Pages
     if: github.ref == 'refs/heads/master'
-    needs: [wasm-qt6]
-    runs-on: ubuntu-24.04
+    needs: [linux]
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
@@ -392,8 +319,8 @@ jobs:
   create-nightly-release:
     name: Create nightly
     if: github.ref == 'refs/heads/master'
-    needs: [linux-qt6, linux-qt5, windows-qt6, wasm-qt6]
-    runs-on: ubuntu-24.04
+    needs: [linux, build-static, windows-qt6]
+    runs-on: ubuntu-latest
     env:
       HASH_FOR_FILENAMES: ${{github.event.pull_request.head.sha || github.sha}}
     steps:
@@ -445,8 +372,8 @@ jobs:
             shvspy-*
 
   nix:
-    name: NixOS / Qt 6.6.2
-    runs-on: ubuntu-24.04
+    name: NixOS / Qt 6
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
