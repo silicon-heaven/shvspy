@@ -88,6 +88,7 @@ runs:
         CFLAGS="${CFLAGS}" \
         CXXFLAGS="${CXXFLAGS}" \
         "${CMAKE_BIN:-cmake}" \
+          -G Ninja \
           -S "$GITHUB_WORKSPACE" \
           -B "$GITHUB_WORKSPACE/build" \
           -DCMAKE_BUILD_TYPE=Release \
