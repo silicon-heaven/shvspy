@@ -18,7 +18,10 @@ permissions:
 jobs:
   linux:
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner || 'ubuntu-24.04' }}
+    env:
+      emsdk_cache_dir: emsdk-cache
+      emscripten_version: 4.0.7
     strategy:
       fail-fast: false
       matrix:
@@ -26,16 +29,20 @@ jobs:
           - id: linux-qt6
             name: Linux / Qt 6
             runner: ubuntu-22.04
-            use_qt6: ON
-            modules: qtserialport qtwebsockets qtnetworkauth
+            qt_arch: linux_gcc_64
+            qt_modules: qtserialport qtwebsockets qtnetworkauth
 
           - id: linux-qt5
             name: Linux / Qt 5
-            runner: ubuntu-24.04
             use_qt6: OFF
-            qt_version: 5.15.2
             qt_arch: gcc_64
-            modules: ""
+            qt_version: 5.15.2
+
+          - id: wasm-qt6
+            name: WebAssembly / Qt 6
+            qt_arch: wasm_singlethread
+            qt_modules: qtwebsockets
+            qt_target: wasm
 
     steps:
       - name: Clone the repository
@@ -43,19 +50,58 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup emsdk cache
+        if: matrix.id == 'wasm-qt6'
+        uses: actions/cache@v4
+        with:
+          key: emsdk-cache-${{ env.emscripten_version }}
+          path: ${{ env.emsdk_cache_dir }}
+
+      - name: Setup emsdk
+        if: matrix.id == 'wasm-qt6'
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: ${{ env.emscripten_version }}
+          actions-cache-folder: ${{ env.emsdk_cache_dir }}
+
       - name: Setup CMake
         uses: ./.github/actions/cmake
         with:
-          use_qt6: ${{ matrix.use_qt6 }}
+          use_qt6: ${{ matrix.use_qt6 || 'ON' }}
           qt_version: ${{ matrix.qt_version || '6.10.1' }}
-          qt_arch: ${{ matrix.qt_arch || 'linux_gcc_64' }}
-          modules: ${{ matrix.modules }}
+          qt_arch: ${{ matrix.qt_arch }}
+          qt_target: ${{ matrix.qt_target || 'desktop' }}
+          qt_modules: ${{ matrix.qt_modules || '' }}
           additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{ github.workspace }}/install/usr'
 
+      - name: Build
+        run: cmake --build '${{ github.workspace }}/build'
+        shell: bash
+
       - name: Create AppImage
+        if: matrix.id != 'wasm-qt6'
         uses: ./.github/actions/appimage
         with:
-          use_qt6: ${{ matrix.use_qt6 }}
+          use_qt6: ${{ matrix.use_qt6 || 'ON' }}
+
+      - name: Consolidate WebAssembly artifacts
+        if: matrix.id == 'wasm-qt6'
+        run: |
+          mkdir gh-sources
+          cp '${{ github.workspace }}/build/shvspy/'*.{js,wasm,html} gh-sources/
+          mv gh-sources/shvspy.html gh-sources/index.html
+          cp '${{ github.workspace }}'/distro/shvspy.AppDir/shvspy.svg gh-sources/qtlogo.svg
+        shell: bash
+
+      - name: Setup Pages
+        if: matrix.id == 'wasm-qt6'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: matrix.id == 'wasm-qt6'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: gh-sources/
 
   build-static:
     name: ${{ matrix.name }}
@@ -231,7 +277,7 @@ jobs:
         with:
           qt_arch: win64_mingw
           use_qt6: ON
-          modules: qtserialport qtwebsockets qtnetworkauth
+          qt_modules: qtserialport qtwebsockets qtnetworkauth
           additional_cmake_args: -DCMAKE_INSTALL_PREFIX='${{github.workspace}}/install'
 
       - name: Build
@@ -262,61 +308,10 @@ jobs:
           name: shvspy-${{env.VERSION}}-setup.exe
           path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
 
-  wasm-qt6:
-    name: WebAssembly / Qt 6
-    runs-on: ubuntu-24.04
-    env:
-      emsdk_cache_dir: "emsdk-cache"
-      emscripten_version: 4.0.7
-    steps:
-      - name: Clone the repository
-        uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Setup emsdk cache
-        uses: actions/cache@v5
-        with:
-          key: emsdk-cache-${{env.emscripten_version}}
-          path: ${{env.emsdk_cache_dir}}
-
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: ${{env.emscripten_version}}
-          actions-cache-folder: ${{env.emsdk_cache_dir}}
-
-      - name: Setup CMake
-        uses: ./.github/actions/cmake
-        with:
-          qt_arch: wasm_singlethread
-          qt_target: wasm
-          use_qt6: ON
-          modules: qtwebsockets
-
-      - name: Build
-        run: cmake --build '${{github.workspace}}/build' --parallel "$(nproc)"
-        shell: bash
-
-      - name: Consolidate WebAssembly artifacts
-        run: |
-          mkdir gh-sources
-          cp '${{github.workspace}}'/build/shvspy/*.{js,wasm,html} gh-sources/
-          mv gh-sources/shvspy.html gh-sources/index.html
-          cp '${{github.workspace}}'/distro/shvspy.AppDir/shvspy.svg gh-sources/qtlogo.svg
-        shell: bash
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: 'gh-sources/'
-
   deploy-github-pages:
     name: Deploy GitHub Pages
     if: github.ref == 'refs/heads/master'
-    needs: [wasm-qt6]
+    needs: [linux]
     runs-on: ubuntu-24.04
     steps:
       - name: Deploy to GitHub Pages
@@ -325,7 +320,7 @@ jobs:
   create-nightly-release:
     name: Create nightly
     if: github.ref == 'refs/heads/master'
-    needs: [linux, build-static, wasm-qt6]
+    needs: [linux, build-static, windows-qt6]
     runs-on: ubuntu-24.04
     env:
       HASH_FOR_FILENAMES: ${{github.event.pull_request.head.sha || github.sha}}
