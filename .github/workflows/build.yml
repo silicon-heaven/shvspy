@@ -135,7 +135,7 @@ jobs:
         run: echo "VERSION=$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)" >> "$GITHUB_ENV"
 
       - name: Upload shvspy
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: shvspy-static-${{env.VERSION}}
           path: ${{github.workspace}}/build/shvspy/shvspy
@@ -204,7 +204,7 @@ jobs:
         run: echo "VERSION=$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)" >> "$GITHUB_ENV"
 
       - name: Upload shvspy.exe
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: shvspy-static-${{env.VERSION}}.exe
           path: ${{github.workspace}}/build/shvspy/shvspy.exe
@@ -219,7 +219,7 @@ jobs:
           submodules: true
 
       - name: Setup MinGW cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: x86_64-13.1.0-release-posix-seh-msvcrt-rt_v11-rev1.7z
           path: ${{github.workspace}}/x86_64-13.1.0-release-posix-seh-msvcrt-rt_v11-rev1.7z
@@ -274,7 +274,7 @@ jobs:
         run: iscc "-DBUILD_DIR=${{github.workspace}}/install" "-DVERSION=${{env.VERSION}}" shvspy/shvspy.iss
 
       - name: Upload installer
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: shvspy-${{env.VERSION}}-setup.exe
           path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
@@ -292,7 +292,7 @@ jobs:
           submodules: true
 
       - name: Setup emsdk cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: emsdk-cache-${{env.emscripten_version}}
           path: ${{env.emsdk_cache_dir}}
@@ -407,7 +407,7 @@ jobs:
           force_push_tag: true
 
       - name: Consolidate artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           merge-multiple: true
 
