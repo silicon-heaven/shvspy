@@ -427,54 +427,47 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 		m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
 		connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
 			//shvInfo() << "MENU ACTION:" << a;
+			m->deleteLater();
 			ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+			if (!nd) {
+				return;
+			}
+
 			if(a == a_reloadNode) {
-				if(nd)
-					nd->reload();
+				nd->reload();
 			}
 			else if(a == a_subscribeNode) {
-				if(nd) {
-					nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
-				}
+				nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
 			}
 			else if(a == a_callShvMethod) {
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgCallShvMethod(cc, this);
-					dlg->setShvPath(nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				}
+				auto dlg = new DlgCallShvMethod(cc, this);
+				dlg->setShvPath(nd->shvPath());
+				dlg->open();
+				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 			}
 			else if(a == a_usersEditor) {
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgUsersEditor(this, cc, nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				}
+				auto dlg = new DlgUsersEditor(this, cc, nd->shvPath());
+				dlg->open();
+				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 			}
 			else if(a == a_rolesEditor) {
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgRolesEditor (this, cc, nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				}
+				auto dlg = new DlgRolesEditor (this, cc, nd->shvPath());
+				dlg->open();
+				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 			}
 			else if(a == a_mountsEditor) {
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgMountsEditor(this, cc, nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				}
+				auto dlg = new DlgMountsEditor(this, cc, nd->shvPath());
+				dlg->open();
+				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
 			}
-			m->deleteLater();
 		});
 	}
 }
