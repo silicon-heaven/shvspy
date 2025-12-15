@@ -443,9 +443,8 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				return;
 			}
 
+			shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 			if (a == a_callShvMethod) {
-				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
-
 				auto dlg = new DlgCallShvMethod(cc, this);
 				dlg->setShvPath(nd->shvPath());
 				dlg->open();
@@ -454,8 +453,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 			}
 
 			if (a == a_usersEditor) {
-				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
-
 				auto dlg = new DlgUsersEditor(this, cc, nd->shvPath());
 				dlg->open();
 				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
@@ -463,8 +460,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 			}
 
 			if (a == a_rolesEditor) {
-				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
-
 				auto dlg = new DlgRolesEditor (this, cc, nd->shvPath());
 				dlg->open();
 				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
@@ -472,8 +467,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 			}
 
 			if (a == a_mountsEditor) {
-				shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
-
 				auto dlg = new DlgMountsEditor(this, cc, nd->shvPath());
 				dlg->open();
 				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
