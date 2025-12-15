@@ -39,6 +39,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 option(SHVSPY_WITH_WERROR "Build with -Werror. Doesn't enable -Werror on subprojects." OFF)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries instead of static")
 
 if(EMSCRIPTEN)
     add_link_options("-sASYNCIFY")
