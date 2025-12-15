@@ -427,19 +427,17 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 		m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
 		connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
 			//shvInfo() << "MENU ACTION:" << a;
+			ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 			if(a == a_reloadNode) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd)
 					nd->reload();
 			}
 			else if(a == a_subscribeNode) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
 				}
 			}
 			else if(a == a_callShvMethod) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
@@ -450,7 +448,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				}
 			}
 			else if(a == a_usersEditor) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
@@ -460,7 +457,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				}
 			}
 			else if(a == a_rolesEditor) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
@@ -470,7 +466,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				}
 			}
 			else if(a == a_mountsEditor) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
