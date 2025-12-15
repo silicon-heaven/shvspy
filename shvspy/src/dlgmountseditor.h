@@ -3,11 +3,11 @@
 #include <QDialog>
 #include <QMap>
 
+#include <shv/iotqt/rpc/clientconnection.h>
+
 namespace Ui {
 class DlgMountsEditor;
 }
-
-namespace shv::iotqt::rpc { class ClientConnection; }
 
 class QStandardItemModel;
 class QSortFilterProxyModel;
@@ -17,7 +17,7 @@ class DlgMountsEditor : public QDialog
 	Q_OBJECT
 
 public:
-	explicit DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path);
+	explicit DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path, const shv::chainpack::IRpcConnection::ShvApiVersion brokerApiVersion);
 	~DlgMountsEditor() override;
 private:
 	std::string aclEtcMountsNodePath();
@@ -49,5 +49,6 @@ private:
 	QString m_lastCurrentId;
 	QStandardItemModel *m_dataModel;
 	QSortFilterProxyModel *m_modelProxy;
+	shv::chainpack::IRpcConnection::ShvApiVersion m_brokerApiVersion;
 };
 

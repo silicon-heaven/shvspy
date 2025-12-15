@@ -15,7 +15,7 @@
 static const std::string METHOD_VALUE = "value";
 static const std::string METHOD_SET_VALUE = "setValue";
 
-DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path) :
+DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path, const shv::chainpack::IRpcConnection::ShvApiVersion brokerApiVersion) :
 	QDialog(parent),
 	ui(new Ui::DlgMountsEditor)
 {
@@ -25,7 +25,7 @@ DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnect
 
 	m_rpcConnection = rpc_connection;
 
-	m_aclNodePath = TheApp::aclAccessPath(broker_path, m_rpcConnection->shvApiVersion());
+	m_aclNodePath = TheApp::aclAccessPath(broker_path, brokerApiVersion);
 
 	static constexpr double ROW_HEIGHT_RATIO = 1.3;
 	static QStringList INFO_HEADER_NAMES { tr("Device ID"), tr("Mount point"), tr("Description") };

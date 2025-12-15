@@ -29,6 +29,7 @@
 
 #include <shv/coreqt/rpc.h>
 #include <shv/core/utils/shvpath.h>
+#include <shv/iotqt/rpc/rpccall.h>
 
 #include <QSettings>
 #include <QMessageBox>
@@ -452,26 +453,55 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				return;
 			}
 
-			if (a == a_usersEditor) {
-				auto dlg = new DlgUsersEditor(this, cc, nd->shvPath());
-				dlg->open();
-				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				return;
-			}
+			auto broker_path = nd->shvPath();
+			auto open_dialog = [this, cc, broker_path, a, a_usersEditor, a_rolesEditor, a_mountsEditor] (const shv::chainpack::IRpcConnection::ShvApiVersion api_version) {
+				auto* dlg = [&] () -> QDialog* {
+					if (a == a_usersEditor) {
+						return new DlgUsersEditor(this, cc, broker_path, api_version);
+					}
 
-			if (a == a_rolesEditor) {
-				auto dlg = new DlgRolesEditor (this, cc, nd->shvPath());
-				dlg->open();
-				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				return;
-			}
+					if (a == a_rolesEditor) {
+						return new DlgRolesEditor(this, cc, broker_path, api_version);
+					}
 
-			if (a == a_mountsEditor) {
-				auto dlg = new DlgMountsEditor(this, cc, nd->shvPath());
+					if (a == a_mountsEditor) {
+						return new DlgMountsEditor(this, cc, broker_path, api_version);
+					}
+
+					throw std::runtime_error{"Unknown QAction type"};
+				}();
+
 				dlg->open();
 				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				return;
-			}
+			};
+
+			auto call = shv::iotqt::rpc::RpcCall::create(cc)
+				->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V3))
+				->setMethod("dir")
+				->setParams("dir");
+			connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, cc, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
+				if (!error.isValid()) {
+					open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V3);
+					return;
+				}
+
+				auto call = shv::iotqt::rpc::RpcCall::create(cc)
+					->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V2))
+					->setMethod("dir")
+					->setParams("dir");
+
+				connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
+					if (!error.isValid()) {
+						open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V2);
+						return;
+					}
+
+					QMessageBox::critical(this, tr("Failed to detect broker API"), tr("Failed to detect broker API for ") + QString::fromStdString(broker_path));
+				});
+				call->start();
+
+			});
+			call->start();
 		});
 	}
 }

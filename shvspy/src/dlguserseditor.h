@@ -3,6 +3,7 @@
 
 #include <QDialog>
 
+#include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/chainpack/rpcvalue.h>
 
 namespace Ui {
@@ -12,14 +13,12 @@ class DlgUsersEditor;
 class QStandardItemModel;
 class QSortFilterProxyModel;
 
-namespace shv::iotqt::rpc { class ClientConnection; }
-
 class DlgUsersEditor : public QDialog
 {
 	Q_OBJECT
 
 public:
-	explicit DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path);
+	explicit DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path, const shv::chainpack::IRpcConnection::ShvApiVersion brokerApiVersion);
 	~DlgUsersEditor() override;
 
 private:
@@ -42,6 +41,7 @@ private:
 	QStandardItemModel *m_dataModel;
 	QSortFilterProxyModel *m_modelProxy;
 	std::string m_brokerPath;
+	shv::chainpack::IRpcConnection::ShvApiVersion m_brokerApiVersion;
 };
 
 #endif // DLGUSERSEDITOR_H
