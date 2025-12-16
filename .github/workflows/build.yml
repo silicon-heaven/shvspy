@@ -15,6 +15,9 @@ permissions:
   id-token: write
   pages: write
 
+env:
+  HASH_FOR_FILENAMES: ${{github.event.pull_request.head.sha || github.sha}}
+
 jobs:
   linux:
     name: ${{ matrix.name }}
@@ -43,6 +46,8 @@ jobs:
             qt_modules: qtwebsockets
             qt_target: wasm
 
+    outputs:
+      wasm-artifact-name: ${{steps.wasm-artifacts.outputs.artifact-name}}
     steps:
       - name: Clone the repository
         uses: actions/checkout@v6
@@ -85,11 +90,17 @@ jobs:
 
       - name: Consolidate WebAssembly artifacts
         if: matrix.id == 'wasm-qt6'
+        id: wasm-artifacts
         run: |
-          mkdir gh-sources
-          cp '${{ github.workspace }}/build/shvspy/'*.{js,wasm,html} gh-sources/
-          mv gh-sources/shvspy.html gh-sources/index.html
-          cp '${{ github.workspace }}'/distro/shvspy.AppDir/shvspy.svg gh-sources/qtlogo.svg
+          SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
+          DIR_NAME="shvspy-wasm-$SHVSPY_HASH"
+          ARTIFACT_NAME="$DIR_NAME.tar.gz"
+          mkdir "$DIR_NAME"
+          cp '${{ github.workspace }}/build/shvspy/'*.{js,wasm,html} "$DIR_NAME"
+          mv "$DIR_NAME/shvspy.html" "$DIR_NAME/index.html"
+          cp '${{ github.workspace }}'/distro/shvspy.AppDir/shvspy.svg "$DIR_NAME/qtlogo.svg"
+          tar -cvf "$ARTIFACT_NAME" "$DIR_NAME"/*
+          echo "artifact-name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Setup Pages
@@ -98,9 +109,10 @@ jobs:
 
       - name: Upload Pages artifact
         if: matrix.id == 'wasm-qt6'
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          path: gh-sources/
+          name: ${{steps.wasm-artifacts.outputs.artifact-name}}
+          path: ${{steps.wasm-artifacts.outputs.artifact-name}}
 
   build-static:
     name: ${{ matrix.name }}
@@ -206,6 +218,7 @@ jobs:
           max-size: 50M
 
       - name: Build
+        id: static-binary
         run: |
           WORKSPACE="$GITHUB_WORKSPACE"
           if [ "${{ matrix.id }}" = "windows-qt6-static" ]; then
@@ -226,16 +239,17 @@ jobs:
           )
 
           ${{ matrix.cmake_cmd }} -S "$WORKSPACE" -B "$WORKSPACE/build" "${CMAKE_FLAGS[@]}"
+          SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
           cmake --build "$WORKSPACE/build"
-
-      - name: Get app version
-        run: echo "VERSION=$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)" >> "$GITHUB_ENV"
+          NEW_FILENAME="shvspy-static-$SHVSPY_HASH${{matrix.artifact_ext}}"
+          mv "$WORKSPACE/build/shvspy/shvspy${{ matrix.artifact_ext }}" "$NEW_FILENAME"
+          echo "new-filename=$NEW_FILENAME" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: shvspy-static-${{ env.VERSION }}${{ matrix.artifact_ext }}
-          path: ${{ github.workspace }}/build/shvspy/shvspy${{ matrix.artifact_ext }}
+          name: ${{steps.static-binary.outputs.new-filename}}
+          path: ${{steps.static-binary.outputs.new-filename}}
 
   windows-qt6:
     name: Windows / Qt 6
@@ -299,13 +313,21 @@ jobs:
         shell: bash
 
       - name: Create installer
-        run: iscc "-DBUILD_DIR=${{github.workspace}}/install" "-DVERSION=${{env.VERSION}}" shvspy/shvspy.iss
+        id: installer
+        run: |
+          iscc "-DBUILD_DIR=${{github.workspace}}/install" "-DVERSION=${{env.VERSION}}" shvspy/shvspy.iss
+          SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
+          cmake --build "${{github.workspace}}/build"
+          NEW_FILENAME="shvspy-$SHVSPY_HASH-setup.exe"
+          mv '${{github.workspace}}'/install/_inno/shvspy/shvspy-*-setup.exe "$NEW_FILENAME"
+          echo "new-filename=$NEW_FILENAME" >> "$GITHUB_OUTPUT"
+        shell: bash
 
       - name: Upload installer
         uses: actions/upload-artifact@v6
         with:
-          name: shvspy-${{env.VERSION}}-setup.exe
-          path: ${{github.workspace}}/install/_inno/shvspy/shvspy-*-setup.exe
+          name: ${{steps.installer.outputs.new-filename}}
+          path: ${{steps.installer.outputs.new-filename}}
 
   deploy-github-pages:
     name: Deploy GitHub Pages
@@ -315,14 +337,14 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: ${{needs.linux.outputs.wasm-artifact-name}}
 
   create-nightly-release:
     name: Create nightly
     if: github.ref == 'refs/heads/master'
     needs: [linux, build-static, windows-qt6]
     runs-on: ubuntu-latest
-    env:
-      HASH_FOR_FILENAMES: ${{github.event.pull_request.head.sha || github.sha}}
     steps:
       # Needed for action-create-tag
       - name: Checkout code
@@ -337,19 +359,6 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           merge-multiple: true
-
-      - name: Compress WASM build
-        run: gzip --to-stdout artifact.tar > shvspy-wasm-nightly.tar.gz
-
-      - name: Rename artifacts
-        run: |
-          SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
-          mv shvspy-*-setup.exe "shvspy-$SHVSPY_HASH-setup.exe"
-          mv shvspy-static-*.exe "shvspy-static-$SHVSPY_HASH.exe"
-          mv shvspy-static-* "shvspy-static-$SHVSPY_HASH"
-          mv shvspy-qt5-*-x86_64.AppImage "shvspy-qt5-$SHVSPY_HASH-x86_64.AppImage"
-          mv shvspy-qt6-*-x86_64.AppImage "shvspy-qt6-$SHVSPY_HASH-x86_64.AppImage"
-          mv shvspy-wasm-nightly.tar.gz "shvspy-wasm-$SHVSPY_HASH-nightly.tar.gz"
 
       - name: Delete previous nightly release
         env:

@@ -17,11 +17,10 @@ runs:
     - name: Get app version
       run: |
         if [[ "${{inputs.use_qt6}}" = "ON" ]]; then
-          VERSION=qt6-
+          VERSION=qt6
         else
-          VERSION=qt5-
+          VERSION=qt5
         fi
-        VERSION+="$(grep APP_VERSION shvspy/src/appversion.h | cut -d\" -f2)"
         echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       shell: bash
 
@@ -33,6 +32,7 @@ runs:
       shell: bash
 
     - name: Create AppImage
+      id: appimage
       env:
         GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
@@ -44,10 +44,15 @@ runs:
         --icon-file "$GITHUB_WORKSPACE/distro/shvspy.AppDir/shvspy.svg" \
         --plugin qt \
         --output appimage
+
+        SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
+        NEW_FILENAME="shvspy-$VERSION-$SHVSPY_HASH.AppImage"
+        mv "$GITHUB_WORKSPACE"/shvspy-*-x86_64.AppImage "$NEW_FILENAME"
+        echo "new-filename=$NEW_FILENAME" >> "$GITHUB_OUTPUT"
       shell: bash
 
     - name: Upload AppImage
       uses: actions/upload-artifact@v6
       with:
-        name: shvspy-${{env.VERSION}}-x86_64.Appimage
-        path: shvspy-*-x86_64.AppImage
+        name: ${{steps.appimage.outputs.new-filename}}
+        path: ${{steps.appimage.outputs.new-filename}}
