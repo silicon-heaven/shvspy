@@ -392,6 +392,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 		if(snd->isOpen()) {
 			m->addSeparator();
 			m->addAction(a_reloadNode);
+			m->addAction(a_callShvMethod);
 		}
 	} else {
 		m->addAction(a_reloadNode);
