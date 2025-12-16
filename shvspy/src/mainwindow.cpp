@@ -381,20 +381,19 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	auto *a_rolesEditor = new QAction(tr("Roles editor"), m);
 	auto *a_mountsEditor = new QAction(tr("Mounts editor"), m);
 
-	if(!nd) {
+	if (!nd) {
 		m->addAction(ui->actAddServer);
-	}
-	else if(snd) {
+	} else if (snd) {
 		m->addAction(ui->actAddServer);
 		m->addAction(ui->actEditServer);
 		m->addAction(ui->actCopyServer);
 		m->addAction(ui->actRemoveServer);
+
 		if(snd->isOpen()) {
 			m->addSeparator();
 			m->addAction(a_reloadNode);
 		}
-	}
-	else {
+	} else {
 		m->addAction(a_reloadNode);
 		m->addAction(a_subscribeNode);
 		m->addAction(a_callShvMethod);
@@ -405,88 +404,89 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 			m->addAction(a_mountsEditor);
 		}
 	}
-	if(m->actions().isEmpty()) {
+
+	if (m->actions().isEmpty()) {
 		delete m;
+		return;
 	}
-	else {
-		m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
-		connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
-			m->deleteLater();
-			ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-			if (!nd) {
+
+	m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
+	connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
+		m->deleteLater();
+		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+		if (!nd) {
+			return;
+		}
+
+		if (a == a_reloadNode) {
+			nd->reload();
+			return;
+		}
+
+		if (a == a_subscribeNode) {
+			nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
+			return;
+		}
+
+		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		if (a == a_callShvMethod) {
+			auto dlg = new DlgCallShvMethod(cc, this);
+			dlg->setShvPath(nd->shvPath());
+			dlg->open();
+			connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
+			return;
+		}
+
+		auto broker_path = nd->shvPath();
+		auto open_dialog = [this, cc, broker_path, a, a_usersEditor, a_rolesEditor, a_mountsEditor] (const shv::chainpack::IRpcConnection::ShvApiVersion api_version) {
+			auto* dlg = [&] () -> QDialog* {
+				if (a == a_usersEditor) {
+					return new DlgUsersEditor(this, cc, broker_path, api_version);
+				}
+
+				if (a == a_rolesEditor) {
+					return new DlgRolesEditor(this, cc, broker_path, api_version);
+				}
+
+				if (a == a_mountsEditor) {
+					return new DlgMountsEditor(this, cc, broker_path, api_version);
+				}
+
+				throw std::runtime_error{"Unknown QAction type"};
+			}();
+
+			dlg->open();
+			connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
+		};
+
+		auto call = shv::iotqt::rpc::RpcCall::create(cc)
+			->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V3))
+			->setMethod("dir")
+			->setParams("dir");
+		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, cc, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
+			if (!error.isValid()) {
+				open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V3);
 				return;
 			}
-
-			if (a == a_reloadNode) {
-				nd->reload();
-				return;
-			}
-
-			if (a == a_subscribeNode) {
-				nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
-				return;
-			}
-
-			shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
-			if (a == a_callShvMethod) {
-				auto dlg = new DlgCallShvMethod(cc, this);
-				dlg->setShvPath(nd->shvPath());
-				dlg->open();
-				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				return;
-			}
-
-			auto broker_path = nd->shvPath();
-			auto open_dialog = [this, cc, broker_path, a, a_usersEditor, a_rolesEditor, a_mountsEditor] (const shv::chainpack::IRpcConnection::ShvApiVersion api_version) {
-				auto* dlg = [&] () -> QDialog* {
-					if (a == a_usersEditor) {
-						return new DlgUsersEditor(this, cc, broker_path, api_version);
-					}
-
-					if (a == a_rolesEditor) {
-						return new DlgRolesEditor(this, cc, broker_path, api_version);
-					}
-
-					if (a == a_mountsEditor) {
-						return new DlgMountsEditor(this, cc, broker_path, api_version);
-					}
-
-					throw std::runtime_error{"Unknown QAction type"};
-				}();
-
-				dlg->open();
-				connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-			};
 
 			auto call = shv::iotqt::rpc::RpcCall::create(cc)
-				->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V3))
+				->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V2))
 				->setMethod("dir")
 				->setParams("dir");
-			connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, cc, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
+
+			connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
 				if (!error.isValid()) {
-					open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V3);
+					open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V2);
 					return;
 				}
 
-				auto call = shv::iotqt::rpc::RpcCall::create(cc)
-					->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V2))
-					->setMethod("dir")
-					->setParams("dir");
-
-				connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
-					if (!error.isValid()) {
-						open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V2);
-						return;
-					}
-
-					QMessageBox::critical(this, tr("Failed to detect broker API"), tr("Failed to detect broker API for ") + QString::fromStdString(broker_path));
-				});
-				call->start();
-
+				QMessageBox::critical(this, tr("Failed to detect broker API"), tr("Failed to detect broker API for ") + QString::fromStdString(broker_path));
 			});
 			call->start();
+
 		});
-	}
+		call->start();
+	});
 }
 
 void MainWindow::openNode(const QModelIndex &ix)
