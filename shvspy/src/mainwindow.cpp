@@ -411,7 +411,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	}
 
 	m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
-	connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
+	auto handle_custom_action = [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
 		m->deleteLater();
 		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 		if (!nd) {
@@ -486,7 +486,11 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 
 		});
 		call->start();
-	});
+	};
+
+	for (auto* action : {a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor}) {
+		connect(action, &QAction::triggered, this, [handle_custom_action, action] { handle_custom_action(action); } );
+	}
 }
 
 void MainWindow::openNode(const QModelIndex &ix)
