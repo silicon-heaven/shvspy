@@ -52,7 +52,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	addAction(ui->actionQuit);
 	connect(ui->actionQuit, &QAction::triggered, TheApp::instance(), &TheApp::quit);
-	//setWindowTitle(tr("QFreeOpcUa Spy"));
 	setWindowIcon(QIcon(":/shvspy/images/shvspy"));
 
 	ui->menu_View->addAction(ui->dockServers->toggleViewAction());
@@ -122,10 +121,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	});
 
 	connect(ui->btResizeColumns, &QAbstractButton::clicked, this, &MainWindow::resizeAttributesViewSectionsToFit);
-	// connect(TheApp::instance()->attributesModel(), &AttributesModel::methodCallResultChanged, this, [this](int method_ix) {
-	// 	Q_UNUSED(method_ix)
-	// 	this->resizeAttributesViewSectionsToFit();
-	// });
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::onAttributesTableContextMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, this, [this](const QModelIndex &ix) {
@@ -208,7 +203,6 @@ void MainWindow::checkSettingsReady()
 	};
 
 	QString servers_json = m_settings.value("application/servers").toString();
-	// shvMessage() << "servers_json:" << servers_json;
 	shv::chainpack::RpcValue servers;
 	if (!servers_json.isEmpty()) {
 		std::string err;
@@ -228,7 +222,6 @@ void MainWindow::checkSettingsReady()
 		auto defconf = default_config();
 		uiconf = defconf.asMap().value("ui");
 		servers = defconf.asMap().value("application").asMap().value("servers");
-		// shvMessage() << "severs2:" << servers.toCpon("  ");
 		if (is_adhoc_settings) {
 			shvInfo() << "Creating servers from adhoc settings:" << connections;
 			int n = 0;
@@ -275,10 +268,8 @@ void MainWindow::checkSettingsReady()
 				set_conprop_from_query(CONNECTIONTYPE);
 				set_conprop_from_query(PLAIN_TEXT_PASSWORD);
 				set_conprop_from_query(AZURELOGIN);
-				// conprops[SKIPLOGINPHASE] = query_value(SKIPLOGINPHASE);
 				set_conprop_from_query(SECURITYTYPE);
 				set_conprop_from_query(PEERVERIFY);
-				// conprops[RPC_PROTOCOLTYPE] = query_value(RPC_PROTOCOLTYPE);
 				set_conprop_from_query(RPC_RECONNECTINTERVAL);
 				set_conprop_from_query(RPC_HEARTBEATINTERVAL);
 				set_conprop_from_query(RPC_RPCTIMEOUT);
@@ -291,7 +282,6 @@ void MainWindow::checkSettingsReady()
 			}
 		}
 	}
-	// shvMessage() << "severs:" << servers.toCpon("  ");
 	TheApp::instance()->serverTreeModel()->loadServers(servers, is_adhoc_settings);
 	restoreGeometry(m_settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
 	QByteArray wstate = m_settings.value(QStringLiteral("ui/mainWindow/state")).toByteArray();
@@ -299,13 +289,9 @@ void MainWindow::checkSettingsReady()
 		const std::string &s = uiconf
 				.asMap().valref("mainWindow")
 				.asMap().valref("state").asString();
-		//shvInfo() << "default wstate:" << s;
 		auto ba = QByteArray::fromStdString(s);
-		//shvInfo() << "default wstat2:" << ba.toStdString();
 		wstate = QByteArray::fromHex(ba);
-		//shvInfo() << "default wstat3:" << wstate.toStdString();
 	}
-	//shvInfo() << "restoring wstate:" << wstate.toHex().toStdString();
 	restoreState(wstate);
 }
 
@@ -323,7 +309,6 @@ void MainWindow::resizeAttributesViewSectionsToFit()
 		int w_result_type = hh->sectionSize(AttributesModel::ColResultType);
 		int w_params = hh->sectionSize(AttributesModel::ColParams);
 		int w_result = hh->sectionSize(AttributesModel::ColResult);
-		// int w_run = hh->sectionSize(AttributesModel::ColBtRun);
 		int w_section_rest = sum_section_w - w_params - w_result - w_param_type - w_result_type;
 		int w = (widget_w - w_section_rest) / 4;
 		if (w < 0) {
@@ -396,7 +381,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	auto *a_rolesEditor = new QAction(tr("Roles editor"), m);
 	auto *a_mountsEditor = new QAction(tr("Mounts editor"), m);
 
-	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
 		m->addAction(ui->actAddServer);
 	}
@@ -427,7 +411,6 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	else {
 		m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
 		connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
-			//shvInfo() << "MENU ACTION:" << a;
 			m->deleteLater();
 			ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 			if (!nd) {
@@ -534,7 +517,6 @@ auto* create_text_view(QWidget *parent)
 	auto *view = new TextEditDialog(parent);
 	view->setModal(false);
 	view->setAttribute(Qt::WA_DeleteOnClose);
-	// view->setWindowIconText("Result");
 	view->setReadOnly(true);
 	return view;
 }
@@ -752,11 +734,9 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 		auto *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		if(bnd) {
 			// hide attributes for server nodes
-			//ui->edAttributesShvPath->setText(QString());
 			m->load(bnd->isOpen()? bnd: nullptr);
 		}
 		else {
-			//ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
 			m->load(nd);
 		}
 	}
@@ -796,7 +776,6 @@ void MainWindow::saveSettings()
 	QSettings settings;
 	TheApp::instance()->saveSettings(settings);
 	QByteArray ba = saveState();
-	//shvInfo() << "saving wstate:" << ba.toHex().toStdString();
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), ba);
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
 }
