@@ -45,9 +45,6 @@ jobs:
             qt_arch: wasm_singlethread
             qt_modules: qtwebsockets
             qt_target: wasm
-
-    outputs:
-      wasm-artifact-name: ${{steps.wasm-artifacts.outputs.artifact-name}}
     steps:
       - name: Clone the repository
         uses: actions/checkout@v6
@@ -100,7 +97,8 @@ jobs:
           mv "$DIR_NAME/shvspy.html" "$DIR_NAME/index.html"
           cp '${{ github.workspace }}'/distro/shvspy.AppDir/shvspy.svg "$DIR_NAME/qtlogo.svg"
           tar -cvf "$ARTIFACT_NAME" "$DIR_NAME"/*
-          echo "artifact-name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+          echo "archive-name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+          echo "dir-name=$DIR_NAME" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Setup Pages
@@ -109,10 +107,16 @@ jobs:
 
       - name: Upload Pages artifact
         if: matrix.id == 'wasm-qt6'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{steps.wasm-artifacts.outputs.dir-name}}/
+
+      - name: Upload Pages artifact
+        if: matrix.id == 'wasm-qt6'
         uses: actions/upload-artifact@v6
         with:
-          name: ${{steps.wasm-artifacts.outputs.artifact-name}}
-          path: ${{steps.wasm-artifacts.outputs.artifact-name}}
+          name: ${{steps.wasm-artifacts.outputs.archive-name}}
+          path: ${{steps.wasm-artifacts.outputs.archive-name}}
 
   build-static:
     name: ${{ matrix.name }}
@@ -337,8 +341,6 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
-        with:
-          artifact_name: ${{needs.linux.outputs.wasm-artifact-name}}
 
   create-nightly-release:
     name: Create nightly
