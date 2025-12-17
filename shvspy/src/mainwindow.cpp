@@ -29,6 +29,7 @@
 
 #include <shv/coreqt/rpc.h>
 #include <shv/core/utils/shvpath.h>
+#include <shv/iotqt/rpc/rpccall.h>
 
 #include <QSettings>
 #include <QMessageBox>
@@ -51,7 +52,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	addAction(ui->actionQuit);
 	connect(ui->actionQuit, &QAction::triggered, TheApp::instance(), &TheApp::quit);
-	//setWindowTitle(tr("QFreeOpcUa Spy"));
 	setWindowIcon(QIcon(":/shvspy/images/shvspy"));
 
 	ui->menu_View->addAction(ui->dockServers->toggleViewAction());
@@ -121,10 +121,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	});
 
 	connect(ui->btResizeColumns, &QAbstractButton::clicked, this, &MainWindow::resizeAttributesViewSectionsToFit);
-	// connect(TheApp::instance()->attributesModel(), &AttributesModel::methodCallResultChanged, this, [this](int method_ix) {
-	// 	Q_UNUSED(method_ix)
-	// 	this->resizeAttributesViewSectionsToFit();
-	// });
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::onAttributesTableContextMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, this, [this](const QModelIndex &ix) {
@@ -207,7 +203,6 @@ void MainWindow::checkSettingsReady()
 	};
 
 	QString servers_json = m_settings.value("application/servers").toString();
-	// shvMessage() << "servers_json:" << servers_json;
 	shv::chainpack::RpcValue servers;
 	if (!servers_json.isEmpty()) {
 		std::string err;
@@ -227,7 +222,6 @@ void MainWindow::checkSettingsReady()
 		auto defconf = default_config();
 		uiconf = defconf.asMap().value("ui");
 		servers = defconf.asMap().value("application").asMap().value("servers");
-		// shvMessage() << "severs2:" << servers.toCpon("  ");
 		if (is_adhoc_settings) {
 			shvInfo() << "Creating servers from adhoc settings:" << connections;
 			int n = 0;
@@ -274,10 +268,8 @@ void MainWindow::checkSettingsReady()
 				set_conprop_from_query(CONNECTIONTYPE);
 				set_conprop_from_query(PLAIN_TEXT_PASSWORD);
 				set_conprop_from_query(AZURELOGIN);
-				// conprops[SKIPLOGINPHASE] = query_value(SKIPLOGINPHASE);
 				set_conprop_from_query(SECURITYTYPE);
 				set_conprop_from_query(PEERVERIFY);
-				// conprops[RPC_PROTOCOLTYPE] = query_value(RPC_PROTOCOLTYPE);
 				set_conprop_from_query(RPC_RECONNECTINTERVAL);
 				set_conprop_from_query(RPC_HEARTBEATINTERVAL);
 				set_conprop_from_query(RPC_RPCTIMEOUT);
@@ -290,7 +282,6 @@ void MainWindow::checkSettingsReady()
 			}
 		}
 	}
-	// shvMessage() << "severs:" << servers.toCpon("  ");
 	TheApp::instance()->serverTreeModel()->loadServers(servers, is_adhoc_settings);
 	restoreGeometry(m_settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
 	QByteArray wstate = m_settings.value(QStringLiteral("ui/mainWindow/state")).toByteArray();
@@ -298,13 +289,9 @@ void MainWindow::checkSettingsReady()
 		const std::string &s = uiconf
 				.asMap().valref("mainWindow")
 				.asMap().valref("state").asString();
-		//shvInfo() << "default wstate:" << s;
 		auto ba = QByteArray::fromStdString(s);
-		//shvInfo() << "default wstat2:" << ba.toStdString();
 		wstate = QByteArray::fromHex(ba);
-		//shvInfo() << "default wstat3:" << wstate.toStdString();
 	}
-	//shvInfo() << "restoring wstate:" << wstate.toHex().toStdString();
 	restoreState(wstate);
 }
 
@@ -322,7 +309,6 @@ void MainWindow::resizeAttributesViewSectionsToFit()
 		int w_result_type = hh->sectionSize(AttributesModel::ColResultType);
 		int w_params = hh->sectionSize(AttributesModel::ColParams);
 		int w_result = hh->sectionSize(AttributesModel::ColResult);
-		// int w_run = hh->sectionSize(AttributesModel::ColBtRun);
 		int w_section_rest = sum_section_w - w_params - w_result - w_param_type - w_result_type;
 		int w = (widget_w - w_section_rest) / 4;
 		if (w < 0) {
@@ -395,21 +381,20 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	auto *a_rolesEditor = new QAction(tr("Roles editor"), m);
 	auto *a_mountsEditor = new QAction(tr("Mounts editor"), m);
 
-	//QAction *a_test = new QAction(tr("create test.txt"), &m);
-	if(!nd) {
+	if (!nd) {
 		m->addAction(ui->actAddServer);
-	}
-	else if(snd) {
+	} else if (snd) {
 		m->addAction(ui->actAddServer);
 		m->addAction(ui->actEditServer);
 		m->addAction(ui->actCopyServer);
 		m->addAction(ui->actRemoveServer);
+
 		if(snd->isOpen()) {
 			m->addSeparator();
 			m->addAction(a_reloadNode);
+			m->addAction(a_callShvMethod);
 		}
-	}
-	else {
+	} else {
 		m->addAction(a_reloadNode);
 		m->addAction(a_subscribeNode);
 		m->addAction(a_callShvMethod);
@@ -420,67 +405,92 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 			m->addAction(a_mountsEditor);
 		}
 	}
-	if(m->actions().isEmpty()) {
+
+	if (m->actions().isEmpty()) {
 		delete m;
+		return;
 	}
-	else {
-		m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
-		connect(m, &QMenu::triggered, this, [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
-			//shvInfo() << "MENU ACTION:" << a;
-			if(a == a_reloadNode) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-				if(nd)
-					nd->reload();
-			}
-			else if(a == a_subscribeNode) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-				if(nd) {
-					nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
-				}
-			}
-			else if(a == a_callShvMethod) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					auto dlg = new DlgCallShvMethod(cc, this);
-					dlg->setShvPath(nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				}
-			}
-			else if(a == a_usersEditor) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+	m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
+	auto handle_custom_action = [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
+		m->deleteLater();
+		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+		if (!nd) {
+			return;
+		}
 
-					auto dlg = new DlgUsersEditor(this, cc, nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				}
-			}
-			else if(a == a_rolesEditor) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		if (a == a_reloadNode) {
+			nd->reload();
+			return;
+		}
 
-					auto dlg = new DlgRolesEditor (this, cc, nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
-				}
-			}
-			else if(a == a_mountsEditor) {
-				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-				if(nd) {
-					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		if (a == a_subscribeNode) {
+			nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED, {});
+			return;
+		}
 
-					auto dlg = new DlgMountsEditor(this, cc, nd->shvPath());
-					dlg->open();
-					connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
+		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		if (a == a_callShvMethod) {
+			auto dlg = new DlgCallShvMethod(cc, this);
+			dlg->setShvPath(nd->shvPath());
+			dlg->open();
+			connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
+			return;
+		}
+
+		auto broker_path = nd->shvPath();
+		auto open_dialog = [this, cc, broker_path, a, a_usersEditor, a_rolesEditor, a_mountsEditor] (const shv::chainpack::IRpcConnection::ShvApiVersion api_version) {
+			auto* dlg = [&] () -> QDialog* {
+				if (a == a_usersEditor) {
+					return new DlgUsersEditor(this, cc, broker_path, api_version);
 				}
+
+				if (a == a_rolesEditor) {
+					return new DlgRolesEditor(this, cc, broker_path, api_version);
+				}
+
+				if (a == a_mountsEditor) {
+					return new DlgMountsEditor(this, cc, broker_path, api_version);
+				}
+
+				throw std::runtime_error{"Unknown QAction type"};
+			}();
+
+			dlg->open();
+			connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
+		};
+
+		auto call = shv::iotqt::rpc::RpcCall::create(cc)
+			->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V3))
+			->setMethod("dir")
+			->setParams("dir");
+		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, cc, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
+			if (!error.isValid()) {
+				open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V3);
+				return;
 			}
-			m->deleteLater();
+
+			auto call = shv::iotqt::rpc::RpcCall::create(cc)
+				->setShvPath(TheApp::aclAccessPath(broker_path, shv::chainpack::IRpcConnection::ShvApiVersion::V2))
+				->setMethod("dir")
+				->setParams("dir");
+
+			connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, broker_path, open_dialog] (const shv::chainpack::RpcValue&, const shv::chainpack::RpcError& error) {
+				if (!error.isValid()) {
+					open_dialog(shv::chainpack::IRpcConnection::ShvApiVersion::V2);
+					return;
+				}
+
+				QMessageBox::critical(this, tr("Failed to detect broker API"), tr("Failed to detect broker API for ") + QString::fromStdString(broker_path));
+			});
+			call->start();
+
 		});
+		call->start();
+	};
+
+	for (auto* action : {a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor}) {
+		connect(action, &QAction::triggered, this, [handle_custom_action, action] { handle_custom_action(action); } );
 	}
 }
 
@@ -512,7 +522,6 @@ auto* create_text_view(QWidget *parent)
 	auto *view = new TextEditDialog(parent);
 	view->setModal(false);
 	view->setAttribute(Qt::WA_DeleteOnClose);
-	// view->setWindowIconText("Result");
 	view->setReadOnly(true);
 	return view;
 }
@@ -730,11 +739,9 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 		auto *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		if(bnd) {
 			// hide attributes for server nodes
-			//ui->edAttributesShvPath->setText(QString());
 			m->load(bnd->isOpen()? bnd: nullptr);
 		}
 		else {
-			//ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
 			m->load(nd);
 		}
 	}
@@ -774,7 +781,6 @@ void MainWindow::saveSettings()
 	QSettings settings;
 	TheApp::instance()->saveSettings(settings);
 	QByteArray ba = saveState();
-	//shvInfo() << "saving wstate:" << ba.toHex().toStdString();
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), ba);
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
 }

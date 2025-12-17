@@ -14,10 +14,11 @@
 
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path)
+DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path, const shv::chainpack::IRpcConnection::ShvApiVersion brokerApiVersion)
 	: QDialog(parent)
 	, ui(new Ui::DlgRolesEditor)
 	, m_brokerPath(broker_path)
+	, m_brokerApiVersion(brokerApiVersion)
 {
 	ui->setupUi(this);
 
@@ -218,5 +219,5 @@ void DlgRolesEditor::setStatusText(const QString &txt)
 
 std::string DlgRolesEditor::aclAccessPath()
 {
-	return TheApp::aclAccessPath(m_brokerPath, m_rpcConnection->shvApiVersion());
+	return TheApp::aclAccessPath(m_brokerPath, m_brokerApiVersion);
 }

@@ -135,7 +135,7 @@ jobs:
             container: archlinux:latest
             cmake_cmd: static-compat-cmake
             artifact_ext: ""
-            additional_cmake_args: |
+            additional_cmake_args: |-
               -DGLIB2_DEPENDENCIES=-lgobject-2.0;-lgmodule-2.0;-lglib-2.0;-lmount;-lblkid;-lffi
 
           - id: windows-qt6-static
@@ -144,7 +144,7 @@ jobs:
             shell: msys2 {0}
             cmake_cmd: cmake.exe
             artifact_ext: ".exe"
-            additional_cmake_args: |
+            additional_cmake_args: |-
               -DFREETYPE_DEPENDENCIES=-lbz2;-lharfbuzz;-lfreetype
               -DHARFBUZZ_DEPENDENCIES=-lglib-2.0;-lintl;-lws2_32;-lole32;-lwinmm;-lshlwapi;-lm;-lintl;-lm;-lfreetype;-lgraphite2;-lrpcrt4
 
