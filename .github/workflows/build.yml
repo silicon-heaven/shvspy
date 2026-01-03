@@ -173,19 +173,12 @@ jobs:
             static-compat-pkgconf
             static-compat-qt6-base
             static-compat-qt6-networkauth
+            static-compat-qt6-serialport
             static-compat-qt6-svg
             static-compat-qt6-tools
             static-compat-qt6-websockets
           )
           pacman -Syu --noconfirm "${PACKAGES[@]}"
-
-          curl --create-dirs --remote-name --location --output-dir static-compat-qt6-serialport \
-            https://raw.githubusercontent.com/syyyr/PKGBUILDs/27b299330f3e3636e9a063b6531bc5c408868a3a/qt6-serialport/static-compat/PKGBUILD
-
-          useradd build-user
-          chown -R build-user static-compat-qt6-serialport
-          su build-user -c 'makepkg --syncdeps --noconfirm --dir static-compat-qt6-serialport'
-          pacman -U --noconfirm static-compat-qt6-serialport/static-compat-qt6-serialport-*.pkg.tar.zst
 
       - name: Setup MSYS2 (Windows)
         if: matrix.id == 'windows-qt6-static'
