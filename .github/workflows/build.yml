@@ -177,6 +177,7 @@ jobs:
             static-compat-qt6-svg
             static-compat-qt6-tools
             static-compat-qt6-websockets
+            upx
           )
           pacman -Syu --noconfirm "${PACKAGES[@]}"
 
@@ -197,6 +198,7 @@ jobs:
             mingw-w64-x86_64-qt6-static
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-vulkan-headers
+            upx
 
       # This plugin doesn't work well with static linking. libtiff.a does not properly bring its static dependencies.
       - name: Remove QTiffPlugin (Windows)
@@ -243,6 +245,7 @@ jobs:
           mv "$WORKSPACE/build/shvspy/shvspy${{ matrix.artifact_ext }}" "$NEW_FILENAME"
           echo "new-filename=$NEW_FILENAME" >> "$GITHUB_OUTPUT"
           strip "$NEW_FILENAME"
+          upx "$NEW_FILENAME"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
