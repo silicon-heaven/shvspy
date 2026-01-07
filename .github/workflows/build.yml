@@ -241,6 +241,7 @@ jobs:
           NEW_FILENAME="shvspy-static-$SHVSPY_HASH${{matrix.artifact_ext}}"
           mv "$WORKSPACE/build/shvspy/shvspy${{ matrix.artifact_ext }}" "$NEW_FILENAME"
           echo "new-filename=$NEW_FILENAME" >> "$GITHUB_OUTPUT"
+          strip "$NEW_FILENAME"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
