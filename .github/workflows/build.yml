@@ -235,7 +235,7 @@ jobs:
             "${EXTRA_FLAGS[@]}"
           )
 
-          ${{ matrix.cmake_cmd }} -S "$WORKSPACE" -B "$WORKSPACE/build" "${CMAKE_FLAGS[@]}"
+          '${{ matrix.cmake_cmd }}' -S "$WORKSPACE" -B "$WORKSPACE/build" "${CMAKE_FLAGS[@]}"
           SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
           cmake --build "$WORKSPACE/build"
           NEW_FILENAME="shvspy-static-$SHVSPY_HASH${{matrix.artifact_ext}}"
