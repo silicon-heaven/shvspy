@@ -245,7 +245,13 @@ jobs:
           mv "$WORKSPACE/build/shvspy/shvspy${{ matrix.artifact_ext }}" "$NEW_FILENAME"
           echo "new-filename=$NEW_FILENAME" >> "$GITHUB_OUTPUT"
           strip "$NEW_FILENAME"
-          upx "$NEW_FILENAME"
+          UPX_ARGS=()
+          # Only use best for the master releases, as it takes quite a while (especially on Windows).
+          if [[ '${{github.ref}}' = 'refs/heads/master' ]]; then
+            UPX_ARGS+=(--best)
+            echo Enabling UPX --best compression.
+          fi
+          upx "${UPX_ARGS[@]}" "$NEW_FILENAME"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
