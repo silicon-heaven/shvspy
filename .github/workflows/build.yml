@@ -177,6 +177,7 @@ jobs:
             static-compat-qt6-svg
             static-compat-qt6-tools
             static-compat-qt6-websockets
+            upx
           )
           pacman -Syu --noconfirm "${PACKAGES[@]}"
 
@@ -197,6 +198,7 @@ jobs:
             mingw-w64-x86_64-qt6-static
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-vulkan-headers
+            upx
 
       # This plugin doesn't work well with static linking. libtiff.a does not properly bring its static dependencies.
       - name: Remove QTiffPlugin (Windows)
@@ -228,6 +230,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
             -DBUILD_SHARED_LIBS=OFF
             -DBUILD_TESTING=OFF
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
             -DCMAKE_C_COMPILER_LAUNCHER=ccache
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             -DSHVSPY_WITH_WERROR=ON
@@ -235,12 +238,20 @@ jobs:
             "${EXTRA_FLAGS[@]}"
           )
 
-          ${{ matrix.cmake_cmd }} -S "$WORKSPACE" -B "$WORKSPACE/build" "${CMAKE_FLAGS[@]}"
+          '${{ matrix.cmake_cmd }}' -S "$WORKSPACE" -B "$WORKSPACE/build" "${CMAKE_FLAGS[@]}"
           SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
           cmake --build "$WORKSPACE/build"
           NEW_FILENAME="shvspy-static-$SHVSPY_HASH${{matrix.artifact_ext}}"
           mv "$WORKSPACE/build/shvspy/shvspy${{ matrix.artifact_ext }}" "$NEW_FILENAME"
           echo "new-filename=$NEW_FILENAME" >> "$GITHUB_OUTPUT"
+          strip "$NEW_FILENAME"
+          UPX_ARGS=()
+          # Only use best for the master releases, as it takes quite a while (especially on Windows).
+          if [[ '${{github.ref}}' = 'refs/heads/master' ]]; then
+            UPX_ARGS+=(--best)
+            echo Enabling UPX --best compression.
+          fi
+          upx "${UPX_ARGS[@]}" "$NEW_FILENAME"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
