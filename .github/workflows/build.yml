@@ -408,3 +408,107 @@ jobs:
 
       - name: Format
         run: nix --experimental-features 'nix-command flakes' fmt . && git diff --exit-code
+
+  check-version-bump:
+    name: Check version bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check if appversion.h was changed
+        id: version-check
+        continue-on-error: ${{startsWith(github.head_ref, 'dependabot/')}}
+        run: |
+          PREVIOUS_COMMIT="${{github.event.pull_request.base.sha || github.event.before}}"
+          git fetch origin "$PREVIOUS_COMMIT"
+          echo Comparing version bump against "$PREVIOUS_COMMIT"
+          DEFAULT_BRANCH_VERSION="$(git show "$PREVIOUS_COMMIT:shvspy/src/appversion.h" | grep 'APP_VERSION' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+          CURRENT_BRANCH_VERSION="$(git show "HEAD:shvspy/src/appversion.h" | grep 'APP_VERSION' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+          if [[ "$DEFAULT_BRANCH_VERSION" = "$CURRENT_BRANCH_VERSION" ]]; then
+            echo "Error: No version bump detected ($DEFAULT_BRANCH_VERSION" = "$CURRENT_BRANCH_VERSION)."
+            exit 1
+          else
+            echo Version bump detected: "$DEFAULT_BRANCH_VERSION -> $CURRENT_BRANCH_VERSION"
+          fi
+
+      - name: Checkout code
+        if: steps.version-check.outcome == 'failure'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{github.head_ref}}
+
+      - name: Bump version
+        if: steps.version-check.outcome == 'failure'
+        run: |
+          [[ "$(grep 'APP_VERSION' shvspy/src/appversion.h | head -n1)" =~ ([0-9]+\.[0-9]+\.)([0-9]+) ]]
+          NEW_VERSION="${BASH_REMATCH[1]}$((BASH_REMATCH[2] + 1))"
+          echo Bumping "${BASH_REMATCH[0]} -> $NEW_VERSION"
+          sed -i "s/${BASH_REMATCH[0]}/$NEW_VERSION/" shvspy/src/appversion.h
+          git diff
+          git config --global user.name "Login will be determined by the Github API based on the creator of the token"
+          git config --global user.email ""
+          git commit -am '[dependabot-skip] Bump version'
+
+      - name: Push changes
+        if: steps.version-check.outcome == 'failure'
+        uses: Asana/push-signed-commits@v1
+        with:
+          github-token: ${{ secrets.DEPENDABOT_GITHUB_TOKEN }}
+          local_branch_name: ${{github.head_ref}}
+          remote_branch_name: ${{github.head_ref}}
+
+  tag-release:
+    name: Tag and release
+    if: github.ref == 'refs/heads/master'
+    needs: [linux, windows-qt6, build-static, check-version-bump]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get-version
+        run: |
+          version="$(git show "HEAD:shvspy/src/appversion.h" | grep 'APP_VERSION' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{ steps.get-version.outputs.version }}
+
+      - name: Consolidate artifacts
+        uses: actions/download-artifact@v7
+        with:
+          merge-multiple: true
+
+      - name: Rename release artifacts
+        run: |
+          set -x
+          find .
+          SHVSPY_HASH="$(head -c 7 <<< '${{env.HASH_FOR_FILENAMES}}')"
+          for f in shvspy-*; do
+            [[ $f == *"$SHVSPY_HASH"* ]] || continue
+            mv -- "$f" "${f//"$SHVSPY_HASH"/'${{ steps.get-version.outputs.version }}'}"
+          done
+          find .
+        shell: bash
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: shvspy ${{ steps.get-version.outputs.version }}
+          tag_name: ${{ steps.get-version.outputs.version }}
+          fail_on_unmatched_files: true
+          body: |
+            shvspy ${{ steps.get-version.outputs.version }}
+
+            If you find any bugs, please test with the nightly version. If the bug persists, report them to the repository's issue tracker.
+          files: |
+            shvspy-*${{ steps.get-version.outputs.version }}*
