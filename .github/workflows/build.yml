@@ -96,7 +96,7 @@ jobs:
           cp '${{ github.workspace }}/build/shvspy/'*.{js,wasm,html} "$DIR_NAME"
           mv "$DIR_NAME/shvspy.html" "$DIR_NAME/index.html"
           cp '${{ github.workspace }}'/distro/shvspy.AppDir/shvspy.svg "$DIR_NAME/qtlogo.svg"
-          tar -cvf "$ARTIFACT_NAME" "$DIR_NAME"/*
+          tar --create --verbose --auto-compress --file "$ARTIFACT_NAME" "$DIR_NAME"/*
           echo "archive-name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
           echo "dir-name=$DIR_NAME" >> "$GITHUB_OUTPUT"
         shell: bash
