@@ -17,8 +17,9 @@ QVariant RpcNotificationsModel::headerData(int section, Qt::Orientation orientat
 		switch (section) {
 		case ColTimeStamp: return tr("Received");
 		case ColBroker: return tr("Connection");
-		case ColShvPath: return tr("Source");
-		case ColMethod: return tr("Method");
+		case ColShvPath: return tr("Path");
+		case ColSource: return tr("Source");
+		case ColSignal: return tr("Signal");
 		case ColParams: return tr("Params");
 		default: break;
 		}
@@ -35,7 +36,8 @@ void RpcNotificationsModel::addLogRow(const std::string &broker_name, const shv:
 		rw[ColTimeStamp] = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
 		rw[ColBroker] = QString::fromStdString(broker_name);
 		rw[ColShvPath] = QString::fromStdString(ntf.shvPath().toString());
-		rw[ColMethod] = QString::fromStdString(ntf.method().toString());
+		rw[ColSource] = QString::fromStdString(ntf.source());
+		rw[ColSignal] = QString::fromStdString(ntf.signal());
 		rw[ColParams] = QString::fromStdString(ntf.params().toCpon());
 		Super::addLogRow(rw);
 	}
