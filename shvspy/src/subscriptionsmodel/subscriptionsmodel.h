@@ -2,8 +2,6 @@
 
 #include <shv/chainpack/rpcvalue.h>
 
-#include "../servertreemodel/shvbrokernodeitem.h"
-
 #include <QAbstractTableModel>
 #include <QMetaEnum>
 

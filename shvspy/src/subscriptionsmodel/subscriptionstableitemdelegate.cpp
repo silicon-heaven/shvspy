@@ -2,8 +2,10 @@
 
 #include "subscriptionsmodel.h"
 
-#include <QComboBox>
+#include <shv/chainpack/rpc.h>
 #include <shv/chainpack/rpcvalue.h>
+
+#include <QComboBox>
 
 SubscriptionsTableItemDelegate::SubscriptionsTableItemDelegate(QObject *parent):
 	Super(parent)
