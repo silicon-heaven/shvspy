@@ -52,7 +52,7 @@ runs:
       shell: bash
 
     - name: Upload AppImage
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ${{steps.appimage.outputs.new-filename}}
         path: ${{steps.appimage.outputs.new-filename}}
