@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload Pages artifact
         if: matrix.id == 'wasm-qt6'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.wasm-artifacts.outputs.archive-name}}
           path: ${{steps.wasm-artifacts.outputs.archive-name}}
@@ -254,7 +254,7 @@ jobs:
           upx "${UPX_ARGS[@]}" "$NEW_FILENAME"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.static-binary.outputs.new-filename}}
           path: ${{steps.static-binary.outputs.new-filename}}
@@ -332,7 +332,7 @@ jobs:
         shell: bash
 
       - name: Upload installer
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.installer.outputs.new-filename}}
           path: ${{steps.installer.outputs.new-filename}}
@@ -362,7 +362,7 @@ jobs:
           force_push_tag: true
 
       - name: Consolidate artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           merge-multiple: true
 
@@ -484,7 +484,7 @@ jobs:
           tag: ${{ steps.get-version.outputs.version }}
 
       - name: Consolidate artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           merge-multiple: true
 
