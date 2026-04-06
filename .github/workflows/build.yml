@@ -60,7 +60,7 @@ jobs:
 
       - name: Setup emsdk
         if: matrix.id == 'wasm-qt6'
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v15
         with:
           version: ${{ env.emscripten_version }}
           actions-cache-folder: ${{ env.emsdk_cache_dir }}
