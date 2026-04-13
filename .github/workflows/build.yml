@@ -60,7 +60,7 @@ jobs:
 
       - name: Setup emsdk
         if: matrix.id == 'wasm-qt6'
-        uses: mymindstorm/setup-emsdk@v15
+        uses: mymindstorm/setup-emsdk@v16
         with:
           version: ${{ env.emscripten_version }}
           actions-cache-folder: ${{ env.emsdk_cache_dir }}
@@ -374,7 +374,7 @@ jobs:
           gh release delete nightly
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Nightly
           tag_name: nightly
@@ -501,7 +501,7 @@ jobs:
         shell: bash
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: shvspy ${{ steps.get-version.outputs.version }}
           tag_name: ${{ steps.get-version.outputs.version }}
