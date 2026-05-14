@@ -79,7 +79,7 @@ void DlgCallShvMethod::callShvMethod()
 			->setMethod(method)
 			->setParams(params);
 	if (ui->cbxUserId->isChecked()) {
-		rpc_call->setUserId({});
+		rpc_call->setUserId("");
 	}
 	connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this](const RpcValue &result, const RpcError &error) {
 		if (error.isValid()) {
