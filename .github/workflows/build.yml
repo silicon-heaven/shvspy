@@ -47,7 +47,7 @@ jobs:
             qt_target: wasm
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -206,7 +206,7 @@ jobs:
         run: rm /mingw64/qt6-static/lib/cmake/Qt6Gui/Qt6QTiffPlugin*
 
       - name: Clone the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -264,7 +264,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -354,7 +354,7 @@ jobs:
     steps:
       # Needed for action-create-tag
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - uses: rickstaa/action-create-tag@v1
         with:
@@ -390,7 +390,7 @@ jobs:
     name: NixOS / Qt 6
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
@@ -414,7 +414,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check if appversion.h was changed
         id: version-check
@@ -434,7 +434,7 @@ jobs:
 
       - name: Checkout code
         if: steps.version-check.outcome == 'failure'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{github.head_ref}}
@@ -468,7 +468,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
