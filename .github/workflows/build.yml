@@ -53,7 +53,7 @@ jobs:
 
       - name: Setup emsdk cache
         if: matrix.id == 'wasm-qt6'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           key: emsdk-cache-${{ env.emscripten_version }}
           path: ${{ env.emsdk_cache_dir }}
@@ -269,7 +269,7 @@ jobs:
           submodules: true
 
       - name: Setup MinGW cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           key: x86_64-13.1.0-release-posix-seh-msvcrt-rt_v11-rev1.7z
           path: ${{github.workspace}}/x86_64-13.1.0-release-posix-seh-msvcrt-rt_v11-rev1.7z
