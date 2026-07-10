@@ -11,9 +11,7 @@
 #include "dlgbrokerproperties.h"
 #include "brokerproperty.h"
 #include "dlgcallshvmethod.h"
-#include "dlguserseditor.h"
-#include "dlgroleseditor.h"
-#include "dlgmountseditor.h"
+#include "dlgsettings.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -377,13 +375,12 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	auto *a_reloadNode = new QAction(tr("Reload"), m);
 	auto *a_subscribeNode = new QAction(tr("Subscribe"), m);
 	auto *a_callShvMethod = new QAction(tr("Call shv method"), m);
-	auto *a_usersEditor = new QAction(tr("Users editor"), m);
-	auto *a_rolesEditor = new QAction(tr("Roles editor"), m);
-	auto *a_mountsEditor = new QAction(tr("Mounts editor"), m);
+	auto *a_settings = new QAction(tr("Broker settings"), m);
 
 	if (!nd) {
 		m->addAction(ui->actAddServer);
-	} else if (snd) {
+	}
+	else if (snd) {
 		m->addAction(ui->actAddServer);
 		m->addAction(ui->actEditServer);
 		m->addAction(ui->actCopyServer);
@@ -394,15 +391,14 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 			m->addAction(a_reloadNode);
 			m->addAction(a_callShvMethod);
 		}
-	} else {
+	}
+	else {
 		m->addAction(a_reloadNode);
 		m->addAction(a_subscribeNode);
 		m->addAction(a_callShvMethod);
 
 		if (nd->nodeId() == ".broker"){
-			m->addAction(a_usersEditor);
-			m->addAction(a_rolesEditor);
-			m->addAction(a_mountsEditor);
+			m->addAction(a_settings);
 		}
 	}
 
@@ -412,7 +408,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 	}
 
 	m->popup(ui->treeServers->viewport()->mapToGlobal(pos));
-	auto handle_custom_action = [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor, m](QAction *a) {
+	auto handle_custom_action = [this, a_reloadNode, a_subscribeNode, a_callShvMethod, a_settings, m](QAction *a) {
 		m->deleteLater();
 		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 		if (!nd) {
@@ -439,18 +435,10 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 		}
 
 		auto broker_path = nd->shvPath();
-		auto open_dialog = [this, cc, broker_path, a, a_usersEditor, a_rolesEditor, a_mountsEditor] (const shv::chainpack::IRpcConnection::ShvApiVersion api_version) {
+		auto open_dialog = [this, cc, broker_path, a, a_settings] (const shv::chainpack::IRpcConnection::ShvApiVersion api_version) {
 			auto* dlg = [&] () -> QDialog* {
-				if (a == a_usersEditor) {
-					return new DlgUsersEditor(this, cc, broker_path, api_version);
-				}
-
-				if (a == a_rolesEditor) {
-					return new DlgRolesEditor(this, cc, broker_path, api_version);
-				}
-
-				if (a == a_mountsEditor) {
-					return new DlgMountsEditor(this, cc, broker_path, api_version);
+				if (a == a_settings) {
+					return new DlgSettings(cc, broker_path, api_version, this);
 				}
 
 				throw std::runtime_error{"Unknown QAction type"};
@@ -489,7 +477,7 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 		call->start();
 	};
 
-	for (auto* action : {a_reloadNode, a_subscribeNode, a_callShvMethod, a_usersEditor, a_rolesEditor, a_mountsEditor}) {
+	for (auto* action : {a_reloadNode, a_subscribeNode, a_callShvMethod, a_settings}) {
 		connect(action, &QAction::triggered, this, [handle_custom_action, action] { handle_custom_action(action); } );
 	}
 }

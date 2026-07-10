@@ -8,11 +8,9 @@ qt_add_executable(shvspy
     src/dlgaddeditrole.cpp
     src/dlgaddedituser.cpp
     src/dlgcallshvmethod.cpp
-    src/dlgmountseditor.cpp
-    src/dlgroleseditor.cpp
     src/dlgselectroles.cpp
     src/dlgsubscriptionparameters.cpp
-    src/dlguserseditor.cpp
+
     src/log/rpcnotificationsmodel.cpp
     src/methodparametersdialog.cpp
     src/rolestreemodel/rolestreemodel.cpp
@@ -35,6 +33,7 @@ qt_add_executable(shvspy
 
     shvspy.qrc
     config/config.qrc
+    src/dlgsettings.h src/dlgsettings.cpp src/dlgsettings.ui
 )
 
 target_link_libraries(shvspy PRIVATE libshv::libshvvisu)
