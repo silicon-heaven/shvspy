@@ -150,6 +150,8 @@ void ShvBrokerNodeItem::setBrokerProperties(const QVariantMap &props)
 	if(m_rpcConnection) {
 		delete m_rpcConnection;
 		m_rpcConnection = nullptr;
+		// Since we're closing the connection, we also need to close the server node.
+		close();
 	}
 	m_brokerPropeties = props;
 	setNodeId(m_brokerPropeties.value(brokerProperty::NAME).toString().toStdString());
