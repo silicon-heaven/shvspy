@@ -12,7 +12,7 @@ DlgSelectRoles::DlgSelectRoles(QWidget *parent):
 	ui->setupUi(this);
 }
 
-void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const std::vector<std::string> &roles)
+void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QStringList &roles)
 {
 	m_rpcConnection = rpc_connection;
 	m_aclEtcNodePath = acl_etc_node_path;
@@ -53,12 +53,12 @@ void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 	});
 }
 
-std::vector<std::string> DlgSelectRoles::selectedRoles()
+QStringList DlgSelectRoles::selectedRoles()
 {
 	return m_rolesTreeModel->selectedRoles();
 }
 
-void DlgSelectRoles::setUserRoles(const std::vector<std::string> &roles)
+void DlgSelectRoles::setUserRoles(const QStringList &roles)
 {
 	m_rolesTreeModel->setSelectedRoles(roles);
 }

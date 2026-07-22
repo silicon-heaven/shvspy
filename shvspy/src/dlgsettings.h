@@ -1,6 +1,7 @@
 #pragma once
 
 #include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/iotqt/acl/acluser.h>
 
 #include <QDialog>
 
@@ -26,6 +27,7 @@ private:
 	std::string aclAccessUsersPath();
 	std::string aclAccessRolesPath();
 	std::string aclAccessMountsPath();
+	bool isShv3() const;
 
 	void setStatusText(const QString &txt);
 	void onBrokerConnectedChanged(bool is_connected);
@@ -38,6 +40,19 @@ private:
 	void onAddUserClicked();
 	void onEditUserClicked();
 	void onDeleteUserClicked();
+
+	void onSelectRolesClicked();
+	void execSelectRolesDialog();
+	QStringList userRoles() const;
+	void setUserRoles(const QStringList &roles);
+	void callCreateRole(std::function<void(bool)> callback);
+	void callGetUser(std::function<void (bool)> callback);
+	void callSaveUser(std::function<void (bool)> callback);
+	void saveUserEdit(std::function<void (bool)> callback);
+	void showUserEdit();
+	void hideUserEdit();
+	void setUserPasswordMode(bool password_mode);
+	void checkExistingUser(std::function<void (bool, bool)> callback);
 
 	void loadRoles(std::function<void(bool)> callback);
 	void reloadRoles();
@@ -71,6 +86,7 @@ private:
 
 	QStandardItemModel *m_usersDataModel;
 	QSortFilterProxyModel *m_usersModelProxy;
+	shv::iotqt::acl::AclUser m_editUser;
 
 	QStandardItemModel *m_rolesDataModel;
 	QSortFilterProxyModel *m_rolesModelProxy;

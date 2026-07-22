@@ -1,15 +1,16 @@
 #include "dlgsettings.h"
 #include "ui_dlgsettings.h"
 
-#include "dlgaddedituser.h"
 #include "dlgaddeditmount.h"
 #include "dlgaddeditrole.h"
 #include "theapp.h"
+#include "dlgselectroles.h"
 
 #include <shv/core/assert.h>
 #include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
+#include <QCryptographicHash>
 #include <QMessageBox>
 #include <QSharedPointer>
 #include <QSortFilterProxyModel>
@@ -103,6 +104,28 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->leMountsFilter, &QLineEdit::textChanged, m_mountsModelProxy, &QSortFilterProxyModel::setFilterFixedString);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &DlgSettings::onBrokerConnectedChanged);
 
+	connect(ui->tbShowPassword, &QToolButton::clicked, this, [this](){
+		setUserPasswordMode(ui->lePassword->echoMode() != QLineEdit::EchoMode::Password);
+	});
+	connect(ui->pbSelectRoles, &QPushButton::clicked, this, &DlgSettings::onSelectRolesClicked);
+	hideUserEdit();
+	connect(ui->addEditUserButtonBox, &QDialogButtonBox::rejected, this, &DlgSettings::hideUserEdit);
+	connect(ui->addEditUserButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
+		if (button == ui->addEditUserButtonBox->button(QDialogButtonBox::Save)) {
+			ui->addEditUserWidget->setEnabled(false);
+			saveUserEdit([this](bool success) {
+				ui->addEditUserWidget->setEnabled(true);
+				if (success) {
+					hideUserEdit();
+					reloadUsers();
+				}
+			});
+		}
+		else {
+			hideUserEdit();
+		}
+	});
+
 	setControlsEnabled(false);
 	onBrokerConnectedChanged(m_rpcConnection->isBrokerConnected());
 }
@@ -156,6 +179,11 @@ std::string DlgSettings::aclAccessMountsPath()
 	return aclAccessPath() + "/mounts";
 }
 
+bool DlgSettings::isShv3() const
+{
+	return m_brokerApiVersion == shv::chainpack::IRpcConnection::ShvApiVersion::V3;
+}
+
 void DlgSettings::setStatusText(const QString &txt)
 {
 	if (txt.isEmpty()) {
@@ -176,6 +204,7 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 		load();
 	}
 	else {
+		hideUserEdit();
 		setControlsEnabled(false);
 		setStatusText(tr("Broker disconnected."));
 	}
@@ -227,14 +256,11 @@ void DlgSettings::clearUsers()
 
 void DlgSettings::onAddUserClicked()
 {
-	auto *dlg = new DlgAddEditUser(m_rpcConnection, aclAccessPath(), {}, this);
-	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
-		if (result == QDialog::Accepted){
-			reloadUsers();
-		}
-		dlg->deleteLater();
-	});
-	dlg->open();
+	showUserEdit();
+	m_editUser = {};
+	ui->addEditUserWidget->setTitle(tr("New user"));
+	ui->leUserName->setReadOnly(false);
+	ui->leUserName->setFocus();
 }
 
 void DlgSettings::onEditUserClicked()
@@ -244,17 +270,43 @@ void DlgSettings::onEditUserClicked()
 		setStatusText(tr("Select user in the table."));
 		return;
 	}
-
-	setStatusText({});
-
-	auto *dlg = new DlgAddEditUser(m_rpcConnection, aclAccessPath(), user, this);
-	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
-		if (result == QDialog::Accepted) {
-			reloadUsers();
+	setUserControlsEnabled(false);
+	callGetUser([this, user](bool success) {
+		const bool connected = m_rpcConnection->isBrokerConnected();
+		setUserControlsEnabled(connected);
+		if (!success || !connected) {
+			return;
 		}
-		dlg->deleteLater();
+
+		showUserEdit();
+		ui->addEditUserWidget->setTitle(tr("Edit user"));
+		ui->leUserName->setReadOnly(true);
+		ui->leUserName->setText(user);
+		QStringList roles;
+		for (const auto &role : m_editUser.roles) {
+			roles << QString::fromStdString(role);
+		}
+		setUserRoles(roles);
 	});
-	dlg->open();
+}
+
+void DlgSettings::showUserEdit()
+{
+	ui->twUsers->setEnabled(false);
+	ui->userControlsWidget->hide();
+	ui->leUserName->clear();
+	ui->lePassword->clear();
+	ui->leRoles->clear();
+	ui->chbCreateRole->setChecked(false);
+	setUserPasswordMode(true);
+	ui->addEditUserWidget->show();
+}
+
+void DlgSettings::hideUserEdit()
+{
+	ui->addEditUserWidget->hide();
+	ui->userControlsWidget->show();
+	ui->twUsers->setEnabled(true);
 }
 
 void DlgSettings::onDeleteUserClicked()
@@ -272,6 +324,267 @@ void DlgSettings::onDeleteUserClicked()
 			setStatusText(tr("Failed to delete user. Error:") + " " + error);
 		});
 	}
+}
+
+void DlgSettings::setUserPasswordMode(bool password_mode)
+{
+	ui->lePassword->setEchoMode((password_mode) ? QLineEdit::EchoMode::Password : QLineEdit::EchoMode::Normal);
+	ui->tbShowPassword->setIcon((password_mode) ? QIcon(":/shvspy/images/show.svg") : QIcon(":/shvspy/images/hide.svg"));
+}
+
+void DlgSettings::onSelectRolesClicked()
+{
+	if (ui->chbCreateRole->isChecked() && !ui->leUserName->text().isEmpty()){
+		if (QMessageBox::question(this, tr("Confirm create role"),
+								  tr("You are requesting create new role. So you can select roles properly, "
+									 "new role must be created now. It will not be deleted if you cancel this dialog. "
+									 "Do you want to continue?")) == QMessageBox::StandardButton::Yes){
+			ui->addEditUserWidget->setEnabled(false);
+			callCreateRole([this](bool success){
+				ui->addEditUserWidget->setEnabled(true);
+				if (success) {
+					execSelectRolesDialog();
+				}
+			});
+		}
+	}
+	else {
+		execSelectRolesDialog();
+	}
+}
+
+QStringList DlgSettings::userRoles() const
+{
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+	auto skip_empty_parts = QString::SkipEmptyParts;
+#else
+	auto skip_empty_parts = Qt::SkipEmptyParts;
+#endif
+	QStringList roles;
+	for (const auto &role : ui->leRoles->text().split(",", skip_empty_parts)) {
+		roles << role.trimmed();
+	}
+	return roles;
+}
+
+void DlgSettings::setUserRoles(const QStringList &roles)
+{
+	ui->leRoles->setText(roles.join(','));
+}
+
+void DlgSettings::execSelectRolesDialog()
+{
+	auto *dlg = new DlgSelectRoles(this);
+	dlg->init(m_rpcConnection, aclAccessPath(), userRoles());
+	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+		if (result == QDialog::Accepted){
+			setUserRoles(dlg->selectedRoles());
+		}
+		dlg->deleteLater();
+	});
+	dlg->open();
+}
+
+void DlgSettings::callCreateRole(std::function<void (bool)> callback)
+{
+	auto role_name = ui->leUserName->text();
+	auto role = shv::iotqt::acl::AclRole().toRpcValue();
+	role.set("weight", 0);
+
+	callShvMethod(aclAccessRolesPath(), METHOD_SET_VALUE, shv::chainpack::RpcValue::List{role_name.toStdString(), role}, [this, role_name, callback](const auto &) {
+		auto roles = userRoles();
+		roles << role_name;
+		std::sort(roles.begin(), roles.end());
+		setUserRoles(roles);
+		callback(true);
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to add role.") + " " + error);
+		callback(false);
+	});
+}
+
+void DlgSettings::saveUserEdit(std::function<void(bool)> callback)
+{
+	auto do_save = [this, callback]() {
+		if (ui->chbCreateRole->isChecked() && !userRoles().contains(ui->leUserName->text())) {
+			callCreateRole([this, callback](bool success){
+				if (success) {
+					callSaveUser(callback);
+				}
+				else {
+					callback(false);
+				}
+			});
+		}
+		else {
+			callSaveUser(callback);
+		}
+	};
+	if (ui->leUserName->isReadOnly()) {
+		setStatusText(tr("Updating user..."));
+		do_save();
+	}
+	else {
+		if (ui->leUserName->text().isEmpty() || ui->lePassword->text().isEmpty()) {
+			setStatusText(tr("User name or password is empty."));
+			callback(false);
+			return;
+		}
+		setStatusText(tr("Checking user name existence..."));
+		checkExistingUser([this, callback, do_save](bool success, bool is_duplicate) {
+			if (!success) {
+				callback(false);
+				return;
+			}
+			if (is_duplicate) {
+				setStatusText(tr("Cannot add user, user name is duplicate!"));
+				callback(false);
+				return;
+			}
+			setStatusText(tr("Adding new user..."));
+			do_save();
+		});
+	}
+}
+
+namespace {
+constexpr auto PASSWORD = "password";
+constexpr auto PLAIN = "Plain";
+constexpr auto SHA1 = "Sha1";
+
+shv::iotqt::acl::AclUser shv3AclUserFromRpcValue(const shv::chainpack::RpcValue &v)
+{
+	// SHV3
+	// {
+	//   "password":{"Plain":"viewer"},
+	//   "roles":["subscribe", "browse"]
+	// }
+	using namespace shv::iotqt::acl;
+	AclUser ret;
+	const auto &m = v.asMap();
+	{
+		const auto &pass = m.valref(PASSWORD).asMap();
+		if (pass.hasKey(SHA1)) {
+			ret.password.password = pass.value(SHA1).asString();
+			ret.password.format = AclPassword::Format::Sha1;
+		}
+		else if (pass.hasKey(PLAIN)) {
+			ret.password.password = pass.value(PLAIN).asString();
+			ret.password.format = AclPassword::Format::Plain;
+		}
+	}
+	std::vector<std::string> roles;
+	for(const auto &lst : m.valref("roles").asList()) {
+		roles.push_back(lst.toString());
+	}
+	ret.roles = roles;
+	return ret;
+}
+
+shv::chainpack::RpcValue shv3AclUserToRpcValue(const shv::iotqt::acl::AclUser &user)
+{
+	using namespace shv::iotqt::acl;
+	shv::chainpack::RpcValue::Map ret;
+	switch (user.password.format) {
+	case AclPassword::Format::Invalid:
+		break;
+	case AclPassword::Format::Plain:
+		ret[PASSWORD] = shv::chainpack::RpcValue::Map{{PLAIN, user.password.password}};
+		break;
+	case AclPassword::Format::Sha1:
+		ret[PASSWORD] = shv::chainpack::RpcValue::Map{{SHA1, user.password.password}};
+		break;
+	}
+	ret["roles"] = user.roles;
+	return ret;
+}
+
+std::string sha1_hex(const std::string &s)
+{
+	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
+#if QT_VERSION_MAJOR >= 6 && QT_VERSION_MINOR >= 3
+	hash.addData(QByteArrayView(s.data(), s.length()));
+#else
+	hash.addData(s.data(), s.length());
+#endif
+	return std::string(hash.result().toHex().constData());
+}
+}
+
+void DlgSettings::callGetUser(std::function<void(bool)> callback)
+{
+	setStatusText(tr("Getting user roles..."));
+	auto user = currentRow(ui->twUsers).toStdString();
+
+	callShvMethod(aclAccessUsersPath() + '/' + user, METHOD_VALUE, {}, [this, callback](const shv::chainpack::RpcValue &result) {
+		if (isShv3()) {
+			m_editUser = shv3AclUserFromRpcValue(result);
+		}
+		else {
+			m_editUser = shv::iotqt::acl::AclUser::fromRpcValue(result);
+		}
+		setStatusText({});
+		callback(true);
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to get user roles.") + " " + error);
+		callback(false);
+	});
+}
+
+void DlgSettings::callSaveUser(std::function<void(bool)> callback)
+{
+	auto user = ui->leUserName->text().toStdString();
+	auto password = ui->lePassword->text().toStdString();
+
+	m_editUser.roles = {};
+	for (const auto &role : userRoles()) {
+		m_editUser.roles.push_back(role.toStdString());
+	}
+
+	if (!password.empty()) {
+		// user wants to change password
+		m_editUser.password.format = shv::iotqt::acl::AclPassword::Format::Sha1;
+		m_editUser.password.password = sha1_hex(password);
+	}
+
+	shv::chainpack::RpcValue user_rv;
+	if (isShv3()) {
+		user_rv = shv3AclUserToRpcValue(m_editUser);
+	}
+	else {
+		user_rv = m_editUser.toRpcValue();
+	}
+
+	shv::chainpack::RpcValue::List params{user, user_rv};
+	callShvMethod(aclAccessUsersPath(), METHOD_SET_VALUE, params, [callback](const shv::chainpack::RpcValue &) {
+		callback(true);
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to save user settings.") + " " + error);
+		callback(false);
+	});
+}
+
+void DlgSettings::checkExistingUser(std::function<void(bool, bool)> callback)
+{
+	callShvMethod(aclAccessUsersPath(), shv::chainpack::Rpc::METH_LS, {}, [this, callback](const shv::chainpack::RpcValue &result) {
+		if (result.isList()) {
+			auto user = ui->leUserName->text().toStdString();
+			for (const auto &item : result.asList()) {
+				if (item.asString() == user) {
+					callback(true, true);
+					return;
+				}
+			}
+			callback(true, false);
+		}
+		else {
+			setStatusText(tr("Failed to check user name. Bad server response format."));
+			callback(false, false);
+		}
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to check user name.") + " " + error);
+		callback(false, false);
+	});
 }
 
 void DlgSettings::clearRoles()

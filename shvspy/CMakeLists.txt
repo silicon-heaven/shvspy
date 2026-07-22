@@ -6,7 +6,7 @@ qt_add_executable(shvspy
     src/attributesmodel/attributesmodel.cpp
     src/dlgaddeditmount.cpp
     src/dlgaddeditrole.cpp
-    src/dlgaddedituser.cpp
+    # src/dlgaddedituser.cpp
     src/dlgcallshvmethod.cpp
     src/dlgselectroles.cpp
     src/dlgsubscriptionparameters.cpp
