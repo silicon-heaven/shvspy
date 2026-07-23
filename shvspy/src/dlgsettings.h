@@ -9,6 +9,10 @@ namespace Ui {
 class DlgSettings;
 }
 
+namespace shv::iotqt::acl {
+class AclMountDef;
+}
+
 class QSortFilterProxyModel;
 class QStandardItemModel;
 class QTableView;
@@ -67,6 +71,13 @@ private:
 	void onAddMountClicked();
 	void onDeleteMountClicked();
 	void onEditMountClicked();
+
+	void showMountEdit();
+	void hideMountEdit();
+	void callGetMount(std::function<void(bool, const shv::iotqt::acl::AclMountDef &mount_def)> callback);
+	void callSaveMount(std::function<void(bool)> callback);
+	void checkExistingMount(std::function<void(bool, bool)> callback);
+	void saveMountEdit(std::function<void (bool)> callback);
 
 	void callShvMethod(const std::string &path, const std::string &method, const shv::chainpack::RpcValue &params, std::function<void(const shv::chainpack::RpcValue &)> on_success, std::function<void(const QString &)> on_error);
 

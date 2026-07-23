@@ -1,12 +1,12 @@
 #include "dlgsettings.h"
 #include "ui_dlgsettings.h"
 
-#include "dlgaddeditmount.h"
 #include "dlgaddeditrole.h"
 #include "theapp.h"
 #include "dlgselectroles.h"
 
 #include <shv/core/assert.h>
+#include <shv/iotqt/acl/aclmountdef.h>
 #include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
@@ -109,12 +109,11 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	});
 	connect(ui->pbSelectRoles, &QPushButton::clicked, this, &DlgSettings::onSelectRolesClicked);
 	hideUserEdit();
-	connect(ui->addEditUserButtonBox, &QDialogButtonBox::rejected, this, &DlgSettings::hideUserEdit);
-	connect(ui->addEditUserButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
-		if (button == ui->addEditUserButtonBox->button(QDialogButtonBox::Save)) {
-			ui->addEditUserWidget->setEnabled(false);
+	connect(ui->editUserButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
+		if (button == ui->editUserButtonBox->button(QDialogButtonBox::Save)) {
+			ui->editUserWidget->setEnabled(false);
 			saveUserEdit([this](bool success) {
-				ui->addEditUserWidget->setEnabled(true);
+				ui->editUserWidget->setEnabled(true);
 				if (success) {
 					hideUserEdit();
 					reloadUsers();
@@ -123,6 +122,23 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 		}
 		else {
 			hideUserEdit();
+		}
+	});
+
+	hideMountEdit();
+	connect(ui->editMountButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
+		if (button == ui->editMountButtonBox->button(QDialogButtonBox::Save)) {
+			ui->editMountWidget->setEnabled(false);
+			saveMountEdit([this](bool success) {
+				ui->editMountWidget->setEnabled(true);
+				if (success) {
+					hideMountEdit();
+					reloadMounts();
+				}
+			});
+		}
+		else {
+			hideMountEdit();
 		}
 	});
 
@@ -205,6 +221,7 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 	}
 	else {
 		hideUserEdit();
+		hideMountEdit();
 		setControlsEnabled(false);
 		setStatusText(tr("Broker disconnected."));
 	}
@@ -258,7 +275,7 @@ void DlgSettings::onAddUserClicked()
 {
 	showUserEdit();
 	m_editUser = {};
-	ui->addEditUserWidget->setTitle(tr("New user"));
+	ui->editUserWidget->setTitle(tr("New user"));
 	ui->leUserName->setReadOnly(false);
 	ui->leUserName->setFocus();
 }
@@ -279,7 +296,7 @@ void DlgSettings::onEditUserClicked()
 		}
 
 		showUserEdit();
-		ui->addEditUserWidget->setTitle(tr("Edit user"));
+		ui->editUserWidget->setTitle(tr("Edit user"));
 		ui->leUserName->setReadOnly(true);
 		ui->leUserName->setText(user);
 		QStringList roles;
@@ -299,14 +316,128 @@ void DlgSettings::showUserEdit()
 	ui->leRoles->clear();
 	ui->chbCreateRole->setChecked(false);
 	setUserPasswordMode(true);
-	ui->addEditUserWidget->show();
+	ui->editUserWidget->show();
+	ui->editUserWidget->setEnabled(true);
 }
 
 void DlgSettings::hideUserEdit()
 {
-	ui->addEditUserWidget->hide();
+	ui->editUserWidget->hide();
 	ui->userControlsWidget->show();
 	ui->twUsers->setEnabled(true);
+}
+
+void DlgSettings::hideMountEdit()
+{
+	ui->editMountWidget->hide();
+	ui->mountControlsWidget->show();
+	ui->twMounts->setEnabled(true);
+}
+
+void DlgSettings::callGetMount(std::function<void (bool, const shv::iotqt::acl::AclMountDef &)> callback)
+{
+	QString mount = currentRow(ui->twMounts);
+	callShvMethod(aclAccessMountsPath() + '/' + mount.toStdString(), METHOD_VALUE, {}, [this, callback](const shv::chainpack::RpcValue &result) {
+		if (result.isMap()) {
+			callback(true, shv::iotqt::acl::AclMountDef::fromRpcValue(result));
+		}
+		else {
+			setStatusText(tr("Invalid response from server."));
+			callback(false, {});
+		}
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to get mount definition.") + " " + error);
+		callback(false, {});
+	});
+}
+
+void DlgSettings::callSaveMount(std::function<void (bool)> callback)
+{
+	auto device_id = ui->leMountDeviceId->text().trimmed();
+	auto mount_point = ui->leMountPoint->text().trimmed();
+	auto description = ui->leMountDescription->text().trimmed();
+
+	if (device_id.isEmpty()){
+		setStatusText(tr("Error: device id is empty."));
+		callback(false);
+		return;
+	}
+	if (mount_point.isEmpty()) {
+		setStatusText(tr("Error: mount point is empty."));
+		callback(false);
+		return;
+	}
+
+	shv::iotqt::acl::AclMountDef mount_def { mount_point.toStdString(), description.toStdString() };
+	callShvMethod(aclAccessMountsPath(), METHOD_SET_VALUE, shv::chainpack::RpcValue::List{device_id.toStdString(), mount_def.toRpcValue()}, [callback](const shv::chainpack::RpcValue &) {
+		callback(true);
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to save mount definition.") + " " + error);
+		callback(false);
+	});
+}
+
+void DlgSettings::checkExistingMount(std::function<void (bool, bool)> callback)
+{
+	callShvMethod(aclAccessMountsPath(), shv::chainpack::Rpc::METH_LS, {}, [this, callback](const shv::chainpack::RpcValue &result) {
+		if (result.isList()) {
+			std::string mount_id = ui->leMountDeviceId->text().trimmed().toStdString();
+			for (const auto &item : result.asList()) {
+				if (item.asString() == mount_id) {
+					callback(true, true);
+					return;
+				}
+			}
+			callback(true, false);
+		}
+		else {
+			setStatusText(tr("Failed to check mount ID. Bad server response format."));
+			callback(false, false);
+		}
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to check mount ID.") + " " + error);
+		callback(false, false);
+	});
+}
+
+void DlgSettings::saveMountEdit(std::function<void (bool)> callback)
+{
+	if (ui->leMountDeviceId->isReadOnly()) {
+		setStatusText(tr("Updating mount point..."));
+		callSaveMount(callback);
+	}
+	else {
+		if (ui->leMountDeviceId->text().isEmpty() || ui->leMountPoint->text().isEmpty()) {
+			setStatusText(tr("Device id or mount point is empty."));
+			callback(false);
+			return;
+		}
+		setStatusText(tr("Checking mount point existence..."));
+		checkExistingMount([this, callback](bool success, bool is_duplicate) {
+			if (!success) {
+				callback(false);
+				return;
+			}
+			if (is_duplicate) {
+				setStatusText(tr("Cannot add mount point, device id is duplicate!"));
+				callback(false);
+				return;
+			}
+			setStatusText(tr("Adding new mount point..."));
+			callSaveMount(callback);
+		});
+	}
+}
+
+void DlgSettings::showMountEdit()
+{
+	ui->twMounts->setEnabled(false);
+	ui->mountControlsWidget->hide();
+	ui->leMountDeviceId->clear();
+	ui->leMountPoint->clear();
+	ui->leMountDescription->clear();
+	ui->editMountWidget->show();
+	ui->editMountWidget->setEnabled(true);
 }
 
 void DlgSettings::onDeleteUserClicked()
@@ -339,9 +470,9 @@ void DlgSettings::onSelectRolesClicked()
 								  tr("You are requesting create new role. So you can select roles properly, "
 									 "new role must be created now. It will not be deleted if you cancel this dialog. "
 									 "Do you want to continue?")) == QMessageBox::StandardButton::Yes){
-			ui->addEditUserWidget->setEnabled(false);
+			ui->editUserWidget->setEnabled(false);
 			callCreateRole([this](bool success){
-				ui->addEditUserWidget->setEnabled(true);
+				ui->editUserWidget->setEnabled(true);
 				if (success) {
 					execSelectRolesDialog();
 				}
@@ -825,14 +956,10 @@ void DlgSettings::reloadMounts()
 
 void DlgSettings::onAddMountClicked()
 {
-	auto *dlg = new DlgAddEditMount(this, m_rpcConnection, aclAccessPath(), DlgAddEditMount::DialogType::Add);
-	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
-		if (result == QDialog::Accepted){
-			reloadMounts();
-		}
-		dlg->deleteLater();
-	});
-	dlg->open();
+	showMountEdit();
+	ui->editMountWidget->setTitle(tr("New mount point"));
+	ui->leMountDeviceId->setReadOnly(false);
+	ui->leMountDeviceId->setFocus();
 }
 
 void DlgSettings::onDeleteMountClicked()
@@ -859,16 +986,21 @@ void DlgSettings::onEditMountClicked()
 		setStatusText(tr("Select mount point in the table."));
 		return;
 	}
-
-	auto *dlg = new DlgAddEditMount(this, m_rpcConnection, aclAccessPath(), DlgAddEditMount::DialogType::Edit);
-	dlg->init(mount);
-	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
-		if (result == QDialog::Accepted){
-			reloadMounts();
+	setMountControlsEnabled(false);
+	callGetMount([this, mount](bool success, const shv::iotqt::acl::AclMountDef &mount_def) {
+		const bool connected = m_rpcConnection->isBrokerConnected();
+		setMountControlsEnabled(connected);
+		if (!success || !connected) {
+			return;
 		}
-		dlg->deleteLater();
+
+		showMountEdit();
+		ui->editMountWidget->setTitle(tr("Edit mount point"));
+		ui->leMountDeviceId->setReadOnly(true);
+		ui->leMountDeviceId->setText(mount);
+		ui->leMountPoint->setText(QString::fromStdString(mount_def.mountPoint));
+		ui->leMountDescription->setText(QString::fromStdString(mount_def.description));
 	});
-	dlg->open();
 }
 
 void DlgSettings::callShvMethod(const std::string &path, const std::string &method, const shv::chainpack::RpcValue &params, std::function<void(const shv::chainpack::RpcValue &)> on_success, std::function<void(const QString &)> on_error)
