@@ -415,17 +415,6 @@ void DlgSettings::showUserEdit()
 	ui->editUserWidget->show();
 	ui->editUserWidget->setEnabled(true);
 	ui->leUsersFilter->setEnabled(false);
-	setTabSwitchingEnabled(false);
-}
-
-void DlgSettings::setTabSwitchingEnabled(bool enable)
-{
-	int current = ui->tabWidget->currentIndex();
-	for (int i = 0; i < ui->tabWidget->count(); ++i) {
-		if (i != current) {
-			ui->tabWidget->setTabEnabled(i, enable);
-		}
-	}
 }
 
 void DlgSettings::hideUserEdit()
@@ -434,7 +423,6 @@ void DlgSettings::hideUserEdit()
 	ui->userControlsWidget->show();
 	ui->twUsers->setEnabled(true);
 	ui->leUsersFilter->setEnabled(true);
-	setTabSwitchingEnabled(true);
 }
 
 void DlgSettings::hideMountEdit()
@@ -443,7 +431,6 @@ void DlgSettings::hideMountEdit()
 	ui->mountControlsWidget->show();
 	ui->twMounts->setEnabled(true);
 	ui->leMountsFilter->setEnabled(true);
-	setTabSwitchingEnabled(true);
 }
 
 void DlgSettings::hideRoleEdit()
@@ -452,7 +439,6 @@ void DlgSettings::hideRoleEdit()
 	ui->roleControlsWidget->show();
 	ui->twRoles->setEnabled(true);
 	ui->leRolesFilter->setEnabled(true);
-	setTabSwitchingEnabled(true);
 }
 
 void DlgSettings::saveRoleEdit(std::function<void (bool)> callback)
@@ -714,7 +700,6 @@ void DlgSettings::showMountEdit()
 	ui->editMountWidget->show();
 	ui->editMountWidget->setEnabled(true);
 	ui->leMountsFilter->setEnabled(false);
-	setTabSwitchingEnabled(false);
 }
 
 void DlgSettings::showRoleEdit()
@@ -729,7 +714,6 @@ void DlgSettings::showRoleEdit()
 	ui->editRoleWidget->show();
 	ui->editRoleWidget->setEnabled(true);
 	ui->leRolesFilter->setEnabled(false);
-	setTabSwitchingEnabled(false);
 	ui->lblWeight->setVisible(!isShv3());
 	ui->sbWeight->setVisible(!isShv3());
 }

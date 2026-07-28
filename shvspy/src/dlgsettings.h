@@ -43,7 +43,6 @@ private:
 
 	QStringList stringListFromLineEdit(QLineEdit *le) const;
 	void setStringListToLineEdit(QLineEdit *le, const QStringList &items);
-	void setTabSwitchingEnabled(bool enable);
 
 	void loadUsers(std::function<void(bool)> callback);
 	void reloadUsers(const QString &user_to_select);
