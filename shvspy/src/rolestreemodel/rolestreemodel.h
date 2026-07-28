@@ -4,6 +4,7 @@
 
 #include <QStandardItemModel>
 #include <QSet>
+#include <QStringList>
 
 class RolesTreeModel : public QStandardItemModel
 {

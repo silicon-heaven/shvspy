@@ -4,7 +4,6 @@ qt_add_executable(shvspy
     src/accessmodel/accessmodelshv2.cpp
     src/accessmodel/accessmodelshv3.cpp
     src/attributesmodel/attributesmodel.cpp
-    src/dlgaddeditrole.cpp
     src/dlgcallshvmethod.cpp
     src/dlgselectroles.cpp
     src/dlgsubscriptionparameters.cpp

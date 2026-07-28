@@ -26,8 +26,6 @@ public:
 
 
 private:
-	void contextMenu(const QPoint &glob_pos);
-	void editRole();
 	QStandardItem *findChildItem(QStandardItem *item, const QStringList &path, int ix = 0);
 	QStandardItem *findChildItem(QStandardItem *item, const QString &text);
 	std::string aclEtcRolesNodePath();

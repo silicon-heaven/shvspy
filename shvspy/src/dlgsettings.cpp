@@ -1,15 +1,19 @@
 #include "dlgsettings.h"
 #include "ui_dlgsettings.h"
 
-#include "dlgaddeditrole.h"
+#include "accessmodel/accessmodelshv3.h"
+#include "accessmodel/accessmodelshv2.h"
+#include "accessmodel/accessitemdelegateshv2.h"
 #include "theapp.h"
 #include "dlgselectroles.h"
 
 #include <shv/core/assert.h>
 #include <shv/iotqt/acl/aclmountdef.h>
+#include <shv/iotqt/acl/aclrole.h>
 #include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
+#include <QComboBox>
 #include <QCryptographicHash>
 #include <QMessageBox>
 #include <QSharedPointer>
@@ -18,6 +22,55 @@
 
 static const std::string METHOD_VALUE = "value";
 static const std::string METHOD_SET_VALUE = "setValue";
+
+class RoleDelegate : public QStyledItemDelegate
+{
+public:
+	using QStyledItemDelegate::QStyledItemDelegate;
+
+	struct RoleItem {
+		QString name;
+		QString description;
+	};
+	QList<RoleItem> roles = {
+		{ shv::chainpack::Rpc::ROLE_BROWSE, QT_TRANSLATE_NOOP("", "Browse") },
+		{ shv::chainpack::Rpc::ROLE_READ, QT_TRANSLATE_NOOP("", "Read") },
+		{ shv::chainpack::Rpc::ROLE_WRITE, QT_TRANSLATE_NOOP("", "Write") },
+		{ shv::chainpack::Rpc::ROLE_COMMAND, QT_TRANSLATE_NOOP("", "Command") },
+		{ shv::chainpack::Rpc::ROLE_CONFIG, QT_TRANSLATE_NOOP("", "Config") },
+		{ shv::chainpack::Rpc::ROLE_SERVICE, QT_TRANSLATE_NOOP("", "Service") },
+		{ shv::chainpack::Rpc::ROLE_SUPER_SERVICE, QT_TRANSLATE_NOOP("", "Super service") },
+		{ shv::chainpack::Rpc::ROLE_DEVEL, QT_TRANSLATE_NOOP("", "Developer") },
+		{ shv::chainpack::Rpc::ROLE_ADMIN, QT_TRANSLATE_NOOP("", "Administrator") },
+	};
+
+
+	QWidget *createEditor(QWidget *parent,  const QStyleOptionViewItem &, const QModelIndex &) const override
+	{
+		auto *editor = new QComboBox(parent);
+		for (const auto &role : roles) {
+			editor->addItem(role.description + " (" + role.name + ")", role.name);
+		}
+		return editor;
+	}
+
+	void setEditorData(QWidget *editor, const QModelIndex &index) const override
+	{
+		QVariant value = index.model()->data(index);
+		auto *combobox = static_cast<QComboBox*>(editor);
+
+		int idx = combobox->findData(value);
+		if (idx >= 0) {
+			combobox->setCurrentIndex(idx);
+		}
+	}
+
+	void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override
+	{
+		auto *comboBox = static_cast<QComboBox*>(editor);
+		model->setData(index, comboBox->currentData());
+	}
+};
 
 DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path, const shv::chainpack::IRpcConnection::ShvApiVersion brokerApiVersion, QWidget *parent)
 	: Super(parent)
@@ -105,18 +158,19 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &DlgSettings::onBrokerConnectedChanged);
 
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, [this](){
-		setUserPasswordMode(ui->lePassword->echoMode() != QLineEdit::EchoMode::Password);
+		setUserPasswordMode(ui->leUserPassword->echoMode() != QLineEdit::EchoMode::Password);
 	});
-	connect(ui->pbSelectRoles, &QPushButton::clicked, this, &DlgSettings::onSelectRolesClicked);
+	connect(ui->pbSelectUserRoles, &QPushButton::clicked, this, &DlgSettings::onSelectRolesClicked);
 	hideUserEdit();
 	connect(ui->editUserButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
 		if (button == ui->editUserButtonBox->button(QDialogButtonBox::Save)) {
+			auto user_to_select = ui->leUserName->text().trimmed();
 			ui->editUserWidget->setEnabled(false);
-			saveUserEdit([this](bool success) {
+			saveUserEdit([this, user_to_select](bool success) {
 				ui->editUserWidget->setEnabled(true);
 				if (success) {
 					hideUserEdit();
-					reloadUsers();
+					reloadUsers(user_to_select);
 				}
 			});
 		}
@@ -125,15 +179,57 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 		}
 	});
 
+	if (isShv3()) {
+		m_accessModel = new AccessModelShv3(this);
+		ui->tvAccessRules->setItemDelegateForColumn(AccessModelShv3::ColGrant, new RoleDelegate(this));
+	}
+	else {
+		m_accessModel = new AccessModelShv2(this);
+		ui->tvAccessRules->setItemDelegate(new AccessItemDelegateShv2(ui->tvAccessRules));
+	}
+	ui->tvAccessRules->setModel(m_accessModel);
+	ui->tvAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
+	connect(ui->tbAddRow, &QToolButton::clicked, m_accessModel, &AccessModel::addRule);
+	connect(ui->tbDeleteRow, &QToolButton::clicked, this, [this]() {
+		m_accessModel->deleteRule(ui->tvAccessRules->currentIndex().row());
+	});
+	connect(ui->tbMoveRowUp, &QToolButton::clicked, this, [this]() {
+		m_accessModel->moveRuleUp(ui->tvAccessRules->currentIndex().row());
+	});
+	connect(ui->tbMoveRowDown, &QToolButton::clicked, this, [this]() {
+		m_accessModel->moveRuleDown(ui->tvAccessRules->currentIndex().row());
+	});
+	connect(ui->pbSelectRoles, &QPushButton::clicked, this, [this]() {
+		execSelectRolesDialog(ui->leRoles);
+	});
+	hideRoleEdit();
+	connect(ui->editRoleButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
+		if (button == ui->editRoleButtonBox->button(QDialogButtonBox::Save)) {
+			auto role_to_select = ui->leRoleName->text().trimmed();
+			ui->editRoleWidget->setEnabled(false);
+			saveRoleEdit([this, role_to_select](bool success) {
+				ui->editRoleWidget->setEnabled(true);
+				if (success) {
+					hideRoleEdit();
+					reloadRoles(role_to_select);
+				}
+			});
+		}
+		else {
+			hideRoleEdit();
+		}
+	});
+
 	hideMountEdit();
 	connect(ui->editMountButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
 		if (button == ui->editMountButtonBox->button(QDialogButtonBox::Save)) {
+			auto mount_point_to_select = ui->leMountDeviceId->text().trimmed();
 			ui->editMountWidget->setEnabled(false);
-			saveMountEdit([this](bool success) {
+			saveMountEdit([this, mount_point_to_select](bool success) {
 				ui->editMountWidget->setEnabled(true);
 				if (success) {
 					hideMountEdit();
-					reloadMounts();
+					reloadMounts(mount_point_to_select);
 				}
 			});
 		}
@@ -221,6 +317,7 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 	}
 	else {
 		hideUserEdit();
+		hideRoleEdit();
 		hideMountEdit();
 		setControlsEnabled(false);
 		setStatusText(tr("Broker disconnected."));
@@ -251,16 +348,15 @@ void DlgSettings::loadUsers(std::function<void (bool)> callback)
 	});
 }
 
-void DlgSettings::reloadUsers()
+void DlgSettings::reloadUsers(const QString &user_to_select)
 {
-	QString last_current_row = currentRow(ui->twUsers);
 	clearUsers();
 	setUserControlsEnabled(false);
 	setStatusText(tr("Reloading users..."));
-	loadUsers([this, last_current_row](bool success){
+	loadUsers([this, user_to_select](bool success){
 		if (success && m_rpcConnection->isBrokerConnected()) {
 			setUserControlsEnabled(true);
-			setCurrentRow(ui->twUsers, last_current_row);
+			setCurrentRow(ui->twUsers, user_to_select);
 			setStatusText({});
 		}
 	});
@@ -303,7 +399,7 @@ void DlgSettings::onEditUserClicked()
 		for (const auto &role : m_editUser.roles) {
 			roles << QString::fromStdString(role);
 		}
-		setUserRoles(roles);
+		setStringListToLineEdit(ui->leUserRoles, roles);
 	});
 }
 
@@ -312,12 +408,24 @@ void DlgSettings::showUserEdit()
 	ui->twUsers->setEnabled(false);
 	ui->userControlsWidget->hide();
 	ui->leUserName->clear();
-	ui->lePassword->clear();
-	ui->leRoles->clear();
+	ui->leUserPassword->clear();
+	ui->leUserRoles->clear();
 	ui->chbCreateRole->setChecked(false);
 	setUserPasswordMode(true);
 	ui->editUserWidget->show();
 	ui->editUserWidget->setEnabled(true);
+	ui->leUsersFilter->setEnabled(false);
+	setTabSwitchingEnabled(false);
+}
+
+void DlgSettings::setTabSwitchingEnabled(bool enable)
+{
+	int current = ui->tabWidget->currentIndex();
+	for (int i = 0; i < ui->tabWidget->count(); ++i) {
+		if (i != current) {
+			ui->tabWidget->setTabEnabled(i, enable);
+		}
+	}
 }
 
 void DlgSettings::hideUserEdit()
@@ -325,6 +433,8 @@ void DlgSettings::hideUserEdit()
 	ui->editUserWidget->hide();
 	ui->userControlsWidget->show();
 	ui->twUsers->setEnabled(true);
+	ui->leUsersFilter->setEnabled(true);
+	setTabSwitchingEnabled(true);
 }
 
 void DlgSettings::hideMountEdit()
@@ -332,6 +442,171 @@ void DlgSettings::hideMountEdit()
 	ui->editMountWidget->hide();
 	ui->mountControlsWidget->show();
 	ui->twMounts->setEnabled(true);
+	ui->leMountsFilter->setEnabled(true);
+	setTabSwitchingEnabled(true);
+}
+
+void DlgSettings::hideRoleEdit()
+{
+	ui->editRoleWidget->hide();
+	ui->roleControlsWidget->show();
+	ui->twRoles->setEnabled(true);
+	ui->leRolesFilter->setEnabled(true);
+	setTabSwitchingEnabled(true);
+}
+
+void DlgSettings::saveRoleEdit(std::function<void (bool)> callback)
+{
+	if (ui->leRoleName->text().isEmpty()){
+		setStatusText(tr("Role name is empty."));
+		callback(false);
+		return;
+	}
+	if (!m_accessModel->isRulesValid()){
+		setStatusText(tr("Access rules are invalid."));
+		callback(false);
+		return;
+	}
+	if (ui->leRoleName->isReadOnly()) {
+		setStatusText(tr("Updating role..."));
+		callSaveRole(callback);
+	}
+	else {
+		setStatusText(tr("Checking role existence..."));
+		checkExistingRole([this, callback](bool success, bool is_duplicate) {
+			if (!success) {
+				callback(false);
+				return;
+			}
+			if (is_duplicate) {
+				setStatusText(tr("Cannot add role, name is duplicate!"));
+				callback(false);
+				return;
+			}
+			setStatusText(tr("Adding new role..."));
+			callSaveRole(callback);
+		});
+	}
+}
+
+void DlgSettings::callGetRole(std::function<void (bool, const QStringList &, const shv::chainpack::RpcValue &, const std::optional<int> &, const shv::chainpack::RpcValue &)> callback)
+{
+	QString role = currentRow(ui->twRoles);
+	auto role_path = aclAccessRolesPath() + '/' + role.toStdString();
+	auto on_error = [this, callback](const QString &error) {
+		setStatusText(tr("Failed to get role definition.") + " " + error);
+		callback(false, {}, {}, {}, {});
+	};
+
+	if (isShv3()) {
+		callShvMethod(role_path, METHOD_VALUE, {}, [callback](const shv::chainpack::RpcValue &result) {
+			const auto &role_map = result.asMap();
+			QStringList roles;
+			for (const auto &role : role_map.valref("roles").asList()) {
+				roles << role.to<QString>();
+			}
+			callback(true, roles, role_map.value("profile"), {}, role_map.valref("access"));
+		}, on_error);
+	}
+	else {
+		callShvMethod(aclAccessRolesPath() + '/' + role.toStdString(), METHOD_VALUE, {}, [this, role, callback, on_error](const shv::chainpack::RpcValue &role_result) {
+			auto acl_role = shv::iotqt::acl::AclRole::fromRpcValue(role_result).value_or(shv::iotqt::acl::AclRole());
+			QStringList roles;
+			for (const auto &role : acl_role.roles) {
+				roles << QString::fromStdString(role);
+			}
+			auto profile = acl_role.profile;
+			auto w = role_result.asMap().value("weight");
+			std::optional<int> weight = w.isInt() ? std::optional<int>(w.toInt()) : std::nullopt;
+			callShvMethod(aclAccessPath() + "/access/" + role.toStdString(), METHOD_VALUE, {}, [callback, roles, profile, weight](const shv::chainpack::RpcValue &access_result) {
+				callback(true, roles, profile, weight, access_result);
+			}, on_error);
+		}, on_error);
+	}
+}
+
+void DlgSettings::callSaveRole(std::function<void (bool)> callback)
+{
+	auto role = ui->leRoleName->text().trimmed();
+	setStatusText(tr("Saving role %1...").arg(role));
+	std::vector<std::string> roles;
+	for (const auto &role : stringListFromLineEdit(ui->leRoles)) {
+		roles.push_back(role.toStdString());
+	}
+	shv::chainpack::RpcValue profile;
+	std::string profile_string = ui->leProfile->text().trimmed().toStdString();
+	if (!profile_string.empty()) {
+		std::string err;
+		profile = shv::chainpack::RpcValue::fromCpon(profile_string, &err);
+		if (!err.empty()) {
+			setStatusText(tr("Invalid profile definition"));
+			callback(false);
+			return;
+		}
+	}
+
+	if (isShv3()) {
+		shv::chainpack::RpcValue::Map role_rpc {
+			{ "roles", roles },
+			{ "access", m_accessModel->rules() },
+			{ "profile", profile },
+		};
+
+		shv::chainpack::RpcValue::List params{ role.toStdString(), role_rpc };
+		callShvMethod(aclAccessRolesPath(), METHOD_SET_VALUE, params, [callback](const shv::chainpack::RpcValue &) {
+			callback(true);
+		}, [this, callback](const QString &error) {
+			setStatusText(tr("Failed to save role.") + " " + error);
+			callback(false);
+		});
+	}
+	else {
+		shv::iotqt::acl::AclRole acl_role;
+		acl_role.roles = roles;
+		acl_role.profile = profile;
+
+		auto role_rpc = acl_role.toRpcValue();
+		if (ui->sbWeight->isVisible()) {
+			role_rpc.set("weight", ui->sbWeight->value());
+		}
+
+		shv::chainpack::RpcValue::List params{ role.toStdString(), role_rpc };
+		callShvMethod(aclAccessRolesPath(), METHOD_SET_VALUE, params, [this, role, callback](const shv::chainpack::RpcValue &) {
+			shv::chainpack::RpcValue::List params{ role.toStdString(), m_accessModel->rules() };
+			callShvMethod(aclAccessPath() + "/access", METHOD_SET_VALUE, params, [callback](const shv::chainpack::RpcValue &) {
+				callback(true);
+			}, [this, callback](const QString &error) {
+				setStatusText(tr("Failed to save access rules.") + " " + error);
+				callback(false);
+			});
+		}, [this, callback](const QString &error) {
+			setStatusText(tr("Failed to save role.") + " " + error);
+			callback(false);
+		});
+	}
+}
+
+void DlgSettings::checkExistingRole(std::function<void (bool, bool)> callback)
+{
+	callShvMethod(aclAccessRolesPath(), shv::chainpack::Rpc::METH_LS, {}, [this, callback](const shv::chainpack::RpcValue &result) {
+		if (result.isList()) {
+			std::string role = ui->leRoleName->text().trimmed().toStdString();
+			for (const auto &item : result.asList()) {
+				if (item.asString() == role) {
+					callback(true, true);
+					return;
+				}
+			}
+			callback(true, false);
+		}
+		else {
+			setStatusText(tr("Failed to check role. Bad server response format."));
+			callback(false, false);
+		}
+	}, [this, callback](const QString &error) {
+		setStatusText(tr("Failed to check role.") + " " + error);
+		callback(false, false);
+	});
 }
 
 void DlgSettings::callGetMount(std::function<void (bool, const shv::iotqt::acl::AclMountDef &)> callback)
@@ -438,6 +713,25 @@ void DlgSettings::showMountEdit()
 	ui->leMountDescription->clear();
 	ui->editMountWidget->show();
 	ui->editMountWidget->setEnabled(true);
+	ui->leMountsFilter->setEnabled(false);
+	setTabSwitchingEnabled(false);
+}
+
+void DlgSettings::showRoleEdit()
+{
+	ui->twRoles->setEnabled(false);
+	ui->roleControlsWidget->hide();
+	ui->leRoleName->clear();
+	ui->leRoles->clear();
+	ui->sbWeight->clear();
+	ui->leProfile->clear();
+	m_accessModel->setRules({});
+	ui->editRoleWidget->show();
+	ui->editRoleWidget->setEnabled(true);
+	ui->leRolesFilter->setEnabled(false);
+	setTabSwitchingEnabled(false);
+	ui->lblWeight->setVisible(!isShv3());
+	ui->sbWeight->setVisible(!isShv3());
 }
 
 void DlgSettings::onDeleteUserClicked()
@@ -450,7 +744,7 @@ void DlgSettings::onDeleteUserClicked()
 
 	if (QMessageBox::question(this, tr("Delete user"), tr("Do you really want to delete user %1?").arg(user)) == QMessageBox::Yes){
 		callShvMethod(aclAccessUsersPath(), METHOD_SET_VALUE, shv::chainpack::RpcValue::List{user.toStdString(), {}}, [this](const shv::chainpack::RpcValue &) {
-			reloadUsers();
+			reloadUsers({});
 		}, [this](const QString &error) {
 			setStatusText(tr("Failed to delete user. Error:") + " " + error);
 		});
@@ -459,7 +753,7 @@ void DlgSettings::onDeleteUserClicked()
 
 void DlgSettings::setUserPasswordMode(bool password_mode)
 {
-	ui->lePassword->setEchoMode((password_mode) ? QLineEdit::EchoMode::Password : QLineEdit::EchoMode::Normal);
+	ui->leUserPassword->setEchoMode((password_mode) ? QLineEdit::EchoMode::Password : QLineEdit::EchoMode::Normal);
 	ui->tbShowPassword->setIcon((password_mode) ? QIcon(":/shvspy/images/show.svg") : QIcon(":/shvspy/images/hide.svg"));
 }
 
@@ -474,42 +768,42 @@ void DlgSettings::onSelectRolesClicked()
 			callCreateRole([this](bool success){
 				ui->editUserWidget->setEnabled(true);
 				if (success) {
-					execSelectRolesDialog();
+					execSelectRolesDialog(ui->leUserRoles);
 				}
 			});
 		}
 	}
 	else {
-		execSelectRolesDialog();
+		execSelectRolesDialog(ui->leUserRoles);
 	}
 }
 
-QStringList DlgSettings::userRoles() const
+QStringList DlgSettings::stringListFromLineEdit(QLineEdit *le) const
 {
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
 	auto skip_empty_parts = QString::SkipEmptyParts;
 #else
 	auto skip_empty_parts = Qt::SkipEmptyParts;
 #endif
-	QStringList roles;
-	for (const auto &role : ui->leRoles->text().split(",", skip_empty_parts)) {
-		roles << role.trimmed();
+	QStringList items;
+	for (const auto &item : le->text().split(",", skip_empty_parts)) {
+		items << item.trimmed();
 	}
-	return roles;
+	return items;
 }
 
-void DlgSettings::setUserRoles(const QStringList &roles)
+void DlgSettings::setStringListToLineEdit(QLineEdit *le, const QStringList &items)
 {
-	ui->leRoles->setText(roles.join(','));
+	le->setText(items.join(','));
 }
 
-void DlgSettings::execSelectRolesDialog()
+void DlgSettings::execSelectRolesDialog(QLineEdit *le)
 {
 	auto *dlg = new DlgSelectRoles(this);
-	dlg->init(m_rpcConnection, aclAccessPath(), userRoles());
-	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
+	dlg->init(m_rpcConnection, aclAccessPath(), stringListFromLineEdit(le));
+	connect(dlg, &QDialog::finished, dlg, [this, dlg, le] (int result) {
 		if (result == QDialog::Accepted){
-			setUserRoles(dlg->selectedRoles());
+			setStringListToLineEdit(le, dlg->selectedRoles());
 		}
 		dlg->deleteLater();
 	});
@@ -523,10 +817,10 @@ void DlgSettings::callCreateRole(std::function<void (bool)> callback)
 	role.set("weight", 0);
 
 	callShvMethod(aclAccessRolesPath(), METHOD_SET_VALUE, shv::chainpack::RpcValue::List{role_name.toStdString(), role}, [this, role_name, callback](const auto &) {
-		auto roles = userRoles();
+		auto roles = stringListFromLineEdit(ui->leUserRoles);
 		roles << role_name;
 		std::sort(roles.begin(), roles.end());
-		setUserRoles(roles);
+		setStringListToLineEdit(ui->leUserRoles, roles);
 		callback(true);
 	}, [this, callback](const QString &error) {
 		setStatusText(tr("Failed to add role.") + " " + error);
@@ -537,7 +831,7 @@ void DlgSettings::callCreateRole(std::function<void (bool)> callback)
 void DlgSettings::saveUserEdit(std::function<void(bool)> callback)
 {
 	auto do_save = [this, callback]() {
-		if (ui->chbCreateRole->isChecked() && !userRoles().contains(ui->leUserName->text())) {
+		if (ui->chbCreateRole->isChecked() && !stringListFromLineEdit(ui->leUserRoles).contains(ui->leUserName->text())) {
 			callCreateRole([this, callback](bool success){
 				if (success) {
 					callSaveUser(callback);
@@ -556,7 +850,7 @@ void DlgSettings::saveUserEdit(std::function<void(bool)> callback)
 		do_save();
 	}
 	else {
-		if (ui->leUserName->text().isEmpty() || ui->lePassword->text().isEmpty()) {
+		if (ui->leUserName->text().isEmpty() || ui->leUserPassword->text().isEmpty()) {
 			setStatusText(tr("User name or password is empty."));
 			callback(false);
 			return;
@@ -665,10 +959,10 @@ void DlgSettings::callGetUser(std::function<void(bool)> callback)
 void DlgSettings::callSaveUser(std::function<void(bool)> callback)
 {
 	auto user = ui->leUserName->text().toStdString();
-	auto password = ui->lePassword->text().toStdString();
+	auto password = ui->leUserPassword->text().toStdString();
 
 	m_editUser.roles = {};
-	for (const auto &role : userRoles()) {
+	for (const auto &role : stringListFromLineEdit(ui->leUserRoles)) {
 		m_editUser.roles.push_back(role.toStdString());
 	}
 
@@ -747,16 +1041,15 @@ void DlgSettings::loadRoles(std::function<void (bool)> callback)
 	});
 }
 
-void DlgSettings::reloadRoles()
+void DlgSettings::reloadRoles(const QString &role_to_select)
 {
-	QString last_current_row = currentRow(ui->twRoles);
 	clearRoles();
 	setRoleControlsEnabled(false);
 	setStatusText(tr("Reloading roles..."));
-	loadRoles([this, last_current_row](bool success){
+	loadRoles([this, role_to_select](bool success){
 		if (success && m_rpcConnection->isBrokerConnected()) {
 			setRoleControlsEnabled(true);
-			setCurrentRow(ui->twRoles, last_current_row);
+			setCurrentRow(ui->twRoles, role_to_select);
 			setStatusText({});
 		}
 	});
@@ -764,14 +1057,10 @@ void DlgSettings::reloadRoles()
 
 void DlgSettings::onAddRoleClicked()
 {
-	auto *dlg = new DlgAddEditRole(m_rpcConnection, aclAccessPath(), {}, this);
-	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
-		if (result == QDialog::Accepted){
-			reloadRoles();
-		}
-		dlg->deleteLater();
-	});
-	dlg->open();
+	showRoleEdit();
+	ui->roleGroupBox->setTitle(tr("New role"));
+	ui->leRoleName->setReadOnly(false);
+	ui->leRoleName->setFocus();
 }
 
 void DlgSettings::onEditRoleClicked()
@@ -781,15 +1070,39 @@ void DlgSettings::onEditRoleClicked()
 		setStatusText(tr("Select role in the table."));
 		return;
 	}
-
-	auto *dlg = new DlgAddEditRole(m_rpcConnection, aclAccessPath(), role, this);
-	connect(dlg, &QDialog::finished, dlg, [this, dlg] (int result) {
-		if (result == QDialog::Accepted){
-			reloadRoles();
+	setRoleControlsEnabled(false);
+	setStatusText(tr("Getting role details..."));
+	callGetRole([this, role](bool success, const QStringList &roles, const shv::chainpack::RpcValue &profile, const std::optional<int> &weight, const shv::chainpack::RpcValue &access) {
+		const bool connected = m_rpcConnection->isBrokerConnected();
+		setRoleControlsEnabled(connected);
+		if (!success || !connected) {
+			return;
 		}
-		dlg->deleteLater();
+
+		showRoleEdit();
+		ui->roleGroupBox->setTitle(tr("Edit role"));
+		ui->leRoleName->setReadOnly(true);
+		ui->leRoleName->setText(role);
+		setStringListToLineEdit(ui->leRoles, roles);
+		if (profile.isMap()) {
+			ui->leProfile->setText(QString::fromStdString(profile.toCpon()));
+		}
+		else {
+			ui->leProfile->setText({});
+		}
+		if (weight) {
+			ui->sbWeight->setValue(weight.value());
+			ui->lblWeight->show();
+			ui->sbWeight->show();
+		}
+		else {
+			ui->lblWeight->hide();
+			ui->sbWeight->hide();
+		}
+		m_accessModel->setRules(access);
+		ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+		setStatusText({});
 	});
-	dlg->open();
 }
 
 void DlgSettings::onDeleteRoleClicked()
@@ -802,7 +1115,7 @@ void DlgSettings::onDeleteRoleClicked()
 
 	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete role %1?").arg(role)) == QMessageBox::Yes){
 		callShvMethod(aclAccessRolesPath(), METHOD_SET_VALUE, shv::chainpack::RpcValue::List{role.toStdString(), {}}, [this](const shv::chainpack::RpcValue &) {
-			reloadRoles();
+			reloadRoles({});
 		}, [this](const QString &error) {
 			setStatusText(tr("Failed to delete role. Error: ") + " " + error);
 		});
@@ -939,16 +1252,15 @@ void DlgSettings::loadMounts(std::function<void (bool)> callback)
 	});
 }
 
-void DlgSettings::reloadMounts()
+void DlgSettings::reloadMounts(const QString &mount_point_to_select)
 {
-	QString last_current_row = currentRow(ui->twMounts);
 	clearMounts();
 	setMountControlsEnabled(false);
 	setStatusText(tr("Reloading mount points..."));
-	loadMounts([this, last_current_row](bool success){
+	loadMounts([this, mount_point_to_select](bool success){
 		if (success && m_rpcConnection->isBrokerConnected()) {
 			setMountControlsEnabled(true);
-			setCurrentRow(ui->twMounts, last_current_row);
+			setCurrentRow(ui->twMounts, mount_point_to_select);
 			setStatusText({});
 		}
 	});
@@ -972,7 +1284,7 @@ void DlgSettings::onDeleteMountClicked()
 
 	if (QMessageBox::question(this, tr("Delete mount"), tr("Do you really want to delete mount point %1?").arg(mount)) == QMessageBox::Yes){
 		callShvMethod(aclAccessMountsPath(), METHOD_SET_VALUE, shv::chainpack::RpcValue::List{mount.toStdString(), {}}, [this](const shv::chainpack::RpcValue &) {
-			reloadMounts();
+			reloadMounts({});
 		}, [this](const QString &error) {
 			setStatusText(tr("Failed to delete mount definition.") + " " + error);
 		});
