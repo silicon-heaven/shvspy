@@ -69,7 +69,7 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 		return;
 	}
 
-	if(rpc_connection == nullptr){
+	if (rpc_connection == nullptr){
 		return;
 	}
 
@@ -101,16 +101,14 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 	rpc_connection->callShvMethod(rqid, role_path, VALUE_METHOD);
 }
 
-void RolesTreeModel::setSelectedRoles(const std::vector<std::string> &roles)
+void RolesTreeModel::setSelectedRoles(const QStringList &roles)
 {
 	for (const auto &role : roles) {
 		QStandardItem *root_item = invisibleRootItem();
 
-		for(int i = 0; i < root_item->rowCount(); i++) {
+		for (int i = 0; i < root_item->rowCount(); i++) {
 			QStandardItem *it = root_item->child(i);
-			bool check = (role == it->data().toString().toStdString());
-
-			if (check){
+			if (role == it->data().toString()){
 				it->setCheckState(Qt::Checked);
 			}
 		}
@@ -119,19 +117,18 @@ void RolesTreeModel::setSelectedRoles(const std::vector<std::string> &roles)
 	checkPartialySubRoles();
 }
 
-std::vector<std::string> RolesTreeModel::selectedRoles()
+QStringList RolesTreeModel::selectedRoles()
 {
-	std::vector<std::string> roles;
+	QStringList roles;
 	QStandardItem *root_item = invisibleRootItem();
 
 	for(int i = 0; i < root_item->rowCount(); i++) {
 		QStandardItem *it = root_item->child(i);
 
 		if (it->checkState() == Qt::CheckState::Checked){
-			roles.push_back(it->data().toString().toStdString());
+			roles << it->data().toString();
 		}
 	}
-
 	return roles;
 }
 

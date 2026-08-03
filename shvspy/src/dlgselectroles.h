@@ -19,20 +19,18 @@ public:
 	explicit DlgSelectRoles(QWidget *parent);
 	~DlgSelectRoles() override;
 
-	void init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const std::vector<std::string> &roles);
+	void init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QStringList &roles);
 
-	std::vector<std::string> selectedRoles();
-	void setUserRoles(const std::vector<std::string> &roles);
+	QStringList selectedRoles();
+	void setUserRoles(const QStringList &roles);
 
 
 private:
-	void contextMenu(const QPoint &glob_pos);
-	void editRole();
 	QStandardItem *findChildItem(QStandardItem *item, const QStringList &path, int ix = 0);
 	QStandardItem *findChildItem(QStandardItem *item, const QString &text);
 	std::string aclEtcRolesNodePath();
 
-	std::vector<std::string> m_userRoles;
+	QStringList m_userRoles;
 	QStringList m_currentItemPath;
 	RolesTreeModel *m_rolesTreeModel = nullptr;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;

@@ -1,6 +1,5 @@
 #include "dlgselectroles.h"
 
-#include "dlgaddeditrole.h"
 #include "ui_dlgselectroles.h"
 
 #include <QMenu>
@@ -12,7 +11,7 @@ DlgSelectRoles::DlgSelectRoles(QWidget *parent):
 	ui->setupUi(this);
 }
 
-void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const std::vector<std::string> &roles)
+void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QStringList &roles)
 {
 	m_rpcConnection = rpc_connection;
 	m_aclEtcNodePath = acl_etc_node_path;
@@ -20,18 +19,10 @@ void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 	m_rolesTreeModel = new RolesTreeModel(this);
 	m_rolesTreeModel->load(rpc_connection, aclEtcRolesNodePath());
 	ui->tvRoles->setModel(m_rolesTreeModel);
-	ui->tvRoles->setContextMenuPolicy(Qt::ContextMenuPolicy::CustomContextMenu);
 	m_userRoles = roles;
-
-	connect(ui->tvRoles, &QTreeView::customContextMenuRequested, this, &DlgSelectRoles::contextMenu);
-	connect(ui->tvRoles->selectionModel(), &QItemSelectionModel::currentChanged, this, [this]() {
-		ui->editRoleButton->setEnabled(ui->tvRoles->currentIndex().isValid());
-	});
-	connect(ui->editRoleButton, &QPushButton::clicked, this, &DlgSelectRoles::editRole);
 
 	ui->lblStatus->setText(tr("Loading..."));
 	ui->tvRoles->setEnabled(false);
-	ui->editRoleButton->setEnabled(false);
 
 	connect(m_rolesTreeModel, &RolesTreeModel::loadFinished, this, [this](){
 		ui->lblStatus->clear();
@@ -53,51 +44,14 @@ void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 	});
 }
 
-std::vector<std::string> DlgSelectRoles::selectedRoles()
+QStringList DlgSelectRoles::selectedRoles()
 {
 	return m_rolesTreeModel->selectedRoles();
 }
 
-void DlgSelectRoles::setUserRoles(const std::vector<std::string> &roles)
+void DlgSelectRoles::setUserRoles(const QStringList &roles)
 {
 	m_rolesTreeModel->setSelectedRoles(roles);
-}
-
-void DlgSelectRoles::contextMenu(const QPoint &glob_pos)
-{
-	QMenu menu(this);
-	auto *edit_role = new QAction(tr("&Edit role"), &menu);
-	connect(edit_role, &QAction::triggered, this, &DlgSelectRoles::editRole);
-	edit_role->setEnabled(ui->tvRoles->currentIndex().isValid());
-	menu.addAction(edit_role);
-	menu.exec(mapToGlobal(glob_pos));
-}
-
-void DlgSelectRoles::editRole()
-{
-	QStandardItem *item = m_rolesTreeModel->itemFromIndex(ui->tvRoles->currentIndex());
-	QString role_name = item->data(RolesTreeModel::NameRole).toString();
-
-	auto dlg = new DlgAddEditRole (m_rpcConnection, m_aclEtcNodePath, role_name, this);
-	connect(dlg, &QDialog::finished, dlg, [this, dlg, item] (int result) mutable {
-		if (result == QDialog::Accepted) {
-			m_currentItemPath << item->text();
-			while (item->parent()) {
-				item = item->parent();
-				m_currentItemPath.prepend(item->text());
-			}
-			m_userRoles = selectedRoles();
-
-			m_rolesTreeModel->clear();
-			ui->tvRoles->setEnabled(false);
-			ui->lblStatus->setText(tr("Reloading roles..."));
-			ui->editRoleButton->setEnabled(false);
-			m_rolesTreeModel->load(m_rpcConnection, aclEtcRolesNodePath());
-		}
-
-		dlg->deleteLater();
-	});
-	dlg->open();
 }
 
 QStandardItem *DlgSelectRoles::findChildItem(QStandardItem *item, const QStringList &path, int ix)
