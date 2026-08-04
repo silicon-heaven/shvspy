@@ -170,6 +170,7 @@ jobs:
             pkgconf
             static-compat-cmake
             static-compat-fontconfig
+            static-compat-openssl
             static-compat-pkgconf
             static-compat-qt6-base
             static-compat-qt6-networkauth
@@ -177,6 +178,7 @@ jobs:
             static-compat-qt6-svg
             static-compat-qt6-tools
             static-compat-qt6-websockets
+            static-compat-zstd
             upx
           )
           pacman -Syu --noconfirm "${PACKAGES[@]}"
