@@ -62,6 +62,11 @@ private:
 	void setUserPasswordMode(bool password_mode);
 	void checkExistingUser(std::function<void (bool, bool)> callback);
 
+	void refreshUserAccessRules();
+	void refreshRoleAccessRules();
+	void refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, quint64 *request_id_counter);
+	void callGetRoleAccessRules(const QString &role, std::function<void(bool, const QStringList &sub_roles, const shv::chainpack::RpcValue &access)> callback);
+
 	void loadRoles(std::function<void(bool)> callback);
 	void reloadRoles(const QString &role_to_select);
 	void clearRoles();
@@ -109,9 +114,13 @@ private:
 	QStandardItemModel *m_usersDataModel;
 	QSortFilterProxyModel *m_usersModelProxy;
 	shv::iotqt::acl::AclUser m_editUser;
+	QStandardItemModel *m_userAccessRulesModel;
+	quint64 m_userAccessRulesRequestId = 0;
 
 	QStandardItemModel *m_rolesDataModel;
 	QSortFilterProxyModel *m_rolesModelProxy;
+	QStandardItemModel *m_roleAccessRulesModel;
+	quint64 m_roleAccessRulesRequestId = 0;
 
 	QStandardItemModel *m_mountsDataModel;
 	QSortFilterProxyModel *m_mountsModelProxy;
