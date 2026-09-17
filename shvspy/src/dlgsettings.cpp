@@ -1075,17 +1075,9 @@ void DlgSettings::callGetRoleAccessRules(const QString &role, std::function<void
 	}
 }
 
-namespace {
-struct UserAccessRule
+void DlgSettings::appendUserAccessRuleRows(const shv::chainpack::RpcValue &access, const QString &role, QList<UserAccessRule> &rows)
 {
-	QString path;
-	QString grant;
-	QString role;
-};
-
-void appendUserAccessRuleRows(bool is_shv3, const shv::chainpack::RpcValue &access, const QString &role, QList<UserAccessRule> &rows)
-{
-	if (is_shv3) {
+	if (isShv3()) {
 		for (const auto &rv : access.asList()) {
 			const auto &m = rv.asMap();
 			rows << UserAccessRule{ m.value("shvRI").to<QString>(), m.value("grant").to<QString>(), role };
@@ -1101,65 +1093,59 @@ void appendUserAccessRuleRows(bool is_shv3, const shv::chainpack::RpcValue &acce
 		}
 	}
 }
-}
 
 void DlgSettings::refreshUserAccessRules()
 {
-	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leUserRoles), m_userAccessRulesModel, &m_userAccessRulesRequestId);
+	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leUserRoles), m_userAccessRulesModel, &m_userAccessRulesStopSource);
 }
 
 void DlgSettings::refreshRoleAccessRules()
 {
-	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leRoles), m_roleAccessRulesModel, &m_roleAccessRulesRequestId);
+	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leRoles), m_roleAccessRulesModel, &m_roleAccessRulesStopSource);
 }
 
-void DlgSettings::refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, quint64 *request_id_counter)
+void DlgSettings::refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, std::stop_source *stop_source)
 {
-	const quint64 request_id = ++(*request_id_counter);
+	stop_source->request_stop();
+	*stop_source = std::stop_source();
+	std::stop_token stop_token = stop_source->get_token();
 	model->setRowCount(0);
 
-	auto known_roles = QSharedPointer<QSet<QString>>::create();
+	auto known_roles = QSharedPointer<QSet<QString>>::create(initial_roles.begin(), initial_roles.end());
 	auto result_rules = QSharedPointer<QList<UserAccessRule>>::create();
-	auto step = QSharedPointer<std::function<void(QStringList)>>::create();
-	*step = [this, request_id, request_id_counter, known_roles, result_rules, step, model](QStringList queue) {
-		if (request_id != *request_id_counter) {
+
+	processNextAccessRule(initial_roles, known_roles, result_rules, model, stop_token);
+}
+
+void DlgSettings::processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, std::stop_token stop_token)
+{
+	if (queue.isEmpty()) {
+		model->setRowCount(static_cast<int>(result_rules->count()));
+		for (int i = 0; i < result_rules->count(); ++i) {
+			const auto &row = result_rules->at(i);
+			model->setItem(i, 0, new QStandardItem(row.path));
+			model->setItem(i, 1, new QStandardItem(row.grant));
+			model->setItem(i, 2, new QStandardItem(row.role));
+		}
+		return;
+	}
+	QString role = queue.takeFirst();
+	QPointer<DlgSettings> self = this;
+	callGetRoleAccessRules(role, [self, model, stop_token, queue, known_roles, result_rules, role](bool success, const QStringList &sub_roles, const shv::chainpack::RpcValue &access) mutable {
+		if (stop_token.stop_requested() || !self) {
 			return;
 		}
-		if (queue.isEmpty()) {
-			model->setRowCount(static_cast<int>(result_rules->count()));
-			for (int i = 0; i < result_rules->count(); ++i) {
-				const auto &row = result_rules->at(i);
-				model->setItem(i, 0, new QStandardItem(row.path));
-				model->setItem(i, 1, new QStandardItem(row.grant));
-				model->setItem(i, 2, new QStandardItem(row.role));
-			}
-			return;
-		}
-		QString role = queue.takeFirst();
-		callGetRoleAccessRules(role, [this, request_id, request_id_counter, queue, result_rules, step, role, known_roles](bool success, const QStringList &sub_roles, const shv::chainpack::RpcValue &access) mutable {
-			if (request_id != *request_id_counter) {
-				return;
-			}
-			if (success) {
-				appendUserAccessRuleRows(isShv3(), access, role, *result_rules);
-				for (const auto &sub_role : sub_roles) {
-					if (!known_roles->contains(sub_role)) {
-						known_roles->insert(sub_role);
-						queue << sub_role;
-					}
+		if (success) {
+			self->appendUserAccessRuleRows(access, role, *result_rules);
+			for (const auto &sub_role : sub_roles) {
+				if (!known_roles->contains(sub_role)) {
+					known_roles->insert(sub_role);
+					queue << sub_role;
 				}
 			}
-			(*step)(queue);
-		});
-	};
-	QStringList queue;
-	for (const auto &role : initial_roles) {
-		if (!known_roles->contains(role)) {
-			known_roles->insert(role);
-			queue << role;
 		}
-	}
-	(*step)(queue);
+		self->processNextAccessRule(queue, known_roles, result_rules, model, stop_token);
+	});
 }
 
 void DlgSettings::clearRoles()

@@ -4,6 +4,7 @@
 #include <shv/iotqt/acl/acluser.h>
 
 #include <optional>
+#include <stop_token>
 #include <QDialog>
 
 namespace Ui {
@@ -31,6 +32,13 @@ public:
 	~DlgSettings() override;
 
 private:
+	struct UserAccessRule
+	{
+		QString path;
+		QString grant;
+		QString role;
+	};
+
 	std::string aclAccessPath();
 	std::string aclAccessUsersPath();
 	std::string aclAccessRolesPath();
@@ -66,8 +74,10 @@ private:
 
 	void refreshUserAccessRules();
 	void refreshRoleAccessRules();
-	void refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, quint64 *request_id_counter);
+	void refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, std::stop_source *stop_source);
+	void processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, std::stop_token stop_token);
 	void callGetRoleAccessRules(const QString &role, std::function<void(bool, const QStringList &sub_roles, const shv::chainpack::RpcValue &access)> callback);
+	void appendUserAccessRuleRows(const shv::chainpack::RpcValue &access, const QString &role, QList<UserAccessRule> &rows);
 
 	void loadRoles(std::function<void(bool)> callback);
 	void reloadRoles(const QString &role_to_select);
@@ -118,12 +128,12 @@ private:
 	QSortFilterProxyModel *m_usersModelProxy;
 	shv::iotqt::acl::AclUser m_editUser;
 	QStandardItemModel *m_userAccessRulesModel;
-	quint64 m_userAccessRulesRequestId = 0;
+	std::stop_source m_userAccessRulesStopSource;
 
 	QStandardItemModel *m_rolesDataModel;
 	QSortFilterProxyModel *m_rolesModelProxy;
 	QStandardItemModel *m_roleAccessRulesModel;
-	quint64 m_roleAccessRulesRequestId = 0;
+	std::stop_source m_roleAccessRulesStopSource;
 
 	QStandardItemModel *m_mountsDataModel;
 	QSortFilterProxyModel *m_mountsModelProxy;
