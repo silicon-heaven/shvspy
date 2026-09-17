@@ -198,7 +198,7 @@
             <item>
              <widget class="QGroupBox" name="gbUserAccessRules">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="font">
                <font>
@@ -212,7 +212,7 @@
                <item>
                 <widget class="QTableView" name="tvUserAccessRules">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="font">
                   <font>
@@ -629,7 +629,7 @@
             <item>
              <widget class="QGroupBox" name="gbInheritedAccessRules">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="font">
                <font>

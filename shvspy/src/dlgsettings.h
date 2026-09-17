@@ -74,8 +74,8 @@ private:
 
 	void refreshUserAccessRules();
 	void refreshRoleAccessRules();
-	void refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, std::stop_source *stop_source);
-	void processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, std::stop_token stop_token);
+	void refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, QSharedPointer<bool> &cancel_token);
+	void processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, QSharedPointer<bool> cancel_token);
 	void callGetRoleAccessRules(const QString &role, std::function<void(bool, const QStringList &sub_roles, const shv::chainpack::RpcValue &access)> callback);
 	void appendUserAccessRuleRows(const shv::chainpack::RpcValue &access, const QString &role, QList<UserAccessRule> &rows);
 
@@ -128,12 +128,12 @@ private:
 	QSortFilterProxyModel *m_usersModelProxy;
 	shv::iotqt::acl::AclUser m_editUser;
 	QStandardItemModel *m_userAccessRulesModel;
-	std::stop_source m_userAccessRulesStopSource;
+	QSharedPointer<bool> m_userAccessRulesCancelToken;
 
 	QStandardItemModel *m_rolesDataModel;
 	QSortFilterProxyModel *m_rolesModelProxy;
 	QStandardItemModel *m_roleAccessRulesModel;
-	std::stop_source m_roleAccessRulesStopSource;
+	QSharedPointer<bool> m_roleAccessRulesCancelToken;
 
 	QStandardItemModel *m_mountsDataModel;
 	QSortFilterProxyModel *m_mountsModelProxy;
