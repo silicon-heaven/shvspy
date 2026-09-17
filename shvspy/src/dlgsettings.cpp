@@ -8,14 +8,18 @@
 #include "dlgselectroles.h"
 
 #include <shv/core/assert.h>
+#include <shv/core/log.h>
 #include <shv/iotqt/acl/aclmountdef.h>
 #include <shv/iotqt/acl/aclrole.h>
+#include <shv/iotqt/acl/aclroleaccessrules.h>
 #include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QComboBox>
 #include <QCryptographicHash>
+#include <QLabel>
 #include <QMessageBox>
+#include <QSet>
 #include <QSharedPointer>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -83,6 +87,10 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 
 	SHV_ASSERT_EX(rpc_connection != nullptr, "RPC connection is NULL");
 
+	m_lblVersions = new QLabel(this);
+	m_lblVersions->setContentsMargins(0, 0, 6, 0);
+	ui->tabWidget->setCornerWidget(m_lblVersions, Qt::TopRightCorner);
+
 	static constexpr double ROW_HEIGHT_RATIO = 1.3;
 
 	//users
@@ -107,6 +115,18 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->pbDeleteUser, &QPushButton::clicked, this, &DlgSettings::onDeleteUserClicked);
 	connect(ui->twUsers, &QTableView::doubleClicked, this, &DlgSettings::onEditUserClicked);
 	connect(ui->leUsersFilter, &QLineEdit::textChanged, m_usersModelProxy, &QSortFilterProxyModel::setFilterFixedString);
+
+	static QStringList USER_ACCESS_RULES_HEADER_NAMES { tr("Path"), tr("Grant"), tr("Role") };
+	m_userAccessRulesModel = new QStandardItemModel(this);
+	m_userAccessRulesModel->setColumnCount(static_cast<int>(USER_ACCESS_RULES_HEADER_NAMES.count()));
+	m_userAccessRulesModel->setHorizontalHeaderLabels(USER_ACCESS_RULES_HEADER_NAMES);
+	ui->tvUserAccessRules->setModel(m_userAccessRulesModel);
+	ui->tvUserAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(ui->tvUserAccessRules->fontMetrics().height() * ROW_HEIGHT_RATIO));
+	ui->tvUserAccessRules->verticalHeader()->setVisible(false);
+	ui->tvUserAccessRules->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+	ui->tvUserAccessRules->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+	ui->tvUserAccessRules->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+	connect(ui->leUserRoles, &QLineEdit::textChanged, this, &DlgSettings::refreshUserAccessRules);
 
 	//roles
 	static QStringList ROLES_HEADER_NAMES {{ tr("Role") }};
@@ -202,6 +222,19 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->pbSelectRoles, &QPushButton::clicked, this, [this]() {
 		execSelectRolesDialog(ui->leRoles);
 	});
+
+	static QStringList ROLE_ACCESS_RULES_HEADER_NAMES { tr("Path"), tr("Grant"), tr("Role") };
+	m_roleAccessRulesModel = new QStandardItemModel(this);
+	m_roleAccessRulesModel->setColumnCount(static_cast<int>(ROLE_ACCESS_RULES_HEADER_NAMES.count()));
+	m_roleAccessRulesModel->setHorizontalHeaderLabels(ROLE_ACCESS_RULES_HEADER_NAMES);
+	ui->tvInheritedAccessRules->setModel(m_roleAccessRulesModel);
+	ui->tvInheritedAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(ui->tvInheritedAccessRules->fontMetrics().height() * ROW_HEIGHT_RATIO));
+	ui->tvInheritedAccessRules->verticalHeader()->setVisible(false);
+	ui->tvInheritedAccessRules->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+	ui->tvInheritedAccessRules->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+	ui->tvInheritedAccessRules->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+	connect(ui->leRoles, &QLineEdit::textChanged, this, &DlgSettings::refreshRoleAccessRules);
+
 	hideRoleEdit();
 	connect(ui->editRoleButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
 		if (button == ui->editRoleButtonBox->button(QDialogButtonBox::Save)) {
@@ -238,6 +271,20 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 		}
 	});
 
+	for (auto *view : { ui->tvUserAccessRules, ui->tvInheritedAccessRules }) {
+		view->setEditTriggers(QAbstractItemView::NoEditTriggers);
+		view->setSelectionMode(QAbstractItemView::NoSelection);
+		view->setFocusPolicy(Qt::NoFocus);
+
+		QPalette pal = view->palette();
+		QColor disabled_text = pal.color(QPalette::Disabled, QPalette::Text);
+		QColor disabled_base = pal.color(QPalette::Disabled, QPalette::Base);
+		pal.setColor(QPalette::Active, QPalette::Text, disabled_text);
+		pal.setColor(QPalette::Inactive, QPalette::Text, disabled_text);
+		pal.setColor(QPalette::Active, QPalette::Base, disabled_base);
+		pal.setColor(QPalette::Inactive, QPalette::Base, disabled_base);
+		view->setPalette(pal);
+	}
 	setControlsEnabled(false);
 	onBrokerConnectedChanged(m_rpcConnection->isBrokerConnected());
 }
@@ -314,6 +361,7 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 		clearRoles();
 		clearMounts();
 		load();
+		loadVersionInfo();
 	}
 	else {
 		hideUserEdit();
@@ -321,7 +369,21 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 		hideMountEdit();
 		setControlsEnabled(false);
 		setStatusText(tr("Broker disconnected."));
+		m_lblVersions->clear();
 	}
+}
+
+void DlgSettings::loadVersionInfo()
+{
+	std::string app_path = isShv3() ? ".app" : ".broker/app";
+	std::string version_method = isShv3() ? "version" : "appVersion";
+
+	callShvMethod(app_path, version_method, {}, [this](const shv::chainpack::RpcValue &app_version) {
+		m_lblVersions->setText(tr("Version - shv: %1, broker: %2").arg(isShv3() ? 3 : 2).arg(app_version.to<QString>()));
+	}, [this](const QString &err) {
+		shvWarning() << "Cannot read appVersion:" << err.toStdString();
+		m_lblVersions->setText(tr("Version - shv: %1, broker: N/A").arg(isShv3() ? 3 : 2));
+	});
 }
 
 void DlgSettings::loadUsers(std::function<void (bool)> callback)
@@ -993,6 +1055,111 @@ void DlgSettings::checkExistingUser(std::function<void(bool, bool)> callback)
 	}, [this, callback](const QString &error) {
 		setStatusText(tr("Failed to check user name.") + " " + error);
 		callback(false, false);
+	});
+}
+
+void DlgSettings::callGetRoleAccessRules(const QString &role, std::function<void(bool, const QStringList &, const shv::chainpack::RpcValue &)> callback)
+{
+	auto role_path = aclAccessRolesPath() + '/' + role.toStdString();
+	auto on_error = [callback](const QString &) {
+		callback(false, {}, {});
+	};
+
+	if (isShv3()) {
+		callShvMethod(role_path, METHOD_VALUE, {}, [callback](const shv::chainpack::RpcValue &result) {
+			const auto &role_map = result.asMap();
+			QStringList roles;
+			for (const auto &sub_role : role_map.valref("roles").asList()) {
+				roles << sub_role.to<QString>();
+			}
+			callback(true, roles, role_map.valref("access"));
+		}, on_error);
+	}
+	else {
+		callShvMethod(role_path, METHOD_VALUE, {}, [this, role, callback, on_error](const shv::chainpack::RpcValue &role_result) {
+			auto acl_role = shv::iotqt::acl::AclRole::fromRpcValue(role_result).value_or(shv::iotqt::acl::AclRole());
+			QStringList roles;
+			for (const auto &sub_role : acl_role.roles) {
+				roles << QString::fromStdString(sub_role);
+			}
+			callShvMethod(aclAccessPath() + "/access/" + role.toStdString(), METHOD_VALUE, {}, [callback, roles](const shv::chainpack::RpcValue &access_result) {
+				callback(true, roles, access_result);
+			}, on_error);
+		}, on_error);
+	}
+}
+
+void DlgSettings::appendUserAccessRuleRows(const shv::chainpack::RpcValue &access, const QString &role, QList<UserAccessRule> &rows)
+{
+	if (isShv3()) {
+		for (const auto &rv : access.asList()) {
+			const auto &m = rv.asMap();
+			rows << UserAccessRule{ m.value("shvRI").to<QString>(), m.value("grant").to<QString>(), role };
+		}
+	}
+	else {
+		for (const auto &rule : shv::iotqt::acl::AclRoleAccessRules::fromRpcValue(access)) {
+			QString path = QString::fromStdString(rule.path);
+			if (!rule.method.empty()) {
+				path += ':' + QString::fromStdString(rule.method);
+			}
+			rows << UserAccessRule{ path, QString::fromStdString(rule.access), role };
+		}
+	}
+}
+
+void DlgSettings::refreshUserAccessRules()
+{
+	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leUserRoles), m_userAccessRulesModel, m_userAccessRulesCancelToken);
+}
+
+void DlgSettings::refreshRoleAccessRules()
+{
+	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leRoles), m_roleAccessRulesModel, m_roleAccessRulesCancelToken);
+}
+
+void DlgSettings::refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, QSharedPointer<bool> &cancel_token)
+{
+	if (cancel_token) {
+		*cancel_token = true;
+	}
+	cancel_token = QSharedPointer<bool>::create(false);
+	model->setRowCount(0);
+
+	auto known_roles = QSharedPointer<QSet<QString>>::create(initial_roles.begin(), initial_roles.end());
+	auto result_rules = QSharedPointer<QList<UserAccessRule>>::create();
+
+	processNextAccessRule(initial_roles, known_roles, result_rules, model, cancel_token);
+}
+
+void DlgSettings::processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, QSharedPointer<bool> cancel_token)
+{
+	if (queue.isEmpty()) {
+		model->setRowCount(static_cast<int>(result_rules->count()));
+		for (int i = 0; i < result_rules->count(); ++i) {
+			const auto &row = result_rules->at(i);
+			model->setItem(i, 0, new QStandardItem(row.path));
+			model->setItem(i, 1, new QStandardItem(row.grant));
+			model->setItem(i, 2, new QStandardItem(row.role));
+		}
+		return;
+	}
+	QString role = queue.takeFirst();
+	QPointer<DlgSettings> self = this;
+	callGetRoleAccessRules(role, [self, model, cancel_token, queue, known_roles, result_rules, role](bool success, const QStringList &sub_roles, const shv::chainpack::RpcValue &access) mutable {
+		if (*cancel_token || !self) {
+			return;
+		}
+		if (success) {
+			self->appendUserAccessRuleRows(access, role, *result_rules);
+			for (const auto &sub_role : sub_roles) {
+				if (!known_roles->contains(sub_role)) {
+					known_roles->insert(sub_role);
+					queue << sub_role;
+				}
+			}
+		}
+		self->processNextAccessRule(queue, known_roles, result_rules, model, cancel_token);
 	});
 }
 

@@ -4,6 +4,7 @@
 #include <shv/iotqt/acl/acluser.h>
 
 #include <optional>
+#include <stop_token>
 #include <QDialog>
 
 namespace Ui {
@@ -15,6 +16,7 @@ class AclMountDef;
 }
 
 class AccessModel;
+class QLabel;
 class QLineEdit;
 class QSortFilterProxyModel;
 class QStandardItemModel;
@@ -30,6 +32,13 @@ public:
 	~DlgSettings() override;
 
 private:
+	struct UserAccessRule
+	{
+		QString path;
+		QString grant;
+		QString role;
+	};
+
 	std::string aclAccessPath();
 	std::string aclAccessUsersPath();
 	std::string aclAccessRolesPath();
@@ -40,6 +49,7 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 
 	void load();
+	void loadVersionInfo();
 
 	QStringList stringListFromLineEdit(QLineEdit *le) const;
 	void setStringListToLineEdit(QLineEdit *le, const QStringList &items);
@@ -61,6 +71,13 @@ private:
 	void hideUserEdit();
 	void setUserPasswordMode(bool password_mode);
 	void checkExistingUser(std::function<void (bool, bool)> callback);
+
+	void refreshUserAccessRules();
+	void refreshRoleAccessRules();
+	void refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, QSharedPointer<bool> &cancel_token);
+	void processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, QSharedPointer<bool> cancel_token);
+	void callGetRoleAccessRules(const QString &role, std::function<void(bool, const QStringList &sub_roles, const shv::chainpack::RpcValue &access)> callback);
+	void appendUserAccessRuleRows(const shv::chainpack::RpcValue &access, const QString &role, QList<UserAccessRule> &rows);
 
 	void loadRoles(std::function<void(bool)> callback);
 	void reloadRoles(const QString &role_to_select);
@@ -102,6 +119,7 @@ private:
 	void setControlsEnabled(bool enabled);
 
 	Ui::DlgSettings *ui;
+	QLabel *m_lblVersions;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection;
 	std::string m_brokerPath;
 	shv::chainpack::IRpcConnection::ShvApiVersion m_brokerApiVersion;
@@ -109,9 +127,13 @@ private:
 	QStandardItemModel *m_usersDataModel;
 	QSortFilterProxyModel *m_usersModelProxy;
 	shv::iotqt::acl::AclUser m_editUser;
+	QStandardItemModel *m_userAccessRulesModel;
+	QSharedPointer<bool> m_userAccessRulesCancelToken;
 
 	QStandardItemModel *m_rolesDataModel;
 	QSortFilterProxyModel *m_rolesModelProxy;
+	QStandardItemModel *m_roleAccessRulesModel;
+	QSharedPointer<bool> m_roleAccessRulesCancelToken;
 
 	QStandardItemModel *m_mountsDataModel;
 	QSortFilterProxyModel *m_mountsModelProxy;
