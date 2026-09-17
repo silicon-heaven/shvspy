@@ -15,6 +15,7 @@ class AclMountDef;
 }
 
 class AccessModel;
+class QLabel;
 class QLineEdit;
 class QSortFilterProxyModel;
 class QStandardItemModel;
@@ -40,6 +41,7 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 
 	void load();
+	void loadVersionInfo();
 
 	QStringList stringListFromLineEdit(QLineEdit *le) const;
 	void setStringListToLineEdit(QLineEdit *le, const QStringList &items);
@@ -107,6 +109,7 @@ private:
 	void setControlsEnabled(bool enabled);
 
 	Ui::DlgSettings *ui;
+	QLabel *m_lblVersions;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection;
 	std::string m_brokerPath;
 	shv::chainpack::IRpcConnection::ShvApiVersion m_brokerApiVersion;

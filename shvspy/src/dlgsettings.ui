@@ -197,6 +197,9 @@
             </item>
             <item>
              <widget class="QGroupBox" name="gbUserAccessRules">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="font">
                <font>
                 <bold>true</bold>
@@ -208,16 +211,19 @@
               <layout class="QVBoxLayout" name="verticalLayout_14">
                <item>
                 <widget class="QTableView" name="tvUserAccessRules">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="font">
                   <font>
                    <bold>false</bold>
                   </font>
                  </property>
-                 <property name="alternatingRowColors">
-                  <bool>true</bool>
-                 </property>
                  <property name="editTriggers">
                   <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+                 </property>
+                 <property name="alternatingRowColors">
+                  <bool>true</bool>
                  </property>
                  <property name="selectionMode">
                   <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
@@ -622,6 +628,9 @@
             </item>
             <item>
              <widget class="QGroupBox" name="gbInheritedAccessRules">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="font">
                <font>
                 <bold>true</bold>
@@ -638,11 +647,11 @@
                    <bold>false</bold>
                   </font>
                  </property>
-                 <property name="alternatingRowColors">
-                  <bool>true</bool>
-                 </property>
                  <property name="editTriggers">
                   <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+                 </property>
+                 <property name="alternatingRowColors">
+                  <bool>true</bool>
                  </property>
                  <property name="selectionMode">
                   <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
