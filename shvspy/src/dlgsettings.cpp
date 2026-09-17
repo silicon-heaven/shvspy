@@ -271,6 +271,20 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 		}
 	});
 
+	for (auto *view : { ui->tvUserAccessRules, ui->tvInheritedAccessRules }) {
+		view->setEditTriggers(QAbstractItemView::NoEditTriggers);
+		view->setSelectionMode(QAbstractItemView::NoSelection);
+		view->setFocusPolicy(Qt::NoFocus);
+
+		QPalette pal = view->palette();
+		QColor disabled_text = pal.color(QPalette::Disabled, QPalette::Text);
+		QColor disabled_base = pal.color(QPalette::Disabled, QPalette::Base);
+		pal.setColor(QPalette::Active, QPalette::Text, disabled_text);
+		pal.setColor(QPalette::Inactive, QPalette::Text, disabled_text);
+		pal.setColor(QPalette::Active, QPalette::Base, disabled_base);
+		pal.setColor(QPalette::Inactive, QPalette::Base, disabled_base);
+		view->setPalette(pal);
+	}
 	setControlsEnabled(false);
 	onBrokerConnectedChanged(m_rpcConnection->isBrokerConnected());
 }
@@ -1096,28 +1110,29 @@ void DlgSettings::appendUserAccessRuleRows(const shv::chainpack::RpcValue &acces
 
 void DlgSettings::refreshUserAccessRules()
 {
-	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leUserRoles), m_userAccessRulesModel, &m_userAccessRulesStopSource);
+	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leUserRoles), m_userAccessRulesModel, m_userAccessRulesCancelToken);
 }
 
 void DlgSettings::refreshRoleAccessRules()
 {
-	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leRoles), m_roleAccessRulesModel, &m_roleAccessRulesStopSource);
+	refreshFlattenedAccessRules(stringListFromLineEdit(ui->leRoles), m_roleAccessRulesModel, m_roleAccessRulesCancelToken);
 }
 
-void DlgSettings::refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, std::stop_source *stop_source)
+void DlgSettings::refreshFlattenedAccessRules(const QStringList &initial_roles, QStandardItemModel *model, QSharedPointer<bool> &cancel_token)
 {
-	stop_source->request_stop();
-	*stop_source = std::stop_source();
-	std::stop_token stop_token = stop_source->get_token();
+	if (cancel_token) {
+		*cancel_token = true;
+	}
+	cancel_token = QSharedPointer<bool>::create(false);
 	model->setRowCount(0);
 
 	auto known_roles = QSharedPointer<QSet<QString>>::create(initial_roles.begin(), initial_roles.end());
 	auto result_rules = QSharedPointer<QList<UserAccessRule>>::create();
 
-	processNextAccessRule(initial_roles, known_roles, result_rules, model, stop_token);
+	processNextAccessRule(initial_roles, known_roles, result_rules, model, cancel_token);
 }
 
-void DlgSettings::processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, std::stop_token stop_token)
+void DlgSettings::processNextAccessRule(QStringList queue, QSharedPointer<QSet<QString>> known_roles, QSharedPointer<QList<UserAccessRule>> result_rules, QStandardItemModel *model, QSharedPointer<bool> cancel_token)
 {
 	if (queue.isEmpty()) {
 		model->setRowCount(static_cast<int>(result_rules->count()));
@@ -1131,8 +1146,8 @@ void DlgSettings::processNextAccessRule(QStringList queue, QSharedPointer<QSet<Q
 	}
 	QString role = queue.takeFirst();
 	QPointer<DlgSettings> self = this;
-	callGetRoleAccessRules(role, [self, model, stop_token, queue, known_roles, result_rules, role](bool success, const QStringList &sub_roles, const shv::chainpack::RpcValue &access) mutable {
-		if (stop_token.stop_requested() || !self) {
+	callGetRoleAccessRules(role, [self, model, cancel_token, queue, known_roles, result_rules, role](bool success, const QStringList &sub_roles, const shv::chainpack::RpcValue &access) mutable {
+		if (*cancel_token || !self) {
 			return;
 		}
 		if (success) {
@@ -1144,7 +1159,7 @@ void DlgSettings::processNextAccessRule(QStringList queue, QSharedPointer<QSet<Q
 				}
 			}
 		}
-		self->processNextAccessRule(queue, known_roles, result_rules, model, stop_token);
+		self->processNextAccessRule(queue, known_roles, result_rules, model, cancel_token);
 	});
 }
 
