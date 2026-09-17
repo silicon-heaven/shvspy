@@ -8,6 +8,7 @@
 #include "dlgselectroles.h"
 
 #include <shv/core/assert.h>
+#include <shv/core/log.h>
 #include <shv/iotqt/acl/aclmountdef.h>
 #include <shv/iotqt/acl/aclrole.h>
 #include <shv/iotqt/acl/aclroleaccessrules.h>
@@ -16,6 +17,7 @@
 
 #include <QComboBox>
 #include <QCryptographicHash>
+#include <QLabel>
 #include <QMessageBox>
 #include <QSet>
 #include <QSharedPointer>
@@ -84,6 +86,10 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->setupUi(this);
 
 	SHV_ASSERT_EX(rpc_connection != nullptr, "RPC connection is NULL");
+
+	m_lblVersions = new QLabel(this);
+	m_lblVersions->setContentsMargins(0, 0, 6, 0);
+	ui->tabWidget->setCornerWidget(m_lblVersions, Qt::TopRightCorner);
 
 	static constexpr double ROW_HEIGHT_RATIO = 1.3;
 
@@ -341,6 +347,7 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 		clearRoles();
 		clearMounts();
 		load();
+		loadVersionInfo();
 	}
 	else {
 		hideUserEdit();
@@ -348,7 +355,21 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 		hideMountEdit();
 		setControlsEnabled(false);
 		setStatusText(tr("Broker disconnected."));
+		m_lblVersions->clear();
 	}
+}
+
+void DlgSettings::loadVersionInfo()
+{
+	std::string app_path = isShv3() ? ".app" : ".broker/app";
+	std::string version_method = isShv3() ? "version" : "appVersion";
+
+	callShvMethod(app_path, version_method, {}, [this](const shv::chainpack::RpcValue &app_version) {
+		m_lblVersions->setText(tr("Version - shv: %1, broker: %2").arg(isShv3() ? 3 : 2).arg(app_version.to<QString>()));
+	}, [this](const QString &err) {
+		shvWarning() << "Cannot read appVersion:" << err.toStdString();
+		m_lblVersions->setText(tr("Version - shv: %1, broker: N/A").arg(isShv3() ? 3 : 2));
+	});
 }
 
 void DlgSettings::loadUsers(std::function<void (bool)> callback)
