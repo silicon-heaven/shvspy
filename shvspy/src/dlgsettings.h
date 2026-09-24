@@ -7,6 +7,8 @@
 #include <stop_token>
 #include <QDialog>
 
+class QModelIndex;
+
 namespace Ui {
 class DlgSettings;
 }
@@ -59,6 +61,8 @@ private:
 	void clearUsers();
 	void onAddUserClicked();
 	void onEditUserClicked();
+	void loadUserIntoEditPanel();
+	void onUsersCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
 	void onDeleteUserClicked();
 
 	void onSelectRolesClicked();
@@ -84,6 +88,8 @@ private:
 	void clearRoles();
 	void onAddRoleClicked();
 	void onEditRoleClicked();
+	void loadRoleIntoEditPanel();
+	void onRolesCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
 	void onDeleteRoleClicked();
 
 	void showRoleEdit();
@@ -99,6 +105,8 @@ private:
 	void onAddMountClicked();
 	void onDeleteMountClicked();
 	void onEditMountClicked();
+	void loadMountIntoEditPanel();
+	void onMountsCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
 
 	void showMountEdit();
 	void hideMountEdit();
@@ -108,6 +116,11 @@ private:
 	void saveMountEdit(std::function<void (bool)> callback);
 
 	void callShvMethod(const std::string &path, const std::string &method, const shv::chainpack::RpcValue &params, std::function<void(const shv::chainpack::RpcValue &)> on_success, std::function<void(const QString &)> on_error);
+
+	void handleRowSwitchConfirmation(QTableView *table, QWidget *edit_widget, bool &dirty, const QModelIndex &previous,
+									  std::function<void(std::function<void(bool)>)> save_funcion,
+									  std::function<void()> discard_function,
+									  std::function<void(const QString &)> reload_function);
 
 	QString currentRow(QTableView *table) const;
 	void setCurrentRow(QTableView *table, const QString &row);
@@ -129,14 +142,19 @@ private:
 	shv::iotqt::acl::AclUser m_editUser;
 	QStandardItemModel *m_userAccessRulesModel;
 	QSharedPointer<bool> m_userAccessRulesCancelToken;
+	bool m_userEditDirty = false;
 
 	QStandardItemModel *m_rolesDataModel;
 	QSortFilterProxyModel *m_rolesModelProxy;
 	QStandardItemModel *m_roleAccessRulesModel;
 	QSharedPointer<bool> m_roleAccessRulesCancelToken;
+	bool m_roleEditDirty = false;
 
 	QStandardItemModel *m_mountsDataModel;
 	QSortFilterProxyModel *m_mountsModelProxy;
+	bool m_mountEditDirty = false;
+
+	bool m_ignoreRowChange = false;
 
 	AccessModel *m_accessModel = nullptr;
 };
