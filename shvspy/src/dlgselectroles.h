@@ -20,17 +20,16 @@ public:
 	~DlgSelectRoles() override;
 
 	void init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QStringList &roles);
-
 	QStringList selectedRoles();
-	void setUserRoles(const QStringList &roles);
-
 
 private:
 	QStandardItem *findChildItem(QStandardItem *item, const QStringList &path, int ix = 0);
 	QStandardItem *findChildItem(QStandardItem *item, const QString &text);
 	std::string aclEtcRolesNodePath();
+	void syncSelectedRolesList();
+	void moveSelectedRole(int offset);
+	void updateMoveButtons();
 
-	QStringList m_userRoles;
 	QStringList m_currentItemPath;
 	RolesTreeModel *m_rolesTreeModel = nullptr;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
