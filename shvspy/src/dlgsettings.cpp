@@ -908,8 +908,8 @@ void DlgSettings::callCreateRole(std::function<void (bool)> callback)
 
 	callShvMethod(aclAccessRolesPath(), METHOD_SET_VALUE, shv::chainpack::RpcValue::List{role_name.toStdString(), role}, [this, role_name, callback](const auto &) {
 		auto roles = stringListFromLineEdit(ui->leUserRoles);
-		roles << role_name;
-		std::sort(roles.begin(), roles.end());
+		// private user role goes first
+		roles.prepend(role_name);
 		setStringListToLineEdit(ui->leUserRoles, roles);
 		callback(true);
 	}, [this, callback](const QString &error) {
