@@ -17,12 +17,16 @@
 
 #include <QComboBox>
 #include <QCryptographicHash>
+#include <QItemSelectionModel>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPersistentModelIndex>
+#include <QPointer>
 #include <QSet>
 #include <QSharedPointer>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
+#include <QTimer>
 
 static const std::string METHOD_VALUE = "value";
 static const std::string METHOD_SET_VALUE = "setValue";
@@ -128,6 +132,12 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->tvUserAccessRules->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 	connect(ui->leUserRoles, &QLineEdit::textChanged, this, &DlgSettings::refreshUserAccessRules);
 
+	connect(ui->leUserName, &QLineEdit::textEdited, this, [this]() { m_userEditDirty = true; });
+	connect(ui->leUserPassword, &QLineEdit::textEdited, this, [this]() { m_userEditDirty = true; });
+	connect(ui->leUserRoles, &QLineEdit::textChanged, this, [this]() { m_userEditDirty = true; });
+	connect(ui->chbCreateRole, &QCheckBox::toggled, this, [this]() { m_userEditDirty = true; });
+	connect(ui->twUsers->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &DlgSettings::onUsersCurrentRowChanged);
+
 	//roles
 	static QStringList ROLES_HEADER_NAMES {{ tr("Role") }};
 	m_rolesDataModel = new QStandardItemModel(this);
@@ -177,6 +187,11 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->leMountsFilter, &QLineEdit::textChanged, m_mountsModelProxy, &QSortFilterProxyModel::setFilterFixedString);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &DlgSettings::onBrokerConnectedChanged);
 
+	connect(ui->leMountDeviceId, &QLineEdit::textEdited, this, [this]() { m_mountEditDirty = true; });
+	connect(ui->leMountPoint, &QLineEdit::textEdited, this, [this]() { m_mountEditDirty = true; });
+	connect(ui->leMountDescription, &QLineEdit::textEdited, this, [this]() { m_mountEditDirty = true; });
+	connect(ui->twMounts->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &DlgSettings::onMountsCurrentRowChanged);
+
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, [this](){
 		setUserPasswordMode(ui->leUserPassword->echoMode() != QLineEdit::EchoMode::Password);
 	});
@@ -209,6 +224,10 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	}
 	ui->tvAccessRules->setModel(m_accessModel);
 	ui->tvAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
+	connect(m_accessModel, &QAbstractItemModel::dataChanged, this, [this]() { m_roleEditDirty = true; });
+	connect(m_accessModel, &QAbstractItemModel::rowsInserted, this, [this]() { m_roleEditDirty = true; });
+	connect(m_accessModel, &QAbstractItemModel::rowsRemoved, this, [this]() { m_roleEditDirty = true; });
+	connect(m_accessModel, &QAbstractItemModel::rowsMoved, this, [this]() { m_roleEditDirty = true; });
 	connect(ui->tbAddRow, &QToolButton::clicked, m_accessModel, &AccessModel::addRule);
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, [this]() {
 		m_accessModel->deleteRule(ui->tvAccessRules->currentIndex().row());
@@ -234,6 +253,12 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->tvInheritedAccessRules->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
 	ui->tvInheritedAccessRules->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 	connect(ui->leRoles, &QLineEdit::textChanged, this, &DlgSettings::refreshRoleAccessRules);
+
+	connect(ui->leRoleName, &QLineEdit::textEdited, this, [this]() { m_roleEditDirty = true; });
+	connect(ui->leRoles, &QLineEdit::textChanged, this, [this]() { m_roleEditDirty = true; });
+	connect(ui->sbWeight, qOverload<int>(&QSpinBox::valueChanged), this, [this]() { m_roleEditDirty = true; });
+	connect(ui->leProfile, &QLineEdit::textEdited, this, [this]() { m_roleEditDirty = true; });
+	connect(ui->twRoles->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &DlgSettings::onRolesCurrentRowChanged);
 
 	hideRoleEdit();
 	connect(ui->editRoleButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
@@ -436,6 +461,7 @@ void DlgSettings::onAddUserClicked()
 	ui->editUserWidget->setTitle(tr("New user"));
 	ui->leUserName->setReadOnly(false);
 	ui->leUserName->setFocus();
+	m_userEditDirty = false;
 }
 
 void DlgSettings::onEditUserClicked()
@@ -445,6 +471,12 @@ void DlgSettings::onEditUserClicked()
 		setStatusText(tr("Select user in the table."));
 		return;
 	}
+	loadUserIntoEditPanel();
+}
+
+void DlgSettings::loadUserIntoEditPanel()
+{
+	QString user = currentRow(ui->twUsers);
 	setUserControlsEnabled(false);
 	callGetUser([this, user](bool success) {
 		const bool connected = m_rpcConnection->isBrokerConnected();
@@ -462,12 +494,23 @@ void DlgSettings::onEditUserClicked()
 			roles << QString::fromStdString(role);
 		}
 		setStringListToLineEdit(ui->leUserRoles, roles);
+		m_userEditDirty = false;
 	});
+}
+
+void DlgSettings::onUsersCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous)
+{
+	if (m_ignoreRowChange || !ui->editUserWidget->isVisible() || !current.isValid()) {
+		return;
+	}
+	handleRowSwitchConfirmation(ui->twUsers, ui->editUserWidget, m_userEditDirty, previous,
+								 [this](std::function<void(bool)> cb) { saveUserEdit(cb); },
+								 [this]() { loadUserIntoEditPanel(); },
+								 [this](const QString &target) { reloadUsers(target); });
 }
 
 void DlgSettings::showUserEdit()
 {
-	ui->twUsers->setEnabled(false);
 	ui->userControlsWidget->hide();
 	ui->leUserName->clear();
 	ui->leUserPassword->clear();
@@ -485,6 +528,7 @@ void DlgSettings::hideUserEdit()
 	ui->userControlsWidget->show();
 	ui->twUsers->setEnabled(true);
 	ui->leUsersFilter->setEnabled(true);
+	m_userEditDirty = false;
 }
 
 void DlgSettings::hideMountEdit()
@@ -493,6 +537,7 @@ void DlgSettings::hideMountEdit()
 	ui->mountControlsWidget->show();
 	ui->twMounts->setEnabled(true);
 	ui->leMountsFilter->setEnabled(true);
+	m_mountEditDirty = false;
 }
 
 void DlgSettings::hideRoleEdit()
@@ -501,6 +546,7 @@ void DlgSettings::hideRoleEdit()
 	ui->roleControlsWidget->show();
 	ui->twRoles->setEnabled(true);
 	ui->leRolesFilter->setEnabled(true);
+	m_roleEditDirty = false;
 }
 
 void DlgSettings::saveRoleEdit(std::function<void (bool)> callback)
@@ -754,7 +800,6 @@ void DlgSettings::saveMountEdit(std::function<void (bool)> callback)
 
 void DlgSettings::showMountEdit()
 {
-	ui->twMounts->setEnabled(false);
 	ui->mountControlsWidget->hide();
 	ui->leMountDeviceId->clear();
 	ui->leMountPoint->clear();
@@ -766,7 +811,6 @@ void DlgSettings::showMountEdit()
 
 void DlgSettings::showRoleEdit()
 {
-	ui->twRoles->setEnabled(false);
 	ui->roleControlsWidget->hide();
 	ui->leRoleName->clear();
 	ui->leRoles->clear();
@@ -1212,6 +1256,7 @@ void DlgSettings::onAddRoleClicked()
 	ui->roleGroupBox->setTitle(tr("New role"));
 	ui->leRoleName->setReadOnly(false);
 	ui->leRoleName->setFocus();
+	m_roleEditDirty = false;
 }
 
 void DlgSettings::onEditRoleClicked()
@@ -1221,6 +1266,12 @@ void DlgSettings::onEditRoleClicked()
 		setStatusText(tr("Select role in the table."));
 		return;
 	}
+	loadRoleIntoEditPanel();
+}
+
+void DlgSettings::loadRoleIntoEditPanel()
+{
+	QString role = currentRow(ui->twRoles);
 	setRoleControlsEnabled(false);
 	setStatusText(tr("Getting role details..."));
 	callGetRole([this, role](bool success, const QStringList &roles, const shv::chainpack::RpcValue &profile, const std::optional<int> &weight, const shv::chainpack::RpcValue &access) {
@@ -1253,7 +1304,19 @@ void DlgSettings::onEditRoleClicked()
 		m_accessModel->setRules(access);
 		ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 		setStatusText({});
+		m_roleEditDirty = false;
 	});
+}
+
+void DlgSettings::onRolesCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous)
+{
+	if (m_ignoreRowChange || !ui->editRoleWidget->isVisible() || !current.isValid()) {
+		return;
+	}
+	handleRowSwitchConfirmation(ui->twRoles, ui->editRoleWidget, m_roleEditDirty, previous,
+								 [this](std::function<void(bool)> cb) { saveRoleEdit(cb); },
+								 [this]() { loadRoleIntoEditPanel(); },
+								 [this](const QString &target) { reloadRoles(target); });
 }
 
 void DlgSettings::onDeleteRoleClicked()
@@ -1423,6 +1486,7 @@ void DlgSettings::onAddMountClicked()
 	ui->editMountWidget->setTitle(tr("New mount point"));
 	ui->leMountDeviceId->setReadOnly(false);
 	ui->leMountDeviceId->setFocus();
+	m_mountEditDirty = false;
 }
 
 void DlgSettings::onDeleteMountClicked()
@@ -1449,6 +1513,12 @@ void DlgSettings::onEditMountClicked()
 		setStatusText(tr("Select mount point in the table."));
 		return;
 	}
+	loadMountIntoEditPanel();
+}
+
+void DlgSettings::loadMountIntoEditPanel()
+{
+	QString mount = currentRow(ui->twMounts);
 	setMountControlsEnabled(false);
 	callGetMount([this, mount](bool success, const shv::iotqt::acl::AclMountDef &mount_def) {
 		const bool connected = m_rpcConnection->isBrokerConnected();
@@ -1463,6 +1533,70 @@ void DlgSettings::onEditMountClicked()
 		ui->leMountDeviceId->setText(mount);
 		ui->leMountPoint->setText(QString::fromStdString(mount_def.mountPoint));
 		ui->leMountDescription->setText(QString::fromStdString(mount_def.description));
+		m_mountEditDirty = false;
+	});
+}
+
+void DlgSettings::onMountsCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous)
+{
+	if (m_ignoreRowChange || !ui->editMountWidget->isVisible() || !current.isValid()) {
+		return;
+	}
+	handleRowSwitchConfirmation(ui->twMounts, ui->editMountWidget, m_mountEditDirty, previous,
+								 [this](std::function<void(bool)> cb) { saveMountEdit(cb); },
+								 [this]() { loadMountIntoEditPanel(); },
+								 [this](const QString &target) { reloadMounts(target); });
+}
+
+void DlgSettings::handleRowSwitchConfirmation(QTableView *table, QWidget *edit_widget, bool &dirty, const QModelIndex &previous,
+											  std::function<void(std::function<void(bool)>)> save_funcion,
+											  std::function<void()> discard_function,
+											  std::function<void(const QString &)> reload_function)
+{
+	auto revert = [this, table, edit_widget, previous]() {
+		edit_widget->setEnabled(true);
+		QPersistentModelIndex persistent_previous(previous);
+		QTimer::singleShot(0, this, [this, table, persistent_previous]() {
+			m_ignoreRowChange = true;
+			table->setCurrentIndex(persistent_previous);
+			m_ignoreRowChange = false;
+		});
+	};
+
+	if (!dirty) {
+		edit_widget->setEnabled(false);
+		discard_function();
+		return;
+	}
+
+	QString target_key = currentRow(table);
+	auto ret = QMessageBox::question(this, tr("Unsaved changes"),
+									  tr("This item has unsaved changes. Do you want to save them before switching?"),
+									  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+	if (ret == QMessageBox::Cancel) {
+		revert();
+		return;
+	}
+	if (ret == QMessageBox::Discard) {
+		dirty = false;
+		edit_widget->setEnabled(false);
+		discard_function();
+		return;
+	}
+
+	edit_widget->setEnabled(false);
+	QPointer<DlgSettings> self = this;
+	save_funcion([self, &dirty, target_key, reload_function, revert](bool success) {
+		if (!self) {
+			return;
+		}
+		if (success) {
+			dirty = false;
+			reload_function(target_key);
+		}
+		else {
+			revert();
+		}
 	});
 }
 
