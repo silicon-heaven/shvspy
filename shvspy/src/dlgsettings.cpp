@@ -118,7 +118,7 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->pbEditUser, &QPushButton::clicked, this, &DlgSettings::onEditUserClicked);
 	connect(ui->pbDeleteUser, &QPushButton::clicked, this, &DlgSettings::onDeleteUserClicked);
 	connect(ui->twUsers, &QTableView::doubleClicked, this, &DlgSettings::onEditUserClicked);
-	connect(ui->leUsersFilter, &QLineEdit::textChanged, m_usersModelProxy, &QSortFilterProxyModel::setFilterFixedString);
+	connect(ui->leUsersFilter, &QLineEdit::textChanged, this, [this](const QString &filter) { applyFilter(ui->twUsers, m_usersModelProxy, filter); });
 
 	static QStringList USER_ACCESS_RULES_HEADER_NAMES { tr("Path"), tr("Grant"), tr("Role") };
 	m_userAccessRulesModel = new QStandardItemModel(this);
@@ -159,7 +159,7 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->pbEditRole, &QPushButton::clicked, this, &DlgSettings::onEditRoleClicked);
 	connect(ui->pbDeleteRole, &QPushButton::clicked, this, &DlgSettings::onDeleteRoleClicked);
 	connect(ui->twRoles, &QTableView::doubleClicked, this, &DlgSettings::onEditRoleClicked);
-	connect(ui->leRolesFilter, &QLineEdit::textChanged, m_rolesModelProxy, &QSortFilterProxyModel::setFilterFixedString);
+	connect(ui->leRolesFilter, &QLineEdit::textChanged, this, [this](const QString &filter) { applyFilter(ui->twRoles, m_rolesModelProxy, filter); });
 
 	//mounts
 	static QStringList MOUNTS_HEADER_NAMES { tr("Device ID"), tr("Mount point"), tr("Description") };
@@ -184,7 +184,7 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->pbEditMount, &QPushButton::clicked, this, &DlgSettings::onEditMountClicked);
 	connect(ui->pbDeleteMount, &QPushButton::clicked, this, &DlgSettings::onDeleteMountClicked);
 	connect(ui->twMounts, &QTableView::doubleClicked, this, &DlgSettings::onEditMountClicked);
-	connect(ui->leMountsFilter, &QLineEdit::textChanged, m_mountsModelProxy, &QSortFilterProxyModel::setFilterFixedString);
+	connect(ui->leMountsFilter, &QLineEdit::textChanged, this, [this](const QString &filter) { applyFilter(ui->twMounts, m_mountsModelProxy, filter); });
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &DlgSettings::onBrokerConnectedChanged);
 
 	connect(ui->leMountDeviceId, &QLineEdit::textEdited, this, [this]() { m_mountEditDirty = true; });
@@ -519,7 +519,6 @@ void DlgSettings::showUserEdit()
 	setUserPasswordMode(true);
 	ui->editUserWidget->show();
 	ui->editUserWidget->setEnabled(true);
-	ui->leUsersFilter->setEnabled(false);
 }
 
 void DlgSettings::hideUserEdit()
@@ -806,7 +805,6 @@ void DlgSettings::showMountEdit()
 	ui->leMountDescription->clear();
 	ui->editMountWidget->show();
 	ui->editMountWidget->setEnabled(true);
-	ui->leMountsFilter->setEnabled(false);
 }
 
 void DlgSettings::showRoleEdit()
@@ -819,7 +817,6 @@ void DlgSettings::showRoleEdit()
 	m_accessModel->setRules({});
 	ui->editRoleWidget->show();
 	ui->editRoleWidget->setEnabled(true);
-	ui->leRolesFilter->setEnabled(false);
 	ui->lblWeight->setVisible(!isShv3());
 	ui->sbWeight->setVisible(!isShv3());
 }
@@ -1389,6 +1386,19 @@ void DlgSettings::setCurrentRow(QTableView *table, const QString &row)
 			}
 		}
 	}
+}
+
+void DlgSettings::applyFilter(QTableView *table, QSortFilterProxyModel *proxy, const QString &filter)
+{
+	// When the current row gets filtered out, the view moves the current index to a neighbour row.
+	// Clear it instead, filtering must not switch the item loaded in the edit panel.
+	const QString current_row = currentRow(table);
+	m_ignoreRowChange = true;
+	proxy->setFilterFixedString(filter);
+	if (currentRow(table) != current_row) {
+		table->selectionModel()->clear();
+	}
+	m_ignoreRowChange = false;
 }
 
 void DlgSettings::sortTable(QTableView *table) const

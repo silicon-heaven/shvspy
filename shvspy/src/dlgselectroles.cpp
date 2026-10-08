@@ -3,6 +3,24 @@
 #include "ui_dlgselectroles.h"
 
 #include <QMenu>
+#include <QSortFilterProxyModel>
+
+namespace {
+// filters top level roles only, sub roles of a matching role stay visible
+class RolesFilterProxyModel : public QSortFilterProxyModel
+{
+public:
+	using QSortFilterProxyModel::QSortFilterProxyModel;
+protected:
+	bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override
+	{
+		if (source_parent.isValid()) {
+			return true;
+		}
+		return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
+	}
+};
+}
 
 DlgSelectRoles::DlgSelectRoles(QWidget *parent):
 	QDialog(parent),
@@ -16,6 +34,7 @@ DlgSelectRoles::DlgSelectRoles(QWidget *parent):
 	connect(ui->tbMoveRoleDown, &QToolButton::clicked, this, [this]() { moveSelectedRole(1); });
 	connect(ui->lstSelectedRoles, &QListWidget::currentRowChanged, this, &DlgSelectRoles::updateMoveButtons);
 	updateMoveButtons();
+	ui->leFilter->setFocus();
 }
 
 void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, const QStringList &roles)
@@ -25,7 +44,12 @@ void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 
 	m_rolesTreeModel = new RolesTreeModel(this);
 	m_rolesTreeModel->load(rpc_connection, aclEtcRolesNodePath());
-	ui->tvRoles->setModel(m_rolesTreeModel);
+
+	m_rolesModelProxy = new RolesFilterProxyModel(this);
+	m_rolesModelProxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
+	m_rolesModelProxy->setSourceModel(m_rolesTreeModel);
+	ui->tvRoles->setModel(m_rolesModelProxy);
+	connect(ui->leFilter, &QLineEdit::textChanged, m_rolesModelProxy, &QSortFilterProxyModel::setFilterFixedString);
 	ui->lstSelectedRoles->addItems(roles);
 
 	ui->lblStatus->setText(tr("Loading..."));
@@ -40,7 +64,7 @@ void DlgSelectRoles::init(shv::iotqt::rpc::ClientConnection *rpc_connection, con
 		if (!m_currentItemPath.isEmpty()) {
 			QStandardItem *item = findChildItem(m_rolesTreeModel->invisibleRootItem(), m_currentItemPath);
 			if (item) {
-				QModelIndex ix = m_rolesTreeModel->indexFromItem(item);
+				QModelIndex ix = m_rolesModelProxy->mapFromSource(m_rolesTreeModel->indexFromItem(item));
 				ui->tvRoles->setCurrentIndex(ix);
 				ui->tvRoles->scrollTo(ix);
 			}

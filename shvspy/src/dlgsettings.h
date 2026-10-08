@@ -124,6 +124,7 @@ private:
 
 	QString currentRow(QTableView *table) const;
 	void setCurrentRow(QTableView *table, const QString &row);
+	void applyFilter(QTableView *table, QSortFilterProxyModel *proxy, const QString &filter);
 	void sortTable(QTableView *table) const;
 
 	void setUserControlsEnabled(bool enabled);

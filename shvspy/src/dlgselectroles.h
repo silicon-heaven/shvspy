@@ -11,6 +11,8 @@ namespace Ui {
 class DlgSelectRoles;
 }
 
+class QSortFilterProxyModel;
+
 class DlgSelectRoles : public QDialog
 {
 	Q_OBJECT
@@ -32,6 +34,7 @@ private:
 
 	QStringList m_currentItemPath;
 	RolesTreeModel *m_rolesTreeModel = nullptr;
+	QSortFilterProxyModel *m_rolesModelProxy = nullptr;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;
 
