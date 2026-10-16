@@ -115,6 +115,7 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->twUsers->sortByColumn(0, Qt::AscendingOrder);
 
 	connect(ui->pbAddUser, &QPushButton::clicked, this, &DlgSettings::onAddUserClicked);
+	connect(ui->pbCopyUser, &QPushButton::clicked, this, &DlgSettings::onCopyUserClicked);
 	connect(ui->pbEditUser, &QPushButton::clicked, this, &DlgSettings::onEditUserClicked);
 	connect(ui->pbDeleteUser, &QPushButton::clicked, this, &DlgSettings::onDeleteUserClicked);
 	connect(ui->twUsers, &QTableView::doubleClicked, this, &DlgSettings::onEditUserClicked);
@@ -156,6 +157,7 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->twRoles->sortByColumn(0, Qt::AscendingOrder);
 
 	connect(ui->pbAddRole, &QPushButton::clicked, this, &DlgSettings::onAddRoleClicked);
+	connect(ui->pbCopyRole, &QPushButton::clicked, this, &DlgSettings::onCopyRoleClicked);
 	connect(ui->pbEditRole, &QPushButton::clicked, this, &DlgSettings::onEditRoleClicked);
 	connect(ui->pbDeleteRole, &QPushButton::clicked, this, &DlgSettings::onDeleteRoleClicked);
 	connect(ui->twRoles, &QTableView::doubleClicked, this, &DlgSettings::onEditRoleClicked);
@@ -181,6 +183,7 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->twMounts->sortByColumn(0, Qt::AscendingOrder);
 
 	connect(ui->pbAddMount, &QPushButton::clicked, this, &DlgSettings::onAddMountClicked);
+	connect(ui->pbCopyMount, &QPushButton::clicked, this, &DlgSettings::onCopyMountClicked);
 	connect(ui->pbEditMount, &QPushButton::clicked, this, &DlgSettings::onEditMountClicked);
 	connect(ui->pbDeleteMount, &QPushButton::clicked, this, &DlgSettings::onDeleteMountClicked);
 	connect(ui->twMounts, &QTableView::doubleClicked, this, &DlgSettings::onEditMountClicked);
@@ -474,11 +477,21 @@ void DlgSettings::onEditUserClicked()
 	loadUserIntoEditPanel();
 }
 
-void DlgSettings::loadUserIntoEditPanel()
+void DlgSettings::onCopyUserClicked()
+{
+	QString user = currentRow(ui->twUsers);
+	if (user.isEmpty()) {
+		setStatusText(tr("Select user in the table."));
+		return;
+	}
+	loadUserIntoEditPanel(true);
+}
+
+void DlgSettings::loadUserIntoEditPanel(bool copy)
 {
 	QString user = currentRow(ui->twUsers);
 	setUserControlsEnabled(false);
-	callGetUser([this, user](bool success) {
+	callGetUser([this, user, copy](bool success) {
 		const bool connected = m_rpcConnection->isBrokerConnected();
 		setUserControlsEnabled(connected);
 		if (!success || !connected) {
@@ -486,14 +499,17 @@ void DlgSettings::loadUserIntoEditPanel()
 		}
 
 		showUserEdit();
-		ui->editUserWidget->setTitle(tr("Edit user"));
-		ui->leUserName->setReadOnly(true);
+		ui->editUserWidget->setTitle(copy ? tr("New user") : tr("Edit user"));
+		ui->leUserName->setReadOnly(!copy);
 		ui->leUserName->setText(user);
 		QStringList roles;
 		for (const auto &role : m_editUser.roles) {
 			roles << QString::fromStdString(role);
 		}
 		setStringListToLineEdit(ui->leUserRoles, roles);
+		if (copy) {
+			m_editUser.password = {};
+		}
 		m_userEditDirty = false;
 	});
 }
@@ -1266,12 +1282,22 @@ void DlgSettings::onEditRoleClicked()
 	loadRoleIntoEditPanel();
 }
 
-void DlgSettings::loadRoleIntoEditPanel()
+void DlgSettings::onCopyRoleClicked()
+{
+	QString role = currentRow(ui->twRoles);
+	if (role.isEmpty()) {
+		setStatusText(tr("Select role in the table."));
+		return;
+	}
+	loadRoleIntoEditPanel(true);
+}
+
+void DlgSettings::loadRoleIntoEditPanel(bool copy)
 {
 	QString role = currentRow(ui->twRoles);
 	setRoleControlsEnabled(false);
 	setStatusText(tr("Getting role details..."));
-	callGetRole([this, role](bool success, const QStringList &roles, const shv::chainpack::RpcValue &profile, const std::optional<int> &weight, const shv::chainpack::RpcValue &access) {
+	callGetRole([this, role, copy](bool success, const QStringList &roles, const shv::chainpack::RpcValue &profile, const std::optional<int> &weight, const shv::chainpack::RpcValue &access) {
 		const bool connected = m_rpcConnection->isBrokerConnected();
 		setRoleControlsEnabled(connected);
 		if (!success || !connected) {
@@ -1279,8 +1305,8 @@ void DlgSettings::loadRoleIntoEditPanel()
 		}
 
 		showRoleEdit();
-		ui->roleGroupBox->setTitle(tr("Edit role"));
-		ui->leRoleName->setReadOnly(true);
+		ui->roleGroupBox->setTitle(copy ? tr("New role") : tr("Edit role"));
+		ui->leRoleName->setReadOnly(!copy);
 		ui->leRoleName->setText(role);
 		setStringListToLineEdit(ui->leRoles, roles);
 		if (profile.isMap()) {
@@ -1336,6 +1362,7 @@ void DlgSettings::onDeleteRoleClicked()
 void DlgSettings::setUserControlsEnabled(bool enabled)
 {
 	ui->pbAddUser->setEnabled(enabled);
+	ui->pbCopyUser->setEnabled(enabled);
 	ui->pbEditUser->setEnabled(enabled);
 	ui->pbDeleteUser->setEnabled(enabled);
 	ui->leUsersFilter->setEnabled(enabled);
@@ -1345,6 +1372,7 @@ void DlgSettings::setUserControlsEnabled(bool enabled)
 void DlgSettings::setRoleControlsEnabled(bool enabled)
 {
 	ui->pbAddRole->setEnabled(enabled);
+	ui->pbCopyRole->setEnabled(enabled);
 	ui->pbEditRole->setEnabled(enabled);
 	ui->pbDeleteRole->setEnabled(enabled);
 	ui->leRolesFilter->setEnabled(enabled);
@@ -1354,6 +1382,7 @@ void DlgSettings::setRoleControlsEnabled(bool enabled)
 void DlgSettings::setMountControlsEnabled(bool enabled)
 {
 	ui->pbAddMount->setEnabled(enabled);
+	ui->pbCopyMount->setEnabled(enabled);
 	ui->pbEditMount->setEnabled(enabled);
 	ui->pbDeleteMount->setEnabled(enabled);
 	ui->leMountsFilter->setEnabled(enabled);
@@ -1381,8 +1410,11 @@ void DlgSettings::setCurrentRow(QTableView *table, const QString &row)
 	if (!row.isEmpty()) {
 		auto *model = table->model();
 		for (int i = 0; i < model->rowCount(); ++i) {
-			if (model->index(i, 0).data().toString() == row) {
-				table->setCurrentIndex(model->index(i, 0));
+			auto index = model->index(i, 0);
+			if (index.data().toString() == row) {
+				table->setCurrentIndex(index);
+				table->scrollTo(index);
+				break;
 			}
 		}
 	}
@@ -1526,11 +1558,21 @@ void DlgSettings::onEditMountClicked()
 	loadMountIntoEditPanel();
 }
 
-void DlgSettings::loadMountIntoEditPanel()
+void DlgSettings::onCopyMountClicked()
+{
+	QString mount = currentRow(ui->twMounts);
+	if (mount.isEmpty()) {
+		setStatusText(tr("Select mount point in the table."));
+		return;
+	}
+	loadMountIntoEditPanel(true);
+}
+
+void DlgSettings::loadMountIntoEditPanel(bool copy)
 {
 	QString mount = currentRow(ui->twMounts);
 	setMountControlsEnabled(false);
-	callGetMount([this, mount](bool success, const shv::iotqt::acl::AclMountDef &mount_def) {
+	callGetMount([this, mount, copy](bool success, const shv::iotqt::acl::AclMountDef &mount_def) {
 		const bool connected = m_rpcConnection->isBrokerConnected();
 		setMountControlsEnabled(connected);
 		if (!success || !connected) {
@@ -1538,8 +1580,8 @@ void DlgSettings::loadMountIntoEditPanel()
 		}
 
 		showMountEdit();
-		ui->editMountWidget->setTitle(tr("Edit mount point"));
-		ui->leMountDeviceId->setReadOnly(true);
+		ui->editMountWidget->setTitle(copy ? tr("New mount point") : tr("Edit mount point"));
+		ui->leMountDeviceId->setReadOnly(!copy);
 		ui->leMountDeviceId->setText(mount);
 		ui->leMountPoint->setText(QString::fromStdString(mount_def.mountPoint));
 		ui->leMountDescription->setText(QString::fromStdString(mount_def.description));
