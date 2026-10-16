@@ -270,6 +270,13 @@
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="pbCopyUser">
+              <property name="text">
+               <string>Copy</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="pbEditUser">
               <property name="font">
                <font>
@@ -698,6 +705,13 @@
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="pbCopyRole">
+              <property name="text">
+               <string>Copy</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="pbEditRole">
               <property name="font">
                <font>
@@ -897,6 +911,13 @@
               </property>
               <property name="text">
                <string>Add</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pbCopyMount">
+              <property name="text">
+               <string>Copy</string>
               </property>
              </widget>
             </item>
