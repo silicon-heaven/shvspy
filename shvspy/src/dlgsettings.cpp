@@ -18,6 +18,7 @@
 #include <QComboBox>
 #include <QCryptographicHash>
 #include <QItemSelectionModel>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPersistentModelIndex>
@@ -320,6 +321,29 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 DlgSettings::~DlgSettings()
 {
 	delete ui;
+}
+
+void DlgSettings::keyPressEvent(QKeyEvent *event)
+{
+	if (event->key() == Qt::Key_Escape) {
+		if (ui->editUserWidget->isVisible()) {
+			hideUserEdit();
+			event->accept();
+			return;
+		}
+		if (ui->editRoleWidget->isVisible()) {
+			hideRoleEdit();
+			event->accept();
+			return;
+		}
+		if (ui->editMountWidget->isVisible()) {
+			hideMountEdit();
+			event->accept();
+			return;
+		}
+	}
+
+	Super::keyPressEvent(event);
 }
 
 void DlgSettings::load()

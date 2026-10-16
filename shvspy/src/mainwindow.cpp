@@ -444,8 +444,8 @@ void MainWindow::onTreeServers_customContextMenuRequested(const QPoint &pos)
 				throw std::runtime_error{"Unknown QAction type"};
 			}();
 
-			dlg->open();
 			connect(dlg, &QDialog::finished, dlg, &QObject::deleteLater);
+			dlg->open();
 		};
 
 		auto call = shv::iotqt::rpc::RpcCall::create(cc)
