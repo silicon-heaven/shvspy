@@ -60,8 +60,9 @@ private:
 	void reloadUsers(const QString &user_to_select);
 	void clearUsers();
 	void onAddUserClicked();
+	void onCopyUserClicked();
 	void onEditUserClicked();
-	void loadUserIntoEditPanel();
+	void loadUserIntoEditPanel(bool copy = false);
 	void onUsersCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
 	void onDeleteUserClicked();
 
@@ -87,8 +88,9 @@ private:
 	void reloadRoles(const QString &role_to_select);
 	void clearRoles();
 	void onAddRoleClicked();
+	void onCopyRoleClicked();
 	void onEditRoleClicked();
-	void loadRoleIntoEditPanel();
+	void loadRoleIntoEditPanel(bool copy = false);
 	void onRolesCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
 	void onDeleteRoleClicked();
 
@@ -103,9 +105,10 @@ private:
 	void reloadMounts(const QString &mount_point_to_select);
 	void clearMounts();
 	void onAddMountClicked();
+	void onCopyMountClicked();
 	void onDeleteMountClicked();
 	void onEditMountClicked();
-	void loadMountIntoEditPanel();
+	void loadMountIntoEditPanel(bool copy = false);
 	void onMountsCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
 
 	void showMountEdit();
