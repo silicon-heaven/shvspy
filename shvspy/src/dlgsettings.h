@@ -8,6 +8,7 @@
 #include <QDialog>
 
 class QModelIndex;
+class QKeyEvent;
 
 namespace Ui {
 class DlgSettings;
@@ -32,6 +33,9 @@ class DlgSettings : public QDialog
 public:
 	explicit DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &broker_path, const shv::chainpack::IRpcConnection::ShvApiVersion brokerApiVersion, QWidget *parent = nullptr);
 	~DlgSettings() override;
+
+protected:
+	void keyPressEvent(QKeyEvent *event) override;
 
 private:
 	struct UserAccessRule
