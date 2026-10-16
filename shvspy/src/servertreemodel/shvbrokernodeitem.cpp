@@ -509,16 +509,18 @@ void ShvBrokerNodeItem::checkShvApiVersion(QObject *context, std::function<void 
 {
 	auto *rpc_call = shv::iotqt::rpc::RpcCall::create(m_rpcConnection)->setShvPath(".broker")->setMethod("ls");
 	connect(rpc_call, &shv::iotqt::rpc::RpcCall::maybeResult, context, [this, on_success, on_error](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+		using ShvApiVersion = shv::iotqt::rpc::ClientConnection::ShvApiVersion;
 		if (error.isValid()) {
 			if (on_error) {
 				on_error(error);
 			}
 			else {
-				shvError() << "SHV API version discovery error:" << error.toString();
+				const auto fallback_version = m_rpcConnection->shvApiVersion() == ShvApiVersion::V2 ? "V2": "V3";
+				shvWarning() << "SHV API version discovery error:" << error.toString()
+							 << "Using fallback SHV API version" << fallback_version;
 			}
 		}
 		else {
-			using ShvApiVersion = shv::iotqt::rpc::ClientConnection::ShvApiVersion;
 			const auto &dirs = result.asList();
 			if (std::find(dirs.begin(), dirs.end(), "app") != dirs.end()) {
 				shvInfo() << "Setting SHV API to ver 2";
@@ -577,4 +579,3 @@ void ShvBrokerNodeItem::createSubscriptions()
 	});
 	rpc->start();
 }
-
