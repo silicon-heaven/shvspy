@@ -443,12 +443,13 @@ void DlgSettings::loadUsers(std::function<void (bool)> callback)
 	callShvMethod(aclAccessUsersPath(), shv::chainpack::Rpc::METH_LS, {}, [this, callback](const shv::chainpack::RpcValue &result) {
 		if (result.isList()) {
 			const auto &res = result.asList();
-			m_usersDataModel->setRowCount(static_cast<int>(res.size()));
-			for (size_t i = 0; i < res.size(); i++) {
-				auto *item = new QStandardItem(res.at(i).to<QString>());
+			QList<QStandardItem*> items;
+			for (const auto &user : res) {
+				auto *item = new QStandardItem(user.to<QString>());
 				item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-				m_usersDataModel->setItem(static_cast<int>(i), 0, item);
+				items << item;
 			}
+			m_usersDataModel->invisibleRootItem()->appendRows(items);
 			sortTable(ui->twUsers);
 			callback(true);
 		}
@@ -1254,12 +1255,13 @@ void DlgSettings::loadRoles(std::function<void (bool)> callback)
 	callShvMethod(aclAccessRolesPath(), shv::chainpack::Rpc::METH_LS, {}, [this, callback](const shv::chainpack::RpcValue &result) {
 		if (result.isList()){
 			const auto &res = result.asList();
-			m_rolesDataModel->setRowCount(static_cast<int>(res.size()));
-			for (size_t i = 0; i < res.size(); i++){
-				auto *item = new QStandardItem(QString::fromStdString(res.at(i).asString()));
+			QList<QStandardItem*> items;
+			for (const auto &role : res) {
+				auto *item = new QStandardItem(QString::fromStdString(role.asString()));
 				item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-				m_rolesDataModel->setItem(static_cast<int>(i), 0, item);
+				items << item;
 			}
+			m_rolesDataModel->invisibleRootItem()->appendRows(items);
 			sortTable(ui->twRoles);
 			callback(true);
 		}
@@ -1504,20 +1506,16 @@ void DlgSettings::loadMounts(std::function<void (bool)> callback)
 					on_call_finished();
 					return;
 				}
-				int row = m_mountsDataModel->rowCount();
-				m_mountsDataModel->setRowCount(row + 1);
-
 				auto *id_item = new QStandardItem(mount_id);
 				id_item->setFlags(id_item->flags() & ~Qt::ItemIsEditable);
-				m_mountsDataModel->setItem(row, 0, id_item);
 
 				auto *mountpoint_item = new QStandardItem(result.at("mountPoint").to<QString>());
 				mountpoint_item->setFlags(mountpoint_item->flags() & ~Qt::ItemIsEditable);
-				m_mountsDataModel->setItem(row, 1, mountpoint_item);
 
 				auto *description_item = new QStandardItem(result.at("description").to<QString>());
 				description_item->setFlags(description_item->flags() & ~Qt::ItemIsEditable);
-				m_mountsDataModel->setItem(row, 2, description_item);
+
+				m_mountsDataModel->appendRow({id_item, mountpoint_item, description_item});
 
 				on_call_finished();
 			}, [this, mount_id, on_call_finished, success](const QString &error) {
