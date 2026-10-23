@@ -13,10 +13,11 @@ on:
   pull_request:
     branches: [ "master" ]
 
+# Both lint jobs require clang-18 from the Ubuntu 24.04 runner image.
 jobs:
   clang-tidy:
     name: clang-tidy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone the repository
         uses: actions/checkout@v7
@@ -30,7 +31,7 @@ jobs:
 
   clazy:
     name: clazy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Clone the repository
         uses: actions/checkout@v7

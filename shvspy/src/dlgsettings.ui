@@ -691,7 +691,7 @@
          </item>
          <item>
           <widget class="QWidget" name="roleControlsWidget" native="true">
-           <layout class="QVBoxLayout" name="verticalLayout_3">
+           <layout class="QVBoxLayout" name="verticalLayout_16">
             <item>
              <widget class="QPushButton" name="pbAddRole">
               <property name="font">
@@ -731,17 +731,48 @@
              </widget>
             </item>
             <item>
-             <spacer name="verticalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Orientation::Vertical</enum>
+             <widget class="QPushButton" name="pbRoleHierarchy">
+              <property name="text">
+               <string>Role hierarchy</string>
               </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>473</height>
-               </size>
+             </widget>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_3">
+              <property name="spacing">
+               <number>0</number>
               </property>
-             </spacer>
+              <item>
+               <widget class="QTreeView" name="tvRoleHierarchy">
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
+                <property name="rootIsDecorated">
+                 <bool>false</bool>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QWidget" name="wRoleHierarchySpacer" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="lblRoleHierarchyStatus">
+              <property name="text">
+               <string notr="true">Loading role hierarchy...</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

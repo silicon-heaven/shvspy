@@ -6,6 +6,7 @@
 #include <optional>
 #include <stop_token>
 #include <QDialog>
+#include <QStringList>
 
 class QModelIndex;
 class QKeyEvent;
@@ -24,6 +25,8 @@ class QLineEdit;
 class QSortFilterProxyModel;
 class QStandardItemModel;
 class QTableView;
+class RoleHierarchyHeader;
+class RolesTreeModel;
 
 class DlgSettings : public QDialog
 {
@@ -96,7 +99,12 @@ private:
 	void onEditRoleClicked();
 	void loadRoleIntoEditPanel(bool copy = false);
 	void onRolesCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
+	void onRoleHierarchyActivated(const QModelIndex &current);
 	void onDeleteRoleClicked();
+	void toggleRoleHierarchy(bool show);
+	void onRoleHierarchyBackClicked();
+	void selectRoleInMainList(const QString &role);
+	void updateRoleHierarchy(const QString &highlight_role = {});
 
 	void showRoleEdit();
 	void hideRoleEdit();
@@ -154,6 +162,9 @@ private:
 
 	QStandardItemModel *m_rolesDataModel;
 	QSortFilterProxyModel *m_rolesModelProxy;
+	RolesTreeModel *m_roleHierarchyModel = nullptr;
+	RoleHierarchyHeader *m_roleHierarchyHeader = nullptr;
+	QStringList m_roleHierarchyBackStack;
 	QStandardItemModel *m_roleAccessRulesModel;
 	QSharedPointer<bool> m_roleAccessRulesCancelToken;
 	bool m_roleEditDirty = false;
