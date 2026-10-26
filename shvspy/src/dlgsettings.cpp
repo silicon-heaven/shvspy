@@ -6,6 +6,8 @@
 #include "accessmodel/accessitemdelegateshv2.h"
 #include "theapp.h"
 #include "dlgselectroles.h"
+#include "rolestreemodel/rolestreemodel.h"
+#include "rolehierarchyheader.h"
 
 #include <shv/core/assert.h>
 #include <shv/core/log.h>
@@ -28,6 +30,7 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QTimer>
+#include <QToolButton>
 
 static const std::string METHOD_VALUE = "value";
 static const std::string METHOD_SET_VALUE = "setValue";
@@ -150,6 +153,32 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	m_rolesModelProxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
 	m_rolesModelProxy->setSourceModel(m_rolesDataModel);
 	ui->twRoles->setModel(m_rolesModelProxy);
+	m_roleHierarchyModel = new RolesTreeModel(this);
+	ui->tvRoleHierarchy->setModel(m_roleHierarchyModel);
+	m_roleHierarchyHeader = new RoleHierarchyHeader(ui->tvRoleHierarchy);
+	ui->tvRoleHierarchy->setHeader(m_roleHierarchyHeader);
+	connect(ui->tvRoleHierarchy, &QTreeView::activated, this, &DlgSettings::onRoleHierarchyActivated);
+	ui->tvRoleHierarchy->hide();
+	ui->lblRoleHierarchyStatus->hide();
+	connect(m_roleHierarchyHeader->backButton(), &QToolButton::clicked, this, &DlgSettings::onRoleHierarchyBackClicked);
+	connect(m_roleHierarchyHeader->closeButton(), &QToolButton::clicked, this, [this]() {
+		toggleRoleHierarchy(false);
+	});
+	connect(m_roleHierarchyModel, &RolesTreeModel::loadFinished, this, [this]() {
+		if (!m_rpcConnection->isBrokerConnected()) {
+			return;
+		}
+		ui->lblRoleHierarchyStatus->clear();
+		setRoleControlsEnabled(true);
+		updateRoleHierarchy();
+	});
+	connect(m_roleHierarchyModel, &RolesTreeModel::loadError, this, [this](const QString &error) {
+		if (!m_rpcConnection->isBrokerConnected()) {
+			return;
+		}
+		setRoleControlsEnabled(true);
+		ui->lblRoleHierarchyStatus->setText(error);
+	});
 
 	ui->twRoles->horizontalHeader()->setStretchLastSection(true);
 	ui->twRoles->verticalHeader()->setDefaultSectionSize(static_cast<int>(ui->twRoles->fontMetrics().height() * ROW_HEIGHT_RATIO));
@@ -161,6 +190,9 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->pbCopyRole, &QPushButton::clicked, this, &DlgSettings::onCopyRoleClicked);
 	connect(ui->pbEditRole, &QPushButton::clicked, this, &DlgSettings::onEditRoleClicked);
 	connect(ui->pbDeleteRole, &QPushButton::clicked, this, &DlgSettings::onDeleteRoleClicked);
+	connect(ui->pbRoleHierarchy, &QPushButton::clicked, this, [this]() {
+		 toggleRoleHierarchy(true);
+	});
 	connect(ui->twRoles, &QTableView::doubleClicked, this, &DlgSettings::onEditRoleClicked);
 	connect(ui->leRolesFilter, &QLineEdit::textChanged, this, [this](const QString &filter) { applyFilter(ui->twRoles, m_rolesModelProxy, filter); });
 
@@ -416,6 +448,10 @@ void DlgSettings::onBrokerConnectedChanged(bool is_connected)
 		loadVersionInfo();
 	}
 	else {
+		m_roleHierarchyModel->clearRoleData();
+		if (!ui->tvRoleHierarchy->isHidden()) {
+			ui->lblRoleHierarchyStatus->setText(tr("Broker disconnected."));
+		}
 		hideUserEdit();
 		hideRoleEdit();
 		hideMountEdit();
@@ -541,6 +577,7 @@ void DlgSettings::loadUserIntoEditPanel(bool copy)
 
 void DlgSettings::onUsersCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous)
 {
+	setStatusText({});
 	if (m_ignoreRowChange || !ui->editUserWidget->isVisible() || !current.isValid()) {
 		return;
 	}
@@ -850,6 +887,7 @@ void DlgSettings::showMountEdit()
 
 void DlgSettings::showRoleEdit()
 {
+	toggleRoleHierarchy(false);
 	ui->roleControlsWidget->hide();
 	ui->leRoleName->clear();
 	ui->leRoles->clear();
@@ -1248,6 +1286,9 @@ void DlgSettings::processNextAccessRule(QStringList queue, QSharedPointer<QSet<Q
 void DlgSettings::clearRoles()
 {
 	m_rolesDataModel->removeRows(0, m_rolesDataModel->rowCount());
+	m_roleHierarchyBackStack.clear();
+	m_roleHierarchyModel->clearRoleData();
+	toggleRoleHierarchy(false);
 }
 
 void DlgSettings::loadRoles(std::function<void (bool)> callback)
@@ -1359,6 +1400,18 @@ void DlgSettings::loadRoleIntoEditPanel(bool copy)
 
 void DlgSettings::onRolesCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous)
 {
+	setStatusText({});
+	if (m_roleHierarchyHeader->backButton()->isEnabled()) { //disabled button means we are navigating back through hierarchy
+		if (current.isValid() && previous.isValid() && current.data() != previous.data()) {
+			m_roleHierarchyBackStack.append(previous.data().toString());
+		}
+	}
+	if (!ui->tvRoleHierarchy->isHidden()) {
+		if (current.isValid()) {
+			QString highlight_role = previous.isValid() ? previous.data().toString() : QString();
+			updateRoleHierarchy(highlight_role);
+		}
+	}
 	if (m_ignoreRowChange || !ui->editRoleWidget->isVisible() || !current.isValid()) {
 		return;
 	}
@@ -1385,6 +1438,100 @@ void DlgSettings::onDeleteRoleClicked()
 	}
 }
 
+void DlgSettings::onRoleHierarchyActivated(const QModelIndex &current)
+{
+	if (!current.isValid()) {
+		return;
+	}
+	const QString role = current.data(RolesTreeModel::NameRole).toString();
+	if (role.isEmpty() || role == currentRow(ui->twRoles)) {
+		return;
+	}
+	selectRoleInMainList(role);
+}
+
+void DlgSettings::toggleRoleHierarchy(bool show)
+{
+	const QString role = currentRow(ui->twRoles);
+	if (show && ui->tvRoleHierarchy->isHidden() && role.isEmpty()) {
+		setStatusText(tr("Select role in the table."));
+		return;
+	}
+	ui->tvRoleHierarchy->setVisible(show);
+	ui->pbRoleHierarchy->setVisible(!show);
+	ui->lblRoleHierarchyStatus->setVisible(show);
+	ui->wRoleHierarchySpacer->setVisible(!show);
+	if (!show) {
+		return;
+	}
+
+	setStatusText({});
+
+	if (m_roleHierarchyModel->rowCount()) { //already loaded
+		updateRoleHierarchy();
+	}
+	else {
+		QVector<std::string> role_names;
+		for (int row = 0; row < m_rolesDataModel->rowCount(); ++row) {
+			role_names << m_rolesDataModel->item(row, 0)->text().toStdString();
+		}
+		ui->lblRoleHierarchyStatus->setText(tr("Loading role hierarchy..."));
+		setRoleControlsEnabled(false);
+		m_roleHierarchyModel->load(m_rpcConnection, aclAccessRolesPath(), role_names);
+	}
+}
+
+void DlgSettings::onRoleHierarchyBackClicked()
+{
+	if (m_roleHierarchyBackStack.isEmpty()) {
+		return;
+	}
+	const QString previous_role = m_roleHierarchyBackStack.takeLast();
+	m_roleHierarchyHeader->backButton()->setEnabled(false); //disable back button to know, that back action is in progress
+	selectRoleInMainList(previous_role);
+	m_roleHierarchyHeader->backButton()->setEnabled(true);
+}
+
+void DlgSettings::selectRoleInMainList(const QString &role)
+{
+	for (int row = 0; row < m_rolesDataModel->rowCount(); ++row) {
+		if (m_rolesDataModel->item(row, 0)->text() != role) {
+			continue;
+		}
+		const QModelIndex source_index = m_rolesDataModel->index(row, 0);
+		QModelIndex proxy_index = m_rolesModelProxy->mapFromSource(source_index);
+		if (!proxy_index.isValid()) {
+			ui->leRolesFilter->clear();
+			proxy_index = m_rolesModelProxy->mapFromSource(source_index);
+			if (!proxy_index.isValid()) {
+				return;
+			}
+		}
+		ui->twRoles->selectionModel()->setCurrentIndex(proxy_index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+		ui->twRoles->scrollTo(proxy_index);
+		return;
+	}
+}
+
+void DlgSettings::updateRoleHierarchy(const QString &highlight_role)
+{
+	const QString role = currentRow(ui->twRoles);
+	if (role.isEmpty()) {
+		m_roleHierarchyModel->clear();
+		return;
+	}
+	ui->tvRoleHierarchy->selectionModel()->clear();
+	m_roleHierarchyModel->setRoleHierarchy(role);
+	ui->tvRoleHierarchy->expandAll();
+	if (!highlight_role.isEmpty()) {
+		const QModelIndex highlight_index = m_roleHierarchyModel->indexForRole(highlight_role);
+		if (highlight_index.isValid()) {
+			ui->tvRoleHierarchy->selectionModel()->select(highlight_index, QItemSelectionModel::SelectCurrent);
+			ui->tvRoleHierarchy->scrollTo(highlight_index);
+		}
+	}
+}
+
 void DlgSettings::setUserControlsEnabled(bool enabled)
 {
 	ui->pbAddUser->setEnabled(enabled);
@@ -1401,8 +1548,10 @@ void DlgSettings::setRoleControlsEnabled(bool enabled)
 	ui->pbCopyRole->setEnabled(enabled);
 	ui->pbEditRole->setEnabled(enabled);
 	ui->pbDeleteRole->setEnabled(enabled);
+	ui->pbRoleHierarchy->setEnabled(enabled);
 	ui->leRolesFilter->setEnabled(enabled);
 	ui->twRoles->setEnabled(enabled);
+	ui->tvRoleHierarchy->setEnabled(enabled);
 }
 
 void DlgSettings::setMountControlsEnabled(bool enabled)
@@ -1613,6 +1762,7 @@ void DlgSettings::loadMountIntoEditPanel(bool copy)
 
 void DlgSettings::onMountsCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous)
 {
+	setStatusText({});
 	if (m_ignoreRowChange || !ui->editMountWidget->isVisible() || !current.isValid()) {
 		return;
 	}

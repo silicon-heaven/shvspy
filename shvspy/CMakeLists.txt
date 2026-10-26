@@ -7,6 +7,7 @@ qt_add_executable(shvspy
     src/dlgcallshvmethod.cpp
     src/dlgselectroles.cpp
     src/dlgsubscriptionparameters.cpp
+    src/rolehierarchyheader.cpp
 
     src/log/rpcnotificationsmodel.cpp
     src/methodparametersdialog.cpp
