@@ -456,9 +456,10 @@ jobs:
 
       - name: Push changes
         if: steps.version-check.outcome == 'failure'
-        uses: Asana/push-signed-commits@ccf8c36db4cef74fe227138c574c47cba90a87a5
+        uses: Asana/push-signed-commits@fafa843d9ca76ea7e1a217202973ff566c7fa2a4
         with:
           github-token: ${{ secrets.DEPENDABOT_GITHUB_TOKEN }}
+          python-version: '3.13'
           local_branch_name: ${{github.head_ref}}
           remote_branch_name: ${{github.head_ref}}
 
