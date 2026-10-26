@@ -81,3 +81,22 @@ Checks:
   - -readability-qualified-auto,
   - -readability-redundant-access-specifiers,
   - -readability-simplify-boolean-expr,
+  # These were added as part of a CI upgrade. We might fix those at some point, but considering we do not actively
+  # develop most of the C++ shv stack, we probably won't.
+  - -bugprone-exception-escape
+  - -bugprone-signed-bitwise
+  - -bugprone-throwing-static-initialization
+  - -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
+  - -cppcoreguidelines-explicit-constructor
+  - -misc-explicit-constructor
+  - -cppcoreguidelines-use-enum-class
+  - -misc-override-with-different-visibility
+  - -misc-use-internal-linkage
+  - -modernize-use-designated-initializers
+  - -modernize-use-integer-sign-comparison
+  - -modernize-use-ranges
+  - -readability-inconsistent-ifelse-braces
+  - -readability-redundant-lambda-parameter-list
+  - -readability-redundant-nested-if
+  - -readability-redundant-parentheses
+  - -readability-use-concise-preprocessor-directives
