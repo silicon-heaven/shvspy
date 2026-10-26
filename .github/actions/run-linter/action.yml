@@ -11,8 +11,8 @@ runs:
     - name: Setup CMake
       uses: ./.github/actions/cmake
       env:
-        CC: clang-18
-        CXX: clang++-18
+        CC: clang-22
+        CXX: clang++-22
       with:
         use_qt6: ON
         qt_modules: qtserialport qtwebsockets qtnetworkauth
