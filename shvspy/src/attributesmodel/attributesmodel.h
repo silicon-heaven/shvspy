@@ -10,6 +10,7 @@ class ShvNodeItem;
 struct ShvMetaMethod;
 
 namespace shv::chainpack { class RpcMessage; }
+namespace shv::iotqt::rpc { class ClientConnection; }
 
 class AttributesModel : public QAbstractTableModel
 {
@@ -35,6 +36,8 @@ public:
 
 	QString path() const;
 	QString method(int row) const;
+	bool isResultError(int row) const;
+	shv::iotqt::rpc::ClientConnection *clientConnection() const;
 
 	Q_SIGNAL void reloaded();
 	Q_SIGNAL void methodCallResultChanged(int method_ix);
