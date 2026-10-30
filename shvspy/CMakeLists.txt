@@ -28,6 +28,8 @@ qt_add_executable(shvspy
     src/dlgbrokerproperties.cpp
     src/brokerproperty.cpp
     src/fileloader.cpp
+    src/typeinfoloader.cpp
+    src/valueinspectordialog.cpp
 
     shvspy.qrc
     config/config.qrc
