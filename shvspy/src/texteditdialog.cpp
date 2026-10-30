@@ -22,7 +22,10 @@ TextEditDialog::TextEditDialog(QWidget *parent)
 	ui->lblError->hide();
 	ui->btFormatCpon->hide();
 	ui->btCompactCpon->hide();
+	ui->btDecode->hide();
 	ui->btSaveToFile->hide();
+	ui->frmTypeInfo->hide();
+	ui->twValue->hide();
 	setReadOnly(false);
 
 	QSettings settings;
@@ -195,6 +198,8 @@ CponEditDialog::CponEditDialog(QWidget *parent)
 	connect(ui->plainTextEdit, &QPlainTextEdit::textChanged, this, &CponEditDialog::validateContentDeferred);
 	connect(ui->btCompactCpon, &QPushButton::clicked, this, &CponEditDialog::onBtCompactCponClicked);
 	connect(ui->btFormatCpon, &QPushButton::clicked, this, &CponEditDialog::onBtFormatCponClicked);
+
+	ui->btFormatCpon->setChecked(true);
 }
 
 void CponEditDialog::setValidateContent(bool b)

@@ -2,6 +2,7 @@
 
 //#include "../theapp.h"
 #include "../servertreemodel/shvnodeitem.h"
+#include "../servertreemodel/shvbrokernodeitem.h"
 
 #include <shv/chainpack/cponreader.h>
 //#include <shv/chainpack/cponwriter.h>
@@ -252,6 +253,22 @@ QString AttributesModel::method(int row) const
 		return QString();
 	}
 	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].metamethod.name());
+}
+
+bool AttributesModel::isResultError(int row) const
+{
+	if (m_shvTreeNodeItem.isNull()) {
+		return false;
+	}
+	return m_shvTreeNodeItem->methods()[row].response.isError();
+}
+
+shv::iotqt::rpc::ClientConnection *AttributesModel::clientConnection() const
+{
+	if (m_shvTreeNodeItem.isNull()) {
+		return nullptr;
+	}
+	return m_shvTreeNodeItem->serverNode()->clientConnection();
 }
 
 void AttributesModel::onMethodsLoaded()

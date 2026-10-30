@@ -14,6 +14,7 @@
 #include "dlgsettings.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
+#include "valueinspectordialog.h"
 
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/chainpack/chainpackwriter.h>
@@ -500,8 +501,14 @@ void MainWindow::openNode(const QModelIndex &ix)
 
 void MainWindow::displayResult(const QModelIndex &ix)
 {
-	auto rv = qvariant_cast<cp::RpcValue>(ix.data(AttributesModel::RpcValueRole));
-	displayValue(rv);
+	auto *view = new ValueInspectorDialog(this);
+	view->setModal(false);
+	view->setAttribute(Qt::WA_DeleteOnClose);
+	view->setWindowIconText(tr("Result"));
+	view->setReadOnly(true);
+	view->setValidateContent(false);
+	view->setResult(ix);
+	view->show();
 }
 
 namespace {
