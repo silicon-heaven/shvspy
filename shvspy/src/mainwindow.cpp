@@ -95,7 +95,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		ui->btFileDownload->setVisible(false);
 	};
 	hide_action_buttons();
-	connect(attr_model, &AttributesModel::reloaded, this, [this, hide_action_buttons]() {
+	connect(attr_model, &AttributesModel::modelReset, this, [this, hide_action_buttons]() {
 		static constexpr auto get_log_methods = {cp::Rpc::METH_GET_LOG};
 		static constexpr auto ro_file_node_methods = {"size", "stat", "read"};
 		static constexpr auto wr_file_node_methods = {"size", "stat", "write"};
@@ -561,11 +561,10 @@ void MainWindow::showBlob(const QByteArray &blob)
 
 void MainWindow::editMethodParameters(const QModelIndex &ix)
 {
-	QVariant v = ix.data(AttributesModel::RpcValueRole);
-	auto rv = qvariant_cast<cp::RpcValue>(v);
-
-	QString path = TheApp::instance()->attributesModel()->path();
-	QString method = TheApp::instance()->attributesModel()->method(ix.row());
+	auto *attributes_model = TheApp::instance()->attributesModel();
+	auto rv = attributes_model->methodParams(ix.row());
+	QString path = attributes_model->path();
+	QString method = attributes_model->methodName(ix.row());
 	auto *dlg = new MethodParametersDialog(path, method, rv, this);
 	dlg->setWindowTitle(tr("Parameters"));
 	connect(dlg, &QDialog::finished, this, [this, dlg, ix](int result) {
@@ -586,8 +585,7 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 
 void MainWindow::editStringParameter(const QModelIndex &ix)
 {
-	QVariant v = ix.data(AttributesModel::RpcValueRole);
-	auto rv = qvariant_cast<cp::RpcValue>(v);
+	auto rv = TheApp::instance()->attributesModel()->methodParams(ix.row());
 	QString cpon = QString::fromStdString(rv.asString());
 	auto *dlg = new TextEditDialog(this);
 	dlg->setWindowTitle(tr("Parameters"));
@@ -606,8 +604,7 @@ void MainWindow::editStringParameter(const QModelIndex &ix)
 
 void MainWindow::editCponParameters(const QModelIndex &ix)
 {
-	QVariant v = ix.data(AttributesModel::RpcValueRole);
-	auto rv = qvariant_cast<cp::RpcValue>(v);
+	auto rv = TheApp::instance()->attributesModel()->methodParams(ix.row());
 	QString cpon = rv.isValid()? QString::fromStdString(rv.toCpon("  ")): QString();
 	auto *dlg = new CponEditDialog(this);
 	dlg->setWindowTitle(tr("Parameters"));
@@ -666,27 +663,28 @@ void MainWindow::onAttributesTableContextMenu(const QPoint &point)
 				}
 			}
 		};
+		if (!a) {
+			return;
+		}
+		cp::RpcResponse resp = TheApp::instance()->attributesModel()->methodCallResult(index.row());
+		if (resp.isError()) {
+			QMessageBox::warning(this, tr("Cannot save result"), tr("Result is error: %1").arg(QString::fromStdString(resp.error().message())));
+			return;
+		}
+		auto rpc_val = resp.result();
+		const std::string file_name = rpc_val.metaValue("fileName").asString();
 		if (a == a_save_result_binary) {
-			QVariant v = index.data(AttributesModel::RpcValueRole);
-			const auto rpc_val = qvariant_cast<cp::RpcValue>(v);
 			const std::string &s = rpc_val.toString();
-			const std::string file_name = rpc_val.metaValue("fileName").asString();
 			save_file(QString(), s, file_name);
 			return;
 		}
 		if (a == a_save_result_chainpack) {
-			QVariant v = index.data(AttributesModel::RpcValueRole);
-			const auto rpc_val = qvariant_cast<cp::RpcValue>(v);
 			const std::string s = rpc_val.toChainPack();
-			const std::string file_name = rpc_val.metaValue("fileName").asString();
 			save_file(tr("ChainPack files (*.chpk)"), s, file_name + ".chpk");
 			return;
 		}
 		if (a == a_save_result_cpon) {
-			QVariant v = index.data(AttributesModel::RpcValueRole);
-			const auto rpc_val = qvariant_cast<cp::RpcValue>(v);
 			const std::string s = rpc_val.toCpon();
-			const std::string file_name = rpc_val.metaValue("fileName").asString();
 			save_file(tr("Cpon files (*.cpon)"), s, file_name + ".cpon");
 			return;
 		}

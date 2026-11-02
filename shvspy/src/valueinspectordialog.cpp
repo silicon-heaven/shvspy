@@ -219,7 +219,14 @@ ValueInspectorDialog::ValueInspectorDialog(QWidget *parent)
 void ValueInspectorDialog::setResult(const QModelIndex &ix)
 {
 	auto *attributes_model = TheApp::instance()->attributesModel();
-	m_value = qvariant_cast<cp::RpcValue>(ix.data(AttributesModel::RpcValueRole));
+	auto resp = attributes_model->methodCallResult(ix.row());
+	ui->frmTypeInfo->show();
+	if (resp.isError()) {
+		m_value = {};
+		setErrorMessage(tr("result is an error"));
+		return;
+	}
+	m_value = resp.result();
 	if (m_value.isString()) {
 		setText(QString::fromStdString(m_value.asString()));
 	}
@@ -241,11 +248,7 @@ void ValueInspectorDialog::setResult(const QModelIndex &ix)
 		ui->btDecode->setEnabled(false);
 	}
 	ui->frmTypeInfo->show();
-	if (attributes_model->isResultError(ix.row())) {
-		setErrorMessage(tr("result is an error"));
-		return;
-	}
-	if (attributes_model->method(ix.row()) != cp::Rpc::METH_GET) {
+	if (attributes_model->methodName(ix.row()) != cp::Rpc::METH_GET) {
 		setErrorMessage(tr("type info can be applied to the result of method %1 only").arg(cp::Rpc::METH_GET));
 		return;
 	}

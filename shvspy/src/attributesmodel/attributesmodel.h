@@ -9,7 +9,7 @@
 class ShvNodeItem;
 struct ShvMetaMethod;
 
-namespace shv::chainpack { class RpcMessage; }
+namespace shv::chainpack { class RpcResponse; }
 namespace shv::iotqt::rpc { class ClientConnection; }
 
 class AttributesModel : public QAbstractTableModel
@@ -19,7 +19,6 @@ private:
 	typedef QAbstractTableModel Super;
 public:
 	enum Columns {ColMethodName = 0, ColParamType, ColResultType, ColSignals, ColFlags, ColAccessLevel, ColParams, ColResult, ColBtRun, ColError, ColMetaMethod, ColCnt};
-	enum Roles {RpcValueRole = Qt::UserRole };
 public:
 	AttributesModel(QObject *parent = nullptr);
 	~AttributesModel() override = default;
@@ -35,22 +34,15 @@ public:
 	void callMethod(unsigned row, bool throw_exc = false);
 
 	QString path() const;
-	QString method(int row) const;
-	bool isResultError(int row) const;
+	QString methodName(int row) const;
+	shv::chainpack::RpcValue methodParams(int row) const;
+	shv::chainpack::RpcResponse methodCallResult(int row) const;
 	shv::iotqt::rpc::ClientConnection *clientConnection() const;
 
-	Q_SIGNAL void reloaded();
-	Q_SIGNAL void methodCallResultChanged(int method_ix);
 private:
 	void onMethodsLoaded();
 	void onRpcMethodCallFinished(int method_ix);
-	const ShvMetaMethod *metaMethodAt(unsigned method_ix);
-	void loadRow(unsigned method_ix);
-	void loadRows();
-	void emitRowChanged(int row_ix);
 	void callGetters();
-private:
+
 	QPointer<ShvNodeItem> m_shvTreeNodeItem;
-	using RowVals = shv::chainpack::RpcValue::List;
-	std::vector<RowVals> m_rows;
 };

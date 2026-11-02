@@ -249,15 +249,6 @@ void ShvNodeItem::loadChildren()
 	//emitDataChanged();
 }
 
-bool ShvNodeItem::checkMethodsLoaded()
-{
-	if(!isMethodsLoaded() && !isMethodsLoading()) {
-		loadMethods();
-		return false;
-	}
-	return true;
-}
-
 void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
@@ -282,19 +273,18 @@ void ShvNodeItem::setMethodParams(int method_ix, const shv::chainpack::RpcValue 
 	mtd.params = params;
 }
 
-unsigned ShvNodeItem::callMethod(int method_ix, bool throw_exc)
+void ShvNodeItem::callMethod(int method_ix, bool throw_exc)
 {
 	//const QVector<ShvMetaMethod> &mm = m_methods();
 	if(method_ix < 0 || method_ix >= m_methods.count())
-		return 0;
+		return;
 	ShvMetaMethod &mtd = m_methods[method_ix];
 	if(mtd.metamethod.name().empty() || (mtd.isSignal() && !mtd.isGetter()))
-		return 0;
+		return;
 	mtd.response = RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	auto request_user_id = (mtd.metamethod.flags() & shv::chainpack::MetaMethod::Flag::UserIDRequired) != 0 ? RequestUserID::Yes : RequestUserID::No;
 	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.metamethod.name(), mtd.params, request_user_id, throw_exc);
-	return mtd.rpcRequestId;
 }
 
 void ShvNodeItem::reload()
