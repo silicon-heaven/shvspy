@@ -665,6 +665,34 @@
                    </widget>
                   </item>
                   <item>
+                   <widget class="QToolButton" name="tbMoveRowToTop">
+                    <property name="toolTip">
+                     <string>Move rule to top</string>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../shvspy.qrc">
+                      <normaloff>:/shvspy/images/move-top.svg</normaloff>:/shvspy/images/move-top.svg</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QToolButton" name="tbMoveRowToBottom">
+                    <property name="toolTip">
+                     <string>Move rule to bottom</string>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../shvspy.qrc">
+                      <normaloff>:/shvspy/images/move-bottom.svg</normaloff>:/shvspy/images/move-bottom.svg</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
                    <spacer name="horizontalSpacer">
                     <property name="orientation">
                      <enum>Qt::Orientation::Horizontal</enum>

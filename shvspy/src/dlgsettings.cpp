@@ -266,6 +266,12 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->tbMoveRowDown, &QToolButton::clicked, this, [this]() {
 		m_accessModel->moveRuleDown(ui->tvAccessRules->currentIndex().row());
 	});
+	connect(ui->tbMoveRowToTop, &QToolButton::clicked, this, [this]() {
+		m_accessModel->moveRuleToTop(ui->tvAccessRules->currentIndex().row());
+	});
+	connect(ui->tbMoveRowToBottom, &QToolButton::clicked, this, [this]() {
+		m_accessModel->moveRuleToBottom(ui->tvAccessRules->currentIndex().row());
+	});
 	connect(ui->pbSelectRoles, &QPushButton::clicked, this, [this]() {
 		execSelectRolesDialog(ui->leRoles);
 	});
