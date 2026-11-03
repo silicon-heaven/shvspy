@@ -137,10 +137,10 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->tvUserAccessRules->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 	connect(ui->leUserRoles, &QLineEdit::textChanged, this, &DlgSettings::refreshUserAccessRules);
 
-	connect(ui->leUserName, &QLineEdit::textEdited, this, [this]() { m_userEditDirty = true; });
-	connect(ui->leUserPassword, &QLineEdit::textEdited, this, [this]() { m_userEditDirty = true; });
-	connect(ui->leUserRoles, &QLineEdit::textChanged, this, [this]() { m_userEditDirty = true; });
-	connect(ui->chbCreateRole, &QCheckBox::toggled, this, [this]() { m_userEditDirty = true; });
+	connect(ui->leUserName, &QLineEdit::textEdited, this, [this]() { setUserEditDirty(true); });
+	connect(ui->leUserPassword, &QLineEdit::textEdited, this, [this]() { setUserEditDirty(true); });
+	connect(ui->leUserRoles, &QLineEdit::textChanged, this, [this]() { setUserEditDirty(true); });
+	connect(ui->chbCreateRole, &QCheckBox::toggled, this, [this]() { setUserEditDirty(true); });
 	connect(ui->twUsers->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &DlgSettings::onUsersCurrentRowChanged);
 
 	//roles
@@ -223,9 +223,9 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	connect(ui->leMountsFilter, &QLineEdit::textChanged, this, [this](const QString &filter) { applyFilter(ui->twMounts, m_mountsModelProxy, filter); });
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &DlgSettings::onBrokerConnectedChanged);
 
-	connect(ui->leMountDeviceId, &QLineEdit::textEdited, this, [this]() { m_mountEditDirty = true; });
-	connect(ui->leMountPoint, &QLineEdit::textEdited, this, [this]() { m_mountEditDirty = true; });
-	connect(ui->leMountDescription, &QLineEdit::textEdited, this, [this]() { m_mountEditDirty = true; });
+	connect(ui->leMountDeviceId, &QLineEdit::textEdited, this, [this]() { setMountEditDirty(true); });
+	connect(ui->leMountPoint, &QLineEdit::textEdited, this, [this]() { setMountEditDirty(true); });
+	connect(ui->leMountDescription, &QLineEdit::textEdited, this, [this]() { setMountEditDirty(true); });
 	connect(ui->twMounts->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &DlgSettings::onMountsCurrentRowChanged);
 
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, [this](){
@@ -235,18 +235,10 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	hideUserEdit();
 	connect(ui->editUserButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
 		if (button == ui->editUserButtonBox->button(QDialogButtonBox::Save)) {
-			auto user_to_select = ui->leUserName->text().trimmed();
-			ui->editUserWidget->setEnabled(false);
-			saveUserEdit([this, user_to_select](bool success) {
-				ui->editUserWidget->setEnabled(true);
-				if (success) {
-					hideUserEdit();
-					reloadUsers(user_to_select);
-				}
-			});
+			saveAndCloseUserEdit();
 		}
-		else {
-			hideUserEdit();
+		else if (button == ui->editUserButtonBox->button(QDialogButtonBox::Cancel)) {
+			requestCloseUserEdit();
 		}
 	});
 
@@ -260,10 +252,10 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	}
 	ui->tvAccessRules->setModel(m_accessModel);
 	ui->tvAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
-	connect(m_accessModel, &QAbstractItemModel::dataChanged, this, [this]() { m_roleEditDirty = true; });
-	connect(m_accessModel, &QAbstractItemModel::rowsInserted, this, [this]() { m_roleEditDirty = true; });
-	connect(m_accessModel, &QAbstractItemModel::rowsRemoved, this, [this]() { m_roleEditDirty = true; });
-	connect(m_accessModel, &QAbstractItemModel::rowsMoved, this, [this]() { m_roleEditDirty = true; });
+	connect(m_accessModel, &QAbstractItemModel::dataChanged, this, [this]() { setRoleEditDirty(true); });
+	connect(m_accessModel, &QAbstractItemModel::rowsInserted, this, [this]() { setRoleEditDirty(true); });
+	connect(m_accessModel, &QAbstractItemModel::rowsRemoved, this, [this]() { setRoleEditDirty(true); });
+	connect(m_accessModel, &QAbstractItemModel::rowsMoved, this, [this]() { setRoleEditDirty(true); });
 	connect(ui->tbAddRow, &QToolButton::clicked, m_accessModel, &AccessModel::addRule);
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, [this]() {
 		m_accessModel->deleteRule(ui->tvAccessRules->currentIndex().row());
@@ -290,45 +282,29 @@ DlgSettings::DlgSettings(shv::iotqt::rpc::ClientConnection *rpc_connection, cons
 	ui->tvInheritedAccessRules->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 	connect(ui->leRoles, &QLineEdit::textChanged, this, &DlgSettings::refreshRoleAccessRules);
 
-	connect(ui->leRoleName, &QLineEdit::textEdited, this, [this]() { m_roleEditDirty = true; });
-	connect(ui->leRoles, &QLineEdit::textChanged, this, [this]() { m_roleEditDirty = true; });
-	connect(ui->sbWeight, qOverload<int>(&QSpinBox::valueChanged), this, [this]() { m_roleEditDirty = true; });
-	connect(ui->leProfile, &QLineEdit::textEdited, this, [this]() { m_roleEditDirty = true; });
+	connect(ui->leRoleName, &QLineEdit::textEdited, this, [this]() { setRoleEditDirty(true); });
+	connect(ui->leRoles, &QLineEdit::textChanged, this, [this]() { setRoleEditDirty(true); });
+	connect(ui->sbWeight, qOverload<int>(&QSpinBox::valueChanged), this, [this]() { setRoleEditDirty(true); });
+	connect(ui->leProfile, &QLineEdit::textEdited, this, [this]() { setRoleEditDirty(true); });
 	connect(ui->twRoles->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &DlgSettings::onRolesCurrentRowChanged);
 
 	hideRoleEdit();
 	connect(ui->editRoleButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
 		if (button == ui->editRoleButtonBox->button(QDialogButtonBox::Save)) {
-			auto role_to_select = ui->leRoleName->text().trimmed();
-			ui->editRoleWidget->setEnabled(false);
-			saveRoleEdit([this, role_to_select](bool success) {
-				ui->editRoleWidget->setEnabled(true);
-				if (success) {
-					hideRoleEdit();
-					reloadRoles(role_to_select);
-				}
-			});
+			saveAndCloseRoleEdit();
 		}
-		else {
-			hideRoleEdit();
+		else if (button == ui->editRoleButtonBox->button(QDialogButtonBox::Cancel)) {
+			requestCloseRoleEdit();
 		}
 	});
 
 	hideMountEdit();
 	connect(ui->editMountButtonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton *button) {
 		if (button == ui->editMountButtonBox->button(QDialogButtonBox::Save)) {
-			auto mount_point_to_select = ui->leMountDeviceId->text().trimmed();
-			ui->editMountWidget->setEnabled(false);
-			saveMountEdit([this, mount_point_to_select](bool success) {
-				ui->editMountWidget->setEnabled(true);
-				if (success) {
-					hideMountEdit();
-					reloadMounts(mount_point_to_select);
-				}
-			});
+			saveAndCloseMountEdit();
 		}
-		else {
-			hideMountEdit();
+		else if (button == ui->editMountButtonBox->button(QDialogButtonBox::Cancel)) {
+			requestCloseMountEdit();
 		}
 	});
 
@@ -359,17 +335,17 @@ void DlgSettings::keyPressEvent(QKeyEvent *event)
 {
 	if (event->key() == Qt::Key_Escape) {
 		if (ui->editUserWidget->isVisible()) {
-			hideUserEdit();
+			requestCloseUserEdit();
 			event->accept();
 			return;
 		}
 		if (ui->editRoleWidget->isVisible()) {
-			hideRoleEdit();
+			requestCloseRoleEdit();
 			event->accept();
 			return;
 		}
 		if (ui->editMountWidget->isVisible()) {
-			hideMountEdit();
+			requestCloseMountEdit();
 			event->accept();
 			return;
 		}
@@ -525,7 +501,7 @@ void DlgSettings::onAddUserClicked()
 	ui->editUserWidget->setTitle(tr("New user"));
 	ui->leUserName->setReadOnly(false);
 	ui->leUserName->setFocus();
-	m_userEditDirty = false;
+	setUserEditDirty(false);
 }
 
 void DlgSettings::onEditUserClicked()
@@ -571,7 +547,7 @@ void DlgSettings::loadUserIntoEditPanel(bool copy)
 		if (copy) {
 			m_editUser.password = {};
 		}
-		m_userEditDirty = false;
+		setUserEditDirty(false);
 	});
 }
 
@@ -581,7 +557,7 @@ void DlgSettings::onUsersCurrentRowChanged(const QModelIndex &current, const QMo
 	if (m_ignoreRowChange || !ui->editUserWidget->isVisible() || !current.isValid()) {
 		return;
 	}
-	handleRowSwitchConfirmation(ui->twUsers, ui->editUserWidget, m_userEditDirty, previous,
+	handleRowSwitchConfirmation(ui->twUsers, ui->editUserWidget, ui->lblUserEditDirty, m_userEditDirty, previous,
 								 [this](std::function<void(bool)> cb) { saveUserEdit(cb); },
 								 [this]() { loadUserIntoEditPanel(); },
 								 [this](const QString &target) { reloadUsers(target); });
@@ -605,7 +581,31 @@ void DlgSettings::hideUserEdit()
 	ui->userControlsWidget->show();
 	ui->twUsers->setEnabled(true);
 	ui->leUsersFilter->setEnabled(true);
-	m_userEditDirty = false;
+	setUserEditDirty(false);
+}
+
+void DlgSettings::setUserEditDirty(bool dirty)
+{
+	m_userEditDirty = dirty;
+	ui->lblUserEditDirty->setVisible(dirty);
+}
+
+void DlgSettings::saveAndCloseUserEdit()
+{
+	saveAndCloseEditPanel(ui->editUserWidget, ui->lblUserEditDirty, m_userEditDirty,
+						  [this](std::function<void(bool)> callback) { saveUserEdit(callback); },
+						  [this]() { return ui->leUserName->text().trimmed(); },
+						  [this]() { hideUserEdit(); },
+						  [this](const QString &target) { reloadUsers(target); });
+}
+
+void DlgSettings::requestCloseUserEdit()
+{
+	requestCloseEditPanel(ui->editUserWidget, ui->lblUserEditDirty, m_userEditDirty,
+						   [this](std::function<void(bool)> callback) { saveUserEdit(callback); },
+						   [this]() { return ui->leUserName->text().trimmed(); },
+						   [this]() { hideUserEdit(); },
+						   [this](const QString &target) { reloadUsers(target); });
 }
 
 void DlgSettings::hideMountEdit()
@@ -614,7 +614,31 @@ void DlgSettings::hideMountEdit()
 	ui->mountControlsWidget->show();
 	ui->twMounts->setEnabled(true);
 	ui->leMountsFilter->setEnabled(true);
-	m_mountEditDirty = false;
+	setMountEditDirty(false);
+}
+
+void DlgSettings::setMountEditDirty(bool dirty)
+{
+	m_mountEditDirty = dirty;
+	ui->lblMountEditDirty->setVisible(dirty);
+}
+
+void DlgSettings::saveAndCloseMountEdit()
+{
+	saveAndCloseEditPanel(ui->editMountWidget, ui->lblMountEditDirty, m_mountEditDirty,
+						  [this](std::function<void(bool)> callback) { saveMountEdit(callback); },
+						  [this]() { return ui->leMountDeviceId->text().trimmed(); },
+						  [this]() { hideMountEdit(); },
+						  [this](const QString &target) { reloadMounts(target); });
+}
+
+void DlgSettings::requestCloseMountEdit()
+{
+	requestCloseEditPanel(ui->editMountWidget, ui->lblMountEditDirty, m_mountEditDirty,
+						   [this](std::function<void(bool)> callback) { saveMountEdit(callback); },
+						   [this]() { return ui->leMountDeviceId->text().trimmed(); },
+						   [this]() { hideMountEdit(); },
+						   [this](const QString &target) { reloadMounts(target); });
 }
 
 void DlgSettings::hideRoleEdit()
@@ -623,7 +647,31 @@ void DlgSettings::hideRoleEdit()
 	ui->roleControlsWidget->show();
 	ui->twRoles->setEnabled(true);
 	ui->leRolesFilter->setEnabled(true);
-	m_roleEditDirty = false;
+	setRoleEditDirty(false);
+}
+
+void DlgSettings::setRoleEditDirty(bool dirty)
+{
+	m_roleEditDirty = dirty;
+	ui->lblRoleEditDirty->setVisible(dirty);
+}
+
+void DlgSettings::saveAndCloseRoleEdit()
+{
+	saveAndCloseEditPanel(ui->editRoleWidget, ui->lblRoleEditDirty, m_roleEditDirty,
+						  [this](std::function<void(bool)> callback) { saveRoleEdit(callback); },
+						  [this]() { return ui->leRoleName->text().trimmed(); },
+						  [this]() { hideRoleEdit(); },
+						  [this](const QString &target) { reloadRoles(target); });
+}
+
+void DlgSettings::requestCloseRoleEdit()
+{
+	requestCloseEditPanel(ui->editRoleWidget, ui->lblRoleEditDirty, m_roleEditDirty,
+						   [this](std::function<void(bool)> callback) { saveRoleEdit(callback); },
+						   [this]() { return ui->leRoleName->text().trimmed(); },
+						   [this]() { hideRoleEdit(); },
+						   [this](const QString &target) { reloadRoles(target); });
 }
 
 void DlgSettings::saveRoleEdit(std::function<void (bool)> callback)
@@ -1336,7 +1384,7 @@ void DlgSettings::onAddRoleClicked()
 	ui->roleGroupBox->setTitle(tr("New role"));
 	ui->leRoleName->setReadOnly(false);
 	ui->leRoleName->setFocus();
-	m_roleEditDirty = false;
+	setRoleEditDirty(false);
 }
 
 void DlgSettings::onEditRoleClicked()
@@ -1394,7 +1442,7 @@ void DlgSettings::loadRoleIntoEditPanel(bool copy)
 		m_accessModel->setRules(access);
 		ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 		setStatusText({});
-		m_roleEditDirty = false;
+		setRoleEditDirty(false);
 	});
 }
 
@@ -1415,7 +1463,7 @@ void DlgSettings::onRolesCurrentRowChanged(const QModelIndex &current, const QMo
 	if (m_ignoreRowChange || !ui->editRoleWidget->isVisible() || !current.isValid()) {
 		return;
 	}
-	handleRowSwitchConfirmation(ui->twRoles, ui->editRoleWidget, m_roleEditDirty, previous,
+	handleRowSwitchConfirmation(ui->twRoles, ui->editRoleWidget, ui->lblRoleEditDirty, m_roleEditDirty, previous,
 								 [this](std::function<void(bool)> cb) { saveRoleEdit(cb); },
 								 [this]() { loadRoleIntoEditPanel(); },
 								 [this](const QString &target) { reloadRoles(target); });
@@ -1699,7 +1747,7 @@ void DlgSettings::onAddMountClicked()
 	ui->editMountWidget->setTitle(tr("New mount point"));
 	ui->leMountDeviceId->setReadOnly(false);
 	ui->leMountDeviceId->setFocus();
-	m_mountEditDirty = false;
+	setMountEditDirty(false);
 }
 
 void DlgSettings::onDeleteMountClicked()
@@ -1756,7 +1804,7 @@ void DlgSettings::loadMountIntoEditPanel(bool copy)
 		ui->leMountDeviceId->setText(mount);
 		ui->leMountPoint->setText(QString::fromStdString(mount_def.mountPoint));
 		ui->leMountDescription->setText(QString::fromStdString(mount_def.description));
-		m_mountEditDirty = false;
+		setMountEditDirty(false);
 	});
 }
 
@@ -1766,16 +1814,16 @@ void DlgSettings::onMountsCurrentRowChanged(const QModelIndex &current, const QM
 	if (m_ignoreRowChange || !ui->editMountWidget->isVisible() || !current.isValid()) {
 		return;
 	}
-	handleRowSwitchConfirmation(ui->twMounts, ui->editMountWidget, m_mountEditDirty, previous,
+	handleRowSwitchConfirmation(ui->twMounts, ui->editMountWidget, ui->lblMountEditDirty, m_mountEditDirty, previous,
 								 [this](std::function<void(bool)> cb) { saveMountEdit(cb); },
 								 [this]() { loadMountIntoEditPanel(); },
 								 [this](const QString &target) { reloadMounts(target); });
 }
 
-void DlgSettings::handleRowSwitchConfirmation(QTableView *table, QWidget *edit_widget, bool &dirty, const QModelIndex &previous,
-											  std::function<void(std::function<void(bool)>)> save_funcion,
+void DlgSettings::handleRowSwitchConfirmation(QTableView *table, QWidget *edit_widget, QLabel *dirty_indicator, bool &dirty, const QModelIndex &previous,
+											  SaveFunction save_function,
 											  std::function<void()> discard_function,
-											  std::function<void(const QString &)> reload_function)
+											  ReloadFunction reload_function)
 {
 	auto revert = [this, table, edit_widget, previous]() {
 		edit_widget->setEnabled(true);
@@ -1794,15 +1842,14 @@ void DlgSettings::handleRowSwitchConfirmation(QTableView *table, QWidget *edit_w
 	}
 
 	QString target_key = currentRow(table);
-	auto ret = QMessageBox::question(this, tr("Unsaved changes"),
-									  tr("This item has unsaved changes. Do you want to save them before switching?"),
-									  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
-	if (ret == QMessageBox::Cancel) {
+	const auto decision = askUnsavedChanges(tr("switching to another row"));
+	if (decision == UnsavedChangesDecision::Cancel) {
 		revert();
 		return;
 	}
-	if (ret == QMessageBox::Discard) {
+	if (decision == UnsavedChangesDecision::Discard) {
 		dirty = false;
+		dirty_indicator->hide();
 		edit_widget->setEnabled(false);
 		discard_function();
 		return;
@@ -1810,18 +1857,76 @@ void DlgSettings::handleRowSwitchConfirmation(QTableView *table, QWidget *edit_w
 
 	edit_widget->setEnabled(false);
 	QPointer<DlgSettings> self = this;
-	save_funcion([self, &dirty, target_key, reload_function, revert](bool success) {
+	save_function([self, &dirty, dirty_indicator, target_key, reload_function, revert](bool success) {
 		if (!self) {
 			return;
 		}
 		if (success) {
 			dirty = false;
+			dirty_indicator->hide();
 			reload_function(target_key);
 		}
 		else {
 			revert();
 		}
 	});
+}
+
+DlgSettings::UnsavedChangesDecision DlgSettings::askUnsavedChanges(const QString &action)
+{
+	const auto result = QMessageBox::question(this, tr("Unsaved changes"),
+											  tr("This item has unsaved changes. Do you want to save them before %1?").arg(action),
+											  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+	if (result == QMessageBox::Save) {
+		return UnsavedChangesDecision::Save;
+	}
+	if (result == QMessageBox::Discard) {
+		return UnsavedChangesDecision::Discard;
+	}
+	return UnsavedChangesDecision::Cancel;
+}
+
+void DlgSettings::saveAndCloseEditPanel(QWidget *edit_widget, QLabel *dirty_indicator, bool &dirty, SaveFunction save_function,
+										TargetKeyFunction target_key_function, CloseFunction close_function, ReloadFunction reload_function)
+{
+	const QString target_key = target_key_function();
+	edit_widget->setEnabled(false);
+	QPointer<DlgSettings> self = this;
+	save_function([self, edit_widget, dirty_indicator, &dirty, target_key, close_function, reload_function](bool success) {
+		if (!self) {
+			return;
+		}
+		edit_widget->setEnabled(true);
+		if (!success) {
+			return;
+		}
+		dirty = false;
+		dirty_indicator->hide();
+		close_function();
+		reload_function(target_key);
+	});
+}
+
+void DlgSettings::requestCloseEditPanel(QWidget *edit_widget, QLabel *dirty_indicator, bool &dirty, SaveFunction save_function,
+										TargetKeyFunction target_key_function, CloseFunction close_function, ReloadFunction reload_function)
+{
+	if (!dirty) {
+		close_function();
+		return;
+	}
+
+	switch (askUnsavedChanges(tr("leaving the editor"))) {
+	case UnsavedChangesDecision::Save:
+		saveAndCloseEditPanel(edit_widget, dirty_indicator, dirty, save_function, target_key_function, close_function, reload_function);
+		break;
+	case UnsavedChangesDecision::Discard:
+		dirty = false;
+		dirty_indicator->hide();
+		close_function();
+		break;
+	case UnsavedChangesDecision::Cancel:
+		break;
+	}
 }
 
 void DlgSettings::callShvMethod(const std::string &path, const std::string &method, const shv::chainpack::RpcValue &params, std::function<void(const shv::chainpack::RpcValue &)> on_success, std::function<void(const QString &)> on_error)
