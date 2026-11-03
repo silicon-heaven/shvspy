@@ -19,6 +19,8 @@ public:
 	virtual void addRule() = 0;
 	virtual void moveRuleUp(int index) = 0;
 	virtual void moveRuleDown(int index) = 0;
+	void moveRuleToTop(int index);
+	void moveRuleToBottom(int index);
 	virtual void deleteRule(int index) = 0;
 	virtual bool isRulesValid() = 0;
 };
