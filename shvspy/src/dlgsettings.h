@@ -41,6 +41,12 @@ protected:
 	void keyPressEvent(QKeyEvent *event) override;
 
 private:
+	enum class UnsavedChangesDecision { Save, Discard, Cancel };
+	using SaveFunction = std::function<void(std::function<void(bool)>)>;
+	using TargetKeyFunction = std::function<QString()>;
+	using CloseFunction = std::function<void()>;
+	using ReloadFunction = std::function<void(const QString &)>;
+
 	struct UserAccessRule
 	{
 		QString path;
@@ -79,8 +85,11 @@ private:
 	void callGetUser(std::function<void (bool)> callback);
 	void callSaveUser(std::function<void (bool)> callback);
 	void saveUserEdit(std::function<void (bool)> callback);
+	void saveAndCloseUserEdit();
+	void requestCloseUserEdit();
 	void showUserEdit();
 	void hideUserEdit();
+	void setUserEditDirty(bool dirty);
 	void setUserPasswordMode(bool password_mode);
 	void checkExistingUser(std::function<void (bool, bool)> callback);
 
@@ -108,6 +117,9 @@ private:
 
 	void showRoleEdit();
 	void hideRoleEdit();
+	void setRoleEditDirty(bool dirty);
+	void saveAndCloseRoleEdit();
+	void requestCloseRoleEdit();
 	void saveRoleEdit(std::function<void(bool)> callback);
 	void callGetRole(std::function<void(bool, const QStringList &, const shv::chainpack::RpcValue &, const std::optional<int> &, const shv::chainpack::RpcValue &)> callback);
 	void callSaveRole(std::function<void(bool)> callback);
@@ -125,6 +137,9 @@ private:
 
 	void showMountEdit();
 	void hideMountEdit();
+	void setMountEditDirty(bool dirty);
+	void saveAndCloseMountEdit();
+	void requestCloseMountEdit();
 	void callGetMount(std::function<void(bool, const shv::iotqt::acl::AclMountDef &mount_def)> callback);
 	void callSaveMount(std::function<void(bool)> callback);
 	void checkExistingMount(std::function<void(bool, bool)> callback);
@@ -132,10 +147,15 @@ private:
 
 	void callShvMethod(const std::string &path, const std::string &method, const shv::chainpack::RpcValue &params, std::function<void(const shv::chainpack::RpcValue &)> on_success, std::function<void(const QString &)> on_error);
 
-	void handleRowSwitchConfirmation(QTableView *table, QWidget *edit_widget, bool &dirty, const QModelIndex &previous,
-									  std::function<void(std::function<void(bool)>)> save_funcion,
+	void handleRowSwitchConfirmation(QTableView *table, QWidget *edit_widget, QLabel *dirty_indicator, bool &dirty, const QModelIndex &previous,
+									  SaveFunction save_function,
 									  std::function<void()> discard_function,
-									  std::function<void(const QString &)> reload_function);
+									  ReloadFunction reload_function);
+	void saveAndCloseEditPanel(QWidget *edit_widget, QLabel *dirty_indicator, bool &dirty, SaveFunction save_function,
+								TargetKeyFunction target_key_function, CloseFunction close_function, ReloadFunction reload_function);
+	void requestCloseEditPanel(QWidget *edit_widget, QLabel *dirty_indicator, bool &dirty, SaveFunction save_function,
+								TargetKeyFunction target_key_function, CloseFunction close_function, ReloadFunction reload_function);
+	UnsavedChangesDecision askUnsavedChanges(const QString &action);
 
 	QString currentRow(QTableView *table) const;
 	void setCurrentRow(QTableView *table, const QString &row);
