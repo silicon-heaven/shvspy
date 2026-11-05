@@ -35,6 +35,8 @@ public:
 
 	QString path() const;
 	QString methodName(int row) const;
+	QString methodParamType(int row) const;
+	QString methodResultType(int row) const;
 	shv::chainpack::RpcValue methodParams(int row) const;
 	shv::chainpack::RpcResponse methodCallResult(int row) const;
 	shv::iotqt::rpc::ClientConnection *clientConnection() const;

@@ -25,15 +25,18 @@ qt_add_executable(shvspy
     src/appversion.h
     src/main.cpp
     src/mainwindow.cpp
+    src/typedescriptiondialog.cpp
     src/dlgbrokerproperties.cpp
     src/brokerproperty.cpp
     src/fileloader.cpp
     src/typeinfoloader.cpp
+    src/rpctypedescription.cpp
     src/valueinspectordialog.cpp
 
     shvspy.qrc
     config/config.qrc
     src/dlgsettings.h src/dlgsettings.cpp src/dlgsettings.ui
+    src/typedescriptiondialog.h src/typedescriptiondialog.ui
 )
 
 target_link_libraries(shvspy PRIVATE libshv::libshvvisu)
