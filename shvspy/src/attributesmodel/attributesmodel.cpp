@@ -127,6 +127,9 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			}
 			return lines.join('\n');
 		}
+		if(ix.column() == ColParamType || ix.column() == ColResultType) {
+			return tr("Double-click to inspect the full SHV RPC type description.");
+		}
 		return data(ix, Qt::DisplayRole);
 	}
 	default:
@@ -230,6 +233,22 @@ QString AttributesModel::methodName(int row) const
 		return QString();
 	}
 	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].metamethod.name());
+}
+
+QString AttributesModel::methodParamType(int row) const
+{
+	if (m_shvTreeNodeItem.isNull() || row < 0 || row >= m_shvTreeNodeItem->methods().count()) {
+		return {};
+	}
+	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].metamethod.paramType());
+}
+
+QString AttributesModel::methodResultType(int row) const
+{
+	if (m_shvTreeNodeItem.isNull() || row < 0 || row >= m_shvTreeNodeItem->methods().count()) {
+		return {};
+	}
+	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].metamethod.resultType());
 }
 
 shv::chainpack::RpcValue AttributesModel::methodParams(int row) const

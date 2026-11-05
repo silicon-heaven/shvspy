@@ -3,6 +3,7 @@
 
 #include "typeinfoloader.h"
 #include "theapp.h"
+#include "rpctypedescription.h"
 #include "attributesmodel/attributesmodel.h"
 
 #include <shv/chainpack/rpc.h>
@@ -27,16 +28,6 @@ bool is_decodable(const cp::RpcValue &value)
 {
 	return !value.isString() && !value.isBlob();
 }
-
-struct DecodedValue
-{
-	QString name;
-	QString value;
-	QString typeName;
-	QString unit;
-	QString description;
-	QList<DecodedValue> children;
-};
 
 // description is often the same as label in type info, it is shown once then
 QString description_text(const ShvTypeDescr &descr)
@@ -220,6 +211,7 @@ void ValueInspectorDialog::setResult(const QModelIndex &ix)
 {
 	auto *attributes_model = TheApp::instance()->attributesModel();
 	auto resp = attributes_model->methodCallResult(ix.row());
+	m_inlineResultType = attributes_model->methodResultType(ix.row());
 	ui->frmTypeInfo->show();
 	if (resp.isError()) {
 		m_value = {};
@@ -249,7 +241,7 @@ void ValueInspectorDialog::setResult(const QModelIndex &ix)
 	}
 	ui->frmTypeInfo->show();
 	if (attributes_model->methodName(ix.row()) != cp::Rpc::METH_GET) {
-		setErrorMessage(tr("type info can be applied to the result of method %1 only").arg(cp::Rpc::METH_GET));
+		typeInfoFailed(tr("type info can be applied to the result of method %1 only").arg(cp::Rpc::METH_GET));
 		return;
 	}
 	ui->pbTypeInfo->show();
@@ -260,32 +252,22 @@ void ValueInspectorDialog::setResult(const QModelIndex &ix)
 	loader->start();
 }
 
+void ValueInspectorDialog::typeInfoFailed(const QString &reason)
+{
+	ui->pbTypeInfo->hide();
+	if (!decodeInlineType()) {
+		setErrorMessage(reason);
+	}
+}
+
 void ValueInspectorDialog::setErrorMessage(const QString &reason)
 {
 	ui->pbTypeInfo->hide();
 	ui->lblTypeInfo->setText(tr("Type info is not available: <i>%1</i>").arg(reason.toHtmlEscaped()));
 }
 
-void ValueInspectorDialog::onTypeInfoLoaded(const shv::core::utils::ShvTypeInfo &type_info, const QString &property_path, const QString &error)
+void ValueInspectorDialog::showDecodedValue(const DecodedValue &decoded, const QString &source)
 {
-	if (!error.isEmpty()) {
-		setErrorMessage(error);
-		return;
-	}
-	std::string field_path;
-	ShvFieldDescr field_descr = type_info.propertyDescriptionForPath(property_path.toStdString(), &field_path);
-	auto type_descr = type_info.findTypeDescription(field_descr.typeName());
-	for (const auto &field_name : shv::core::utils::ShvPath::splitPath(field_path)) {
-		field_descr = type_descr.field(std::string(field_name));
-		type_descr = type_info.findTypeDescription(field_descr.typeName());
-	}
-	// property can be found by an empty prefix, but its field path does not lead to any type then
-	if (type_descr.type() == ShvTypeDescr::Type::Invalid) {
-		setErrorMessage(tr("Type of property %1 not found").arg(property_path));
-		return;
-	}
-	auto decoded = decode_value(type_info, property_path.section('/', -1), m_value, field_descr, type_descr);
-
 	ui->twValue->clear();
 	ui->twValue->addTopLevelItem(create_tree_item(decoded));
 	ui->twValue->expandAll();
@@ -297,9 +279,49 @@ void ValueInspectorDialog::onTypeInfoLoaded(const shv::core::utils::ShvTypeInfo 
 	if (!decoded.description.isEmpty()) {
 		info += QStringLiteral(" – <i>") + decoded.description.toHtmlEscaped() + "</i>";
 	}
-	ui->pbTypeInfo->hide();
+	if (!source.isEmpty()) {
+		info += QStringLiteral(" <small>(") + source.toHtmlEscaped() + QStringLiteral(")</small>");
+	}
 	ui->lblTypeInfo->setText(info);
 	ui->btDecode->setEnabled(is_decodable(m_value));
+	showTypeInfo(ui->btDecode->isChecked());
+}
+
+bool ValueInspectorDialog::decodeInlineType()
+{
+	if (m_inlineResultType.isEmpty()) {
+		return false;
+	}
+	const auto parsed_type = RpcTypeDescription::parse(m_inlineResultType);
+	if (!parsed_type) {
+		return false;
+	}
+	auto decoded = parsed_type->decode(m_value, "result");
+	showDecodedValue(decoded, tr("method result type"));
+	return true;
+}
+
+void ValueInspectorDialog::onTypeInfoLoaded(const shv::core::utils::ShvTypeInfo &type_info, const QString &property_path, const QString &error)
+{
+	if (!error.isEmpty()) {
+		typeInfoFailed(error);
+		return;
+	}
+	std::string field_path;
+	ShvFieldDescr field_descr = type_info.propertyDescriptionForPath(property_path.toStdString(), &field_path);
+	auto type_descr = type_info.findTypeDescription(field_descr.typeName());
+	for (const auto &field_name : shv::core::utils::ShvPath::splitPath(field_path)) {
+		field_descr = type_descr.field(std::string(field_name));
+		type_descr = type_info.findTypeDescription(field_descr.typeName());
+	}
+	// property can be found by an empty prefix, but its field path does not lead to any type then
+	if (type_descr.type() == ShvTypeDescr::Type::Invalid) {
+		typeInfoFailed(tr("Type of property %1 not found").arg(property_path));
+		return;
+	}
+	auto decoded = decode_value(type_info, property_path.section('/', -1), m_value, field_descr, type_descr);
+	showDecodedValue(decoded, tr("type info file"));
+	ui->pbTypeInfo->hide();
 }
 
 void ValueInspectorDialog::showTypeInfo(bool on)
