@@ -47,52 +47,46 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 {
 	if(m_shvTreeNodeItem.isNull())
 		return QVariant();
-	const QVector<ShvMetaMethod> &mms = m_shvTreeNodeItem->methods();
+	const auto &mms = m_shvTreeNodeItem->methods();
 	if(ix.row() < 0 || ix.row() >= mms.count())
 		return QVariant();
 	if(ix.column() < 0 || ix.column() >= ColCnt)
 		return QVariant();
 
+	const ShvMetaMethod &mm = mms[ix.row()];
 	switch (role) {
 	case Qt::DisplayRole: {
 		switch (ix.column()) {
 		case ColMethodName:
+			return QString::fromStdString(mm.metamethod.name());
 		case ColParamType:
-		case ColResultType: {
-			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-			return rv.isValid()? QString::fromStdString(rv.asString()): QVariant();
-		}
-		case ColSignals: {
-			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
-		}
-		case ColParams: {
-			//QVariant v = m_rows.value(ix.row()).value(ix.column());
-			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
-		}
+			return QString::fromStdString(mm.metamethod.paramType());
+		case ColResultType:
+			return QString::fromStdString(mm.metamethod.resultType());
+		case ColSignals:
+			return QString::fromStdString(cp::RpcValue(mm.metamethod.methodSignals()).toCpon());
+		case ColParams:
+			return QString::fromStdString(mm.params.toCpon());
 		case ColResult: {
-			if(m_rows[ix.row()][ColError].isIMap()) {
-				auto err = cp::RpcResponse::Error::fromRpcValue(m_rows[ix.row()][ColError].asIMap());
-				return QString::fromStdString(err.message());
+			const auto &resp = mm.response;
+			if (resp.isError()) {
+				return QString::fromStdString(resp.error().message());
 			}
-			{
-				cp::RpcValue rv = m_rows[ix.row()][ColResult];
-				if(!rv.isValid())
+			const auto &result = resp.result();
+			if (!result.isValid()) {
 					return QVariant();
-
-				static constexpr int MAX_TT_SIZE = 1024;
-				std::string tts = rv.toCpon();
-				if(tts.size() > MAX_TT_SIZE)
-					tts = tts.substr(0, MAX_TT_SIZE) + " < ... " + std::to_string(tts.size() - MAX_TT_SIZE) + " more bytes >";
-
-				//shvWarning() << tts << tts.length();
-				return QString::fromStdString(tts);
 			}
+				static constexpr int MAX_TT_SIZE = 1024;
+			std::string tts = result.toCpon();
+			if (tts.size() > MAX_TT_SIZE) {
+					tts = tts.substr(0, MAX_TT_SIZE) + " < ... " + std::to_string(tts.size() - MAX_TT_SIZE) + " more bytes >";
+			}
+			return QString::fromStdString(tts);
 		}
 		case ColFlags:
+			return QString::fromStdString(mm.flagsStr());
 		case ColAccessLevel:
-			return QString::fromStdString(m_rows[ix.row()][ix.column()].toString());
+			return QString::fromStdString(mm.accessLevelStr());
 		default:
 			break;
 		}
@@ -101,22 +95,8 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	case Qt::EditRole: {
 		switch (ix.column()) {
 		case ColResult:
-		case ColParams: {
-			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
-		}
-		default:
-			break;
-		}
-		break;
-	}
-	case RpcValueRole: {
-		switch (ix.column()) {
-		case ColResult:
-		case ColParams: {
-			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-			return QVariant::fromValue(rv);
-		}
+		case ColParams:
+			return data(ix, Qt::DisplayRole);
 		default:
 			break;
 		}
@@ -124,12 +104,11 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	}
 	case Qt::DecorationRole: {
 		if(ix.column() == ColBtRun) {
-			bool is_notify = m_rows[ix.row()][ColFlags].toBool();
-			if(!is_notify) {
+			bool is_notify = mm.isSignal();
+			if (!is_notify) {
 				static QIcon ico_run = QIcon(QStringLiteral(":/shvspy/images/run"));
 				static QIcon ico_reload = QIcon(QStringLiteral(":/shvspy/images/reload"));
-				auto v = m_rows[ix.row()][ColBtRun];
-				return (v.toUInt() > 0)? ico_reload: ico_run;
+				return (mm.rpcRequestId > 0)? ico_reload: ico_run;
 			}
 		}
 		break;
@@ -138,17 +117,12 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		if(ix.column() == ColBtRun) {
 			return tr("Call remote method");
 		}
-		if(ix.column() == ColResult) {
-			return data(ix, Qt::DisplayRole);
-		}
 		if(ix.column() == ColFlags) {
-			bool is_notify = m_rows[static_cast<unsigned>(ix.row())][ColFlags].toUInt() & cp::MetaMethod::Flag::IsSignal;
-			return is_notify? tr("Method is notify signal"): QVariant();
+			return mm.isSignal() ? tr("Method is notify signal"): QVariant();
 		}
 		if(ix.column() == ColMethodName) {
-			auto mm = shv::chainpack::MetaMethod::fromRpcValue(m_rows[static_cast<unsigned>(ix.row())][ColMetaMethod]);
 			QStringList lines;
-			for(const auto &[k, v] : mm.toMap()) {
+			for(const auto &[k, v] : mm.metamethod.toMap()) {
 				lines << tr("%1: %2").arg(k.c_str(), v.toCpon().c_str());
 			}
 			return lines.join('\n');
@@ -176,7 +150,6 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 						shvError() << "cannot set invalid cpon data:" << cpon << "error:" << err;
 				}
 				m_shvTreeNodeItem->setMethodParams(ix.row(), params);
-				loadRow(ix.row());
 				emit dataChanged(ix, ix);
 				return true;
 			}
@@ -205,7 +178,7 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 			else if(section == ColParams)
 				ret = tr("Params");
 			else if(section == ColResult)
-				ret = tr("Result");
+				ret = tr("Response");
 		}
 		else if(role == Qt::ToolTipRole) {
 			if(section == ColAccessLevel)
@@ -217,26 +190,30 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 
 void AttributesModel::load(ShvNodeItem *nd)
 {
-	m_rows.clear();
+	beginResetModel();
 	if(!m_shvTreeNodeItem.isNull())
 		m_shvTreeNodeItem->disconnect(this);
 	m_shvTreeNodeItem = nd;
+	endResetModel();
 	if(nd) {
 		// Clazy false positive https://invent.kde.org/sdk/clazy/-/issues/22
 		connect(nd, &ShvNodeItem::methodsLoaded, this, &AttributesModel::onMethodsLoaded, Qt::UniqueConnection); // clazy:exclude=lambda-unique-connection
 		connect(nd, &ShvNodeItem::rpcMethodCallFinished, this, &AttributesModel::onRpcMethodCallFinished, Qt::UniqueConnection); // clazy:exclude=lambda-unique-connection
-		nd->checkMethodsLoaded();
+		if (nd->isMethodsLoaded()) {
+			callGetters();
+		}
+		else if (!nd->isMethodsLoading()) {
+			nd->loadMethods();
+		}
 	}
-	loadRows();
 }
 
 void AttributesModel::callMethod(unsigned method_ix, bool throw_exc)
 {
 	if(m_shvTreeNodeItem.isNull())
 		return;
-	unsigned rqid = m_shvTreeNodeItem->callMethod(method_ix, throw_exc);
-	m_rows[method_ix][ColBtRun] = rqid;
-	emitRowChanged(method_ix);
+	m_shvTreeNodeItem->callMethod(method_ix, throw_exc);
+	emit dataChanged(index(method_ix, ColResult), index(method_ix, ColBtRun));
 }
 
 QString AttributesModel::path() const
@@ -247,20 +224,28 @@ QString AttributesModel::path() const
 	return QString::fromStdString(m_shvTreeNodeItem->shvPath());
 }
 
-QString AttributesModel::method(int row) const
+QString AttributesModel::methodName(int row) const
 {
-	if (m_shvTreeNodeItem.isNull()) {
+	if (m_shvTreeNodeItem.isNull() || row < 0 || row >= m_shvTreeNodeItem->methods().count()) {
 		return QString();
 	}
 	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].metamethod.name());
 }
 
-bool AttributesModel::isResultError(int row) const
+shv::chainpack::RpcValue AttributesModel::methodParams(int row) const
 {
-	if (m_shvTreeNodeItem.isNull()) {
-		return false;
+	if (m_shvTreeNodeItem.isNull() || row < 0 || row >= m_shvTreeNodeItem->methods().count()) {
+		return {};
 	}
-	return m_shvTreeNodeItem->methods()[row].response.isError();
+	return m_shvTreeNodeItem->methods()[row].params;
+}
+
+shv::chainpack::RpcResponse AttributesModel::methodCallResult(int row) const
+{
+	if (m_shvTreeNodeItem.isNull() || row < 0 || row >= m_shvTreeNodeItem->methods().count()) {
+		return {};
+	}
+	return m_shvTreeNodeItem->methods()[row].response;
 }
 
 shv::iotqt::rpc::ClientConnection *AttributesModel::clientConnection() const
@@ -273,101 +258,26 @@ shv::iotqt::rpc::ClientConnection *AttributesModel::clientConnection() const
 
 void AttributesModel::onMethodsLoaded()
 {
-	loadRows();
+	beginResetModel();
+	endResetModel();
+	callGetters();
 }
 
 void AttributesModel::onRpcMethodCallFinished(int method_ix)
 {
-	loadRow(method_ix);
-	emitRowChanged(method_ix);
-	emit methodCallResultChanged(method_ix);
-}
-
-void AttributesModel::emitRowChanged(int row_ix)
-{
-	QModelIndex ix1 = index(row_ix, 0);
-	QModelIndex ix2 = ix1.siblingAtColumn(columnCount() - 1);
-	emit dataChanged(ix1, ix2);
+	emit dataChanged(index(method_ix, ColResult), index(method_ix, ColBtRun));
 }
 
 void AttributesModel::callGetters()
 {
-	for (unsigned i = 0; i < m_rows.size(); ++i) {
-		const ShvMetaMethod *mm = metaMethodAt(i);
-		if(mm) {
-			if((mm->metamethod.flags() & cp::MetaMethod::Flag::IsGetter) && !(mm->metamethod.flags() & cp::MetaMethod::Flag::LargeResultHint)) {
-				callMethod(i);
-			}
-		}
-	}
-}
-
-const ShvMetaMethod *AttributesModel::metaMethodAt(unsigned method_ix)
-{
-	if(method_ix >= m_rows.size() || m_shvTreeNodeItem.isNull())
-		return nullptr;
-	const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
-	if(method_ix >= static_cast<unsigned>(mm.size()))
-		return nullptr;
-	return &(mm[method_ix]);
-}
-
-void AttributesModel::loadRow(unsigned method_ix)
-{
-	const ShvMetaMethod * mtd = metaMethodAt(method_ix);
-	if(!mtd)
+	if (m_shvTreeNodeItem.isNull()) {
 		return;
-	RowVals &rv = m_rows[method_ix];
-	shvDebug() << "load row:" << mtd->metamethod.name() << "flags:" << mtd->metamethod.flags() << mtd->flagsStr();
-	rv[ColMethodName] = mtd->metamethod.name();
-	rv[ColResultType] = mtd->metamethod.resultType();
-	rv[ColParamType] = mtd->metamethod.paramType();
-	rv[ColSignals] = mtd->metamethod.methodSignals();
-	rv[ColFlags] = mtd->flagsStr();
-	rv[ColAccessLevel] = mtd->accessLevelStr();
-	rv[ColParams] = mtd->params;
-	rv[ColMetaMethod] = mtd->metamethod.toRpcValue();
-	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();
-	if(mtd->response.isError()) {
-		rv[ColResult] = mtd->response.error().toRpcValue();
 	}
-	else {
-		shv::chainpack::RpcValue result = mtd->response.result();
-		rv[ColResult] = result;
-	}
-	rv[ColBtRun] = mtd->rpcRequestId;
-}
-
-void AttributesModel::loadRows()
-{
-	m_rows.clear();
-	if(!m_shvTreeNodeItem.isNull()) {
-		const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
-		for (int i = 0; i < mm.count(); ++i) {
-			RowVals rv;
-			rv.resize(ColCnt);
-			m_rows.push_back(rv);
-			loadRow(static_cast<unsigned>(m_rows.size() - 1));
-		}
-	}
-	emit layoutChanged();
-	emit reloaded();
-	callGetters();
-}
-
-/*
-void AttributesModel::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
-{
-	if(msg.isResponse()) {
-		cp::RpcResponse resp(msg);
-		if(resp.requestId() == m_rpcRqId) {
-			for(const cp::RpcValue &val : resp.result().toList()) {
-				appendRow(QList<QStandardItem*>{
-							  new QStandardItem(QString::fromStdString(val.toString())),
-							  new QStandardItem("<not called>"),
-						  });
-			}
+	const auto &mms = m_shvTreeNodeItem->methods();
+	for (int i = 0; i < static_cast<int>(mms.count()); ++i) {
+		const ShvMetaMethod &mm = mms[i];
+		if (mm.isGetter() && !(mm.metamethod.flags() & cp::MetaMethod::Flag::LargeResultHint)) {
+			callMethod(i);
 		}
 	}
 }
-*/
