@@ -46,6 +46,7 @@ private:
 	void editServer(ShvBrokerNodeItem *srv, bool copy_server);
 	void openNode(const QModelIndex &ix);
 	void displayResult(const QModelIndex &ix);
+	void displayMethodType(const QModelIndex &ix);
 	void displayValue(const shv::chainpack::RpcValue &rv);
 	void showBlob(const QByteArray &blob);
 	void editMethodParameters(const QModelIndex &ix);
