@@ -13,6 +13,7 @@
 #include "dlgcallshvmethod.h"
 #include "dlgsettings.h"
 #include "methodparametersdialog.h"
+#include "typedescriptiondialog.h"
 #include "texteditdialog.h"
 #include "valueinspectordialog.h"
 
@@ -134,6 +135,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(ui->tblAttributes, &QTableView::doubleClicked, this, [this](const QModelIndex &ix) {
 		if (ix.column() == AttributesModel::ColResult) {
 			displayResult(ix);
+		}
+		else if (ix.column() == AttributesModel::ColParamType || ix.column() == AttributesModel::ColResultType) {
+			displayMethodType(ix);
 		}
 		else if (ix.column() == AttributesModel::ColParams) {
 			editCponParameters(ix);
@@ -509,6 +513,20 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	view->setValidateContent(false);
 	view->setResult(ix);
 	view->show();
+}
+
+void MainWindow::displayMethodType(const QModelIndex &ix)
+{
+	const bool is_result_type = ix.column() == AttributesModel::ColResultType;
+	auto *attributes_model = TheApp::instance()->attributesModel();
+	const QString type_text = is_result_type ? attributes_model->methodResultType(ix.row()) : attributes_model->methodParamType(ix.row());
+	if (type_text.isEmpty()) {
+		return;
+	}
+	auto *dialog = new TypeDescriptionDialog(type_text, this);
+	dialog->setWindowTitle(is_result_type ? tr("Result type") : tr("Param type"));
+	dialog->setAttribute(Qt::WA_DeleteOnClose);
+	dialog->show();
 }
 
 namespace {
