@@ -214,7 +214,7 @@ jobs:
           submodules: true
 
       - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2.25
+        uses: hendrikmuhs/ccache-action@v1.2.26
         with:
           key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.id }}
           max-size: 50M
